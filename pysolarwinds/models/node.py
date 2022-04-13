@@ -1,5 +1,5 @@
 from pysolarwinds.models import BaseModel
-from pysolarwinds.core.exceptions import SWObjectNotFoundError, SWNonUniqueResultError
+from pysolarwinds.core.exceptions import SWObjectExistsError, SWObjectPropertyError, SWObjectNotFoundError, SWNonUniqueResultError
 
 class Node(BaseModel):
     def _get_uri(self, ip=None, hostname=None):
@@ -14,7 +14,7 @@ class Node(BaseModel):
         query = f"SELECT Uri AS uri FROM Orion.Nodes WHERE {where_clause}"
         results = self.swis.query(query)["results"]
         if not results:
-            msg = f"Node not found. heck hostname/ip.\nSWQL query: {query}"
+            msg = f"Node not found. Check hostname/IP. SWQL query: {query}"
             raise SWObjectNotFoundError(msg)
         if len(results) > 1:
             msg = (
@@ -27,9 +27,12 @@ class Node(BaseModel):
 
     def create(self, ip=None, hostname=None, properties=None, custom_properties=None):
         ip = ip or properties.get('IPAddress')
+        if self.exists(ip):
+            raise SWObjectExistsError(f'Node with IP {ip} already exists.')
         hostname = hostname or properties.get('Caption')
         if ip is None:
-            raise ValueError('Must provide polling IP as either ip arg, or "IPAddress" key in properties arg')
+            raise SWObjectPropertyError('Must provide polling IP as either ip argument, '
+                             'or IPAddress key in properties argument.')
         props = {
             'EngineID': 1,
             'ObjectSubType': 'SNMP',
@@ -52,9 +55,10 @@ class Node(BaseModel):
         return self.swis.delete(uri)
 
     def exists(self, ip=None, hostname=None):
-        if self._get_uri(hostname=hostname, ip=ip):
+        try:
+            self._get_uri(hostname=hostname, ip=ip)
             return True
-        else:
+        except SWObjectNotFoundError:
             return False
 
     def get(self, ip=None, hostname=None, uri=None):
