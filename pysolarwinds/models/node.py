@@ -79,7 +79,8 @@ class Node(BaseModel):
         return True
 
     def delete(self):
-        return self.swis.delete(self.get_uri())
+        self.swis.delete(self.get_uri())
+        return True
 
     def details(self):
         return self.swis.read(self.get_uri())
@@ -98,7 +99,7 @@ class Node(BaseModel):
 
     def exists(self):
         try:
-            self.get_uri()
+            self.get_uri(force=True)
             return True
         except SWObjectNotFoundError:
             return False
@@ -126,6 +127,7 @@ class Node(BaseModel):
                 raise SWNonUniqueResultError(msg)
             else:
                 self.uri = results[0]["uri"]
+                self.id = self.get_id()
         return self.uri
 
     def get_id(self):
