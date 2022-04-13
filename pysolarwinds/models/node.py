@@ -1,10 +1,28 @@
 from pysolarwinds.models import BaseModel
+import re
 from pysolarwinds.core.exceptions import (
-    SWObjectExistsError,
-    SWObjectPropertyError,
-    SWObjectNotFoundError,
     SWNonUniqueResultError,
+    SWObjectExistsError,
+    SWObjectNotFoundError,
+    SWObjectPropertyError,
 )
+
+ICMP_POLLERS = [
+    "N.Status.ICMP.Native",
+    "N.ResponseTime.ICMP.Native",
+]
+
+SNMP_POLLERS = [
+    "N.Status.SNMP.Native",
+    "N.ResponseTime.SNMP.Native",
+    "N.Details.SNMP.Generic",
+    "N.Uptime.SNMP.Generic",
+    "N.Cpu.SNMP.HrProcessorLoad",
+    "N.Memory.SNMP.NetSnmpReal",
+    "N.AssetInventory.Snmp.Generic",
+    "N.Topology_Layer3.SNMP.ipNetToMedia",
+    "N.Routing.SNMP.Ipv4CidrRoutingTable",
+]
 
 
 class Node(BaseModel):
@@ -31,16 +49,26 @@ class Node(BaseModel):
         else:
             return results[0]["uri"]
 
-    def create(self, ip=None, hostname=None, properties=None, custom_properties=None):
+    def create(
+        self,
+        ip=None,
+        hostname=None,
+        properties=None,
+        custom_properties=None,
+        pollers=None,
+    ):
+
+        # validate IP
         ip = ip or properties.get("IPAddress")
-        if self.exists(ip):
-            raise SWObjectExistsError(f"Node with IP {ip} already exists.")
-        hostname = hostname or properties.get("Caption")
         if ip is None:
             raise SWObjectPropertyError(
                 "Must provide polling IP as either ip argument, "
                 "or IPAddress key in properties argument."
             )
+        if self.exists(ip):
+            raise SWObjectExistsError(f"Node with IP {ip} already exists.")
+
+        # default props
         props = {
             "EngineID": 1,
             "ObjectSubType": "SNMP",
@@ -52,6 +80,13 @@ class Node(BaseModel):
         if properties:
             props.update(properties)
 
+        # pollers
+        if pollers is None:
+            if props["ObjectSubType"] == "SNMP":
+                pollers = SNMP_POLLERS
+            else:
+                pollers = ICMP_POLLERS
+
         # snmp
         if self.snmpv2c:
             community = self.snmpv2c.get("rw") or self.snmpv2c.get("ro")
@@ -59,12 +94,21 @@ class Node(BaseModel):
                 props.update({"Community": community})
 
         # hostname
+        hostname = hostname or properties.get("Caption")
         if hostname:
             props.update({"Caption": hostname})
 
+        # create node
         uri = self.swis.create("Orion.Nodes", **props)
+
+        # custom properties
         if custom_properties:
             self.update(uri=uri, custom_properties=custom_properties)
+
+        # enable pollers
+        if pollers:
+            self.enable_pollers(uri=uri, pollers=pollers)
+
         return uri
 
     def delete(self, ip=None, hostname=None, uri=None):
@@ -72,23 +116,42 @@ class Node(BaseModel):
             uri = self._get_uri(hostname=hostname, ip=ip)
         return self.swis.delete(uri)
 
+    def details(self, ip=None, hostname=None, uri=None):
+        if uri is None:
+            uri = self._get_uri(ip=ip, hostname=hostname)
+        return self.swis.read(uri)
+
+    def enable_pollers(ip=None, hostname=None, pollers=None, uri=None):
+        if uri is None:
+            uri = self._get_uri(ip=ip, hostname=hostname)
+        node_id = self.id(ip=ip, hostname=hostname, uri=uri)
+        for poller_type in pollers:
+            poller = {
+                "PollerType": poller_type,
+                "NetObject": f"N:{node_id}",
+                "NetObjectType": "N",
+                "NetObjectID": node_id,
+                "Enabled": True,
+            }
+            swis.create("Orion.Pollers", **poller)
+
     def exists(self, ip=None, hostname=None):
         try:
-            self._get_uri(hostname=hostname, ip=ip)
+            self._get_uri(ip=ip, hostname=hostname)
             return True
         except SWObjectNotFoundError:
             return False
 
-    def get(self, ip=None, hostname=None, uri=None):
+    def id(self, ip=None, hostname=None, uri=None):
         if uri is None:
-            uri = self._get_uri(hostname=hostname, ip=ip)
-        return self.swis.read(uri)
+            uri = self._get_uri(ip=ip, hostname=hostname)
+        return int(re.search(r"(\d+)$", uri).group(0))
 
     def update(
         self, ip=None, hostname=None, properties=None, custom_properties=None, uri=None
     ):
         if uri is None:
-            uri = self._get_uri(hostname=hostname, ip=ip)
+            uri = self._get_uri(ip=ip, hostname=hostname)
         if properties:
             if hostname:
                 properties.update({"Caption": hostname})
