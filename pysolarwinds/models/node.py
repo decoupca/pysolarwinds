@@ -1,131 +1,92 @@
-from pysolarwinds.models import BaseModel
 import re
+from copy import deepcopy
+
 from pysolarwinds.core.exceptions import (
     SWNonUniqueResultError,
     SWObjectExistsError,
     SWObjectNotFoundError,
     SWObjectPropertyError,
 )
+from pysolarwinds.models import BaseModel
 
-ICMP_POLLERS = [
-    "N.Status.ICMP.Native",
-    "N.ResponseTime.ICMP.Native",
-]
+DEFAULT_PROPERTIES = {
+    "EngineID": 1,
+    "ObjectSubType": "SNMP",
+    "SNMPVersion": 2,
+}
 
-SNMP_POLLERS = [
-    "N.Status.SNMP.Native",
-    "N.ResponseTime.SNMP.Native",
-    "N.Details.SNMP.Generic",
-    "N.Uptime.SNMP.Generic",
-    "N.Cpu.SNMP.HrProcessorLoad",
-    "N.Memory.SNMP.NetSnmpReal",
-    "N.AssetInventory.Snmp.Generic",
-    "N.Topology_Layer3.SNMP.ipNetToMedia",
-    "N.Routing.SNMP.Ipv4CidrRoutingTable",
-]
+DEFAULT_POLLERS = {
+    "icmp": [
+        "N.Status.ICMP.Native",
+        "N.ResponseTime.ICMP.Native",
+    ],
+    "snmp": [
+        "N.ResponseTime.SNMP.Native",
+        "N.Details.SNMP.Generic",
+        "N.Uptime.SNMP.Generic",
+        "N.Cpu.SNMP.HrProcessorLoad",
+        "N.Memory.SNMP.NetSnmpReal",
+        "N.AssetInventory.Snmp.Generic",
+        "N.Topology_Layer3.SNMP.ipNetToMedia",
+        "N.Routing.SNMP.Ipv4CidrRoutingTable",
+    ],
+}
 
 
 class Node(BaseModel):
-    def _get_uri(self, ip=None, hostname=None):
-        if hostname is None and ip is None:
-            raise ValueError("Must provide hostname, IP, or both")
-        where = []
-        if hostname:
-            where.append(f"Caption = '{hostname}'")
-        if ip:
-            where.append(f"IPAddress = '{ip}'")
-        where_clause = " AND ".join(where)
-        query = f"SELECT Uri AS uri FROM Orion.Nodes WHERE {where_clause}"
-        results = self.swis.query(query)["results"]
-        if not results:
-            msg = f"Node not found. Check hostname/IP. SWQL query: {query}"
-            raise SWObjectNotFoundError(msg)
-        if len(results) > 1:
-            msg = (
-                f"Got {len(results)} results. Try a different combination of hostname/ip, "
-                f"or remove duplicates in Solarwinds.\nSWQL query: {query}"
-            )
-            raise SWNonUniqueResultError(msg)
-        else:
-            return results[0]["uri"]
-
-    def create(
-        self,
-        ip=None,
-        hostname=None,
-        properties=None,
-        custom_properties=None,
-        pollers=None,
-    ):
-
-        # validate IP
-        ip = ip or properties.get("IPAddress")
-        if ip is None:
+    def __init__(self, swis, **kwargs):
+        super().__init__(swis)
+        self.ip = kwargs.get("ip") or kwargs.properties.get("IPAddress")
+        if self.ip is None:
             raise SWObjectPropertyError(
                 "Must provide polling IP as either ip argument, "
                 "or IPAddress key in properties argument."
             )
-        if self.exists(ip):
-            raise SWObjectExistsError(f"Node with IP {ip} already exists.")
+        self.hostname = kwargs.get("hostname") or kwargs.properties.get("Caption")
+        self.custom_properties = kwargs.get("custom_properties")
+        self.id = kwargs.get("id")
+        self.uri = kwargs.get("uri")
+        self.snmpv2c = kwargs.get("snmpv2c")
+        self.properties = kwargs.get("properties")
+        defaults = deepcopy(DEFAULT_PROPERTIES)
+        if self.properties:
+            self.properties = defaults.update(self.properties)
+        else:
+            self.properties = defaults
 
-        # default props
-        props = {
-            "EngineID": 1,
-            "ObjectSubType": "SNMP",
-            "SNMPVersion": 2,
-        }
-        props.update({"IPAddress": ip})
+        self.polling_method = self.properties["ObjectSubType"].lower()
+        self.pollers = kwargs.get("pollers")
+        if not self.pollers:
+            self.pollers = DEFAULT_POLLERS[self.polling_method]
 
-        # update default props with provided values
-        if properties:
-            props.update(properties)
+        self.properties.update({"IPAddress": self.ip})
+        if self.hostname:
+            self.properties.update({"Caption": self.hostname})
 
-        # pollers
-        if pollers is None:
-            if props["ObjectSubType"] == "SNMP":
-                pollers = SNMP_POLLERS
-            else:
-                pollers = ICMP_POLLERS
-
-        # snmp
         if self.snmpv2c:
             community = self.snmpv2c.get("rw") or self.snmpv2c.get("ro")
-            if community and props["ObjectSubType"] == "SNMP":
-                props.update({"Community": community})
+            if community and self.polling_method == "snmp":
+                self.properties.update({"Community": community})
 
-        # hostname
-        hostname = hostname or properties.get("Caption")
-        if hostname:
-            props.update({"Caption": hostname})
+    def create(self):
+        if self.exists():
+            raise SWObjectExistsError(f"Node with IP {self.ip} already exists.")
+        self.uri = self.swis.create("Orion.Nodes", **self.properties)
+        if self.custom_properties:
+            self.update("custom_properties")
+        if self.pollers:
+            self.enable_pollers()
+        return True
 
-        # create node
-        uri = self.swis.create("Orion.Nodes", **props)
+    def delete(self):
+        return self.swis.delete(self.get_uri())
 
-        # custom properties
-        if custom_properties:
-            self.update(uri=uri, custom_properties=custom_properties)
+    def details(self):
+        return self.swis.read(self.get_uri())
 
-        # enable pollers
-        if pollers:
-            self.enable_pollers(uri=uri, pollers=pollers)
-
-        return uri
-
-    def delete(self, ip=None, hostname=None, uri=None):
-        if uri is None:
-            uri = self._get_uri(hostname=hostname, ip=ip)
-        return self.swis.delete(uri)
-
-    def details(self, ip=None, hostname=None, uri=None):
-        if uri is None:
-            uri = self._get_uri(ip=ip, hostname=hostname)
-        return self.swis.read(uri)
-
-    def enable_pollers(ip=None, hostname=None, pollers=None, uri=None):
-        if uri is None:
-            uri = self._get_uri(ip=ip, hostname=hostname)
-        node_id = self.id(ip=ip, hostname=hostname, uri=uri)
-        for poller_type in pollers:
+    def enable_pollers(self):
+        node_id = self.get_id()
+        for poller_type in self.pollers:
             poller = {
                 "PollerType": poller_type,
                 "NetObject": f"N:{node_id}",
@@ -133,30 +94,55 @@ class Node(BaseModel):
                 "NetObjectID": node_id,
                 "Enabled": True,
             }
-            swis.create("Orion.Pollers", **poller)
+            self.swis.create("Orion.Pollers", **poller)
 
-    def exists(self, ip=None, hostname=None):
+    def exists(self):
         try:
-            self._get_uri(ip=ip, hostname=hostname)
+            self.get_uri()
             return True
         except SWObjectNotFoundError:
             return False
 
-    def id(self, ip=None, hostname=None, uri=None):
-        if uri is None:
-            uri = self._get_uri(ip=ip, hostname=hostname)
-        return int(re.search(r"(\d+)$", uri).group(0))
+    def get_uri(self, force=False):
+        if (not self.uri) or (self.uri and force):
+            if self.hostname is None and self.ip is None:
+                raise ValueError("Must provide hostname, IP, or both")
+            where = []
+            if self.hostname:
+                where.append(f"Caption = '{self.hostname}'")
+            if self.ip:
+                where.append(f"IPAddress = '{self.ip}'")
+            where_clause = " AND ".join(where)
+            query = f"SELECT Uri AS uri FROM Orion.Nodes WHERE {where_clause}"
+            results = self.swis.query(query)["results"]
+            if not results:
+                msg = f"Node not found. Check hostname/IP. SWQL query: {query}"
+                raise SWObjectNotFoundError(msg)
+            if len(results) > 1:
+                msg = (
+                    f"Got {len(results)} results. Try a different combination of hostname/ip, "
+                    f"or remove duplicates in Solarwinds.\nSWQL query: {query}"
+                )
+                raise SWNonUniqueResultError(msg)
+            else:
+                self.uri = results[0]["uri"]
+        return self.uri
 
-    def update(
-        self, ip=None, hostname=None, properties=None, custom_properties=None, uri=None
-    ):
-        if uri is None:
-            uri = self._get_uri(ip=ip, hostname=hostname)
-        if properties:
-            if hostname:
-                properties.update({"Caption": hostname})
-            if ip:
-                properties.update({"IPAddress": ip})
-            self.swis.update(uri, **properties)
-        if custom_properties:
-            self.swis.update(f"{uri}/CustomProperties", **custom_properties)
+    def get_id(self):
+        self.id = int(re.search(r"(\d+)$", self.get_uri()).group(0))
+        return self.id
+
+    def update(self, update="all"):
+        uri = self.get_uri()
+        if update == "all":
+            self.swis.update(uri, **self.properties)
+            self.swis.update(f"{uri}/CustomProperties", **self.custom_properties)
+            return True
+        if update == "custom_properties":
+            self.swis.update(f"{uri}/CustomProperties", **self.custom_properties)
+            return True
+        if update == "properties":
+            self.swis.update(uri, **self.properties)
+            return True
+        else:
+            return None

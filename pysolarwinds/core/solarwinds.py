@@ -1,6 +1,7 @@
 import requests
 from orionsdk import SwisClient
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
 from pysolarwinds.models.node import Node
 
 
@@ -13,4 +14,6 @@ class Solarwinds(object):
         self.password = password
         self.snmpv2c = snmpv2c
         self.swis = SwisClient(host, username, password)
-        self.node = Node(self.swis)
+
+    def node(self, **kwargs):
+        return Node(self.swis, snmpv2c=self.snmpv2c, **kwargs)

@@ -1,7 +1,9 @@
-from pysolarwinds import Solarwinds
-from config import sw_args
-import ipdb
 from pprint import pprint
+
+import ipdb
+from config import sw_args
+
+from pysolarwinds import Solarwinds
 
 sw = Solarwinds(**sw_args)
 
