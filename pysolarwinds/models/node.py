@@ -36,12 +36,14 @@ class Node(BaseModel):
             'SNMPVersion': 2,
         }
         # update/overwrite default props with provided properties
-        props.update(properties)
-        props.update({'IPAddres': ip})
+        if properties:
+            props.update(properties)
+        props.update({'IPAddress': ip})
         if hostname:
             props.update({'Caption': hostname})
         if custom_properties:
             props.update({'CustomProperties': custom_properties})
+        import ipdb; ipdb.set_trace()
         return self.swis.create('Orion.Nodes', **props)
 
     def delete(self, hostname=None, ip=None, uri=None):
@@ -58,7 +60,7 @@ class Node(BaseModel):
     def get(self, hostname=None, ip=None, uri=None):
         if uri is None:
             uri = self._get_uri(hostname=hostname, ip=ip)
-        return self.swis.read(uri)['results']
+        return self.swis.read(uri)
 
     def update(self, hostname=None, ip=None, uri=None, properties=None, custom_properties=None):
         if uri is None:

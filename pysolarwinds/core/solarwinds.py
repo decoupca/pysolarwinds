@@ -11,4 +11,4 @@ class Solarwinds(object):
         self.username = username
         self.password = password
         self.swis = SwisClient(host, username, password)
-        self.node = Node(self, self.swis)
+        self.node = Node(self.swis)
