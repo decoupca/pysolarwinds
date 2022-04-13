@@ -1,6 +1,6 @@
-class SWObjectNotFoundError(exception):
+class SWObjectNotFoundError(Exception):
     pass
-class SWObjectExistsError(exception):
+class SWObjectExistsError(Exception):
     pass
-class SWNonUniqueResultError(exception):
+class SWNonUniqueResultError(Exception):
     pass
