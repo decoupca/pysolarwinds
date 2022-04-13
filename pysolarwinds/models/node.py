@@ -50,10 +50,8 @@ class Node(BaseModel):
         self.properties = kwargs.get("properties")
         defaults = deepcopy(DEFAULT_PROPERTIES)
         if self.properties:
-            self.properties = defaults.update(self.properties)
-        else:
-            self.properties = defaults
-
+            defaults.update(self.properties)
+        self.properties = defaults
         self.polling_method = self.properties["ObjectSubType"].lower()
         self.pollers = kwargs.get("pollers")
         if not self.pollers:
