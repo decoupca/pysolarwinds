@@ -2,4 +2,8 @@ sw_args = {
     'host': 'solarwinds.example.net',
     'username': 'my_user',
     'password': 'my_pass',
+    'snmpv2c': {
+        'ro': 'darth_vader',
+        'rw': 'emperor_palpatine',
+    },
 }

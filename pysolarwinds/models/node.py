@@ -1,5 +1,11 @@
 from pysolarwinds.models import BaseModel
-from pysolarwinds.core.exceptions import SWObjectExistsError, SWObjectPropertyError, SWObjectNotFoundError, SWNonUniqueResultError
+from pysolarwinds.core.exceptions import (
+    SWObjectExistsError,
+    SWObjectPropertyError,
+    SWObjectNotFoundError,
+    SWNonUniqueResultError,
+)
+
 
 class Node(BaseModel):
     def _get_uri(self, ip=None, hostname=None):
@@ -26,25 +32,37 @@ class Node(BaseModel):
             return results[0]["uri"]
 
     def create(self, ip=None, hostname=None, properties=None, custom_properties=None):
-        ip = ip or properties.get('IPAddress')
+        ip = ip or properties.get("IPAddress")
         if self.exists(ip):
-            raise SWObjectExistsError(f'Node with IP {ip} already exists.')
-        hostname = hostname or properties.get('Caption')
+            raise SWObjectExistsError(f"Node with IP {ip} already exists.")
+        hostname = hostname or properties.get("Caption")
         if ip is None:
-            raise SWObjectPropertyError('Must provide polling IP as either ip argument, '
-                             'or IPAddress key in properties argument.')
+            raise SWObjectPropertyError(
+                "Must provide polling IP as either ip argument, "
+                "or IPAddress key in properties argument."
+            )
         props = {
-            'EngineID': 1,
-            'ObjectSubType': 'SNMP',
-            'SNMPVersion': 2,
+            "EngineID": 1,
+            "ObjectSubType": "SNMP",
+            "SNMPVersion": 2,
         }
-        # update/overwrite default props with provided properties
+        props.update({"IPAddress": ip})
+
+        # update default props with provided values
         if properties:
             props.update(properties)
-        props.update({'IPAddress': ip})
+
+        # snmp
+        if self.snmpv2c:
+            community = self.snmpv2c.get("rw") or self.snmpv2c.get("ro")
+            if community and props["ObjectSubType"] == "SNMP":
+                props.update({"Community": community})
+
+        # hostname
         if hostname:
-            props.update({'Caption': hostname})
-        uri = self.swis.create('Orion.Nodes', **props)
+            props.update({"Caption": hostname})
+
+        uri = self.swis.create("Orion.Nodes", **props)
         if custom_properties:
             self.update(uri=uri, custom_properties=custom_properties)
         return uri
@@ -66,16 +84,16 @@ class Node(BaseModel):
             uri = self._get_uri(hostname=hostname, ip=ip)
         return self.swis.read(uri)
 
-    def update(self, ip=None, hostname=None, properties=None, custom_properties=None, uri=None):
+    def update(
+        self, ip=None, hostname=None, properties=None, custom_properties=None, uri=None
+    ):
         if uri is None:
             uri = self._get_uri(hostname=hostname, ip=ip)
         if properties:
             if hostname:
-                properties.update({'Caption': hostname})
+                properties.update({"Caption": hostname})
             if ip:
-                properties.update({'IPAddress': ip})
+                properties.update({"IPAddress": ip})
             self.swis.update(uri, **properties)
         if custom_properties:
-            self.swis.update(f'{uri}/CustomProperties', **custom_properties)
-
-
+            self.swis.update(f"{uri}/CustomProperties", **custom_properties)
