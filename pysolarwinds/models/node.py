@@ -37,39 +37,42 @@ DEFAULT_POLLERS = {
 class Node(BaseModel):
     def __init__(self, swis, **kwargs):
         super().__init__(swis)
-        self.ip = kwargs.get("ip") or kwargs.properties.get("IPAddress")
+        self.ip = kwargs.get("ip") or kwargs['properties'].get("IPAddress")
         if self.ip is None:
             raise SWObjectPropertyError(
                 "Must provide polling IP as either ip argument, "
                 "or IPAddress key in properties argument."
             )
-        self.hostname = kwargs.get("hostname") or kwargs.properties.get("Caption")
+        self.hostname = kwargs.get("hostname") or kwargs['properties'].get("Caption")
         self.custom_properties = kwargs.get("custom_properties")
         self.id = kwargs.get("id")
         self.uri = kwargs.get("uri")
         self.snmpv2c = kwargs.get("snmpv2c")
         self.properties = kwargs.get("properties")
+        if self.properties:
+            self.properties.update({"IPAddress": self.ip})
+        if self.hostname:
+            self.properties.update({"Caption": self.hostname})
+
+
+    def create(self):
+        if self.exists():
+            raise SWObjectExistsError(f"Node with IP {self.ip} already exists.")
         defaults = deepcopy(DEFAULT_PROPERTIES)
         if self.properties:
             defaults.update(self.properties)
         self.properties = defaults
-        self.polling_method = self.properties["ObjectSubType"].lower()
+
+        self.polling_method = self.properties.get("ObjectSubType")
         self.pollers = kwargs.get("pollers")
         if not self.pollers:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
-
-        self.properties.update({"IPAddress": self.ip})
-        if self.hostname:
-            self.properties.update({"Caption": self.hostname})
-
         if self.snmpv2c:
             community = self.snmpv2c.get("rw") or self.snmpv2c.get("ro")
             if community and self.polling_method == "snmp":
                 self.properties.update({"Community": community})
 
-    def create(self):
-        if self.exists():
-            raise SWObjectExistsError(f"Node with IP {self.ip} already exists.")
+
         self.uri = self.swis.create("Orion.Nodes", **self.properties)
         if self.custom_properties:
             self.update("custom_properties")
