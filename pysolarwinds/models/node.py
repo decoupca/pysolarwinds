@@ -13,6 +13,7 @@ DEFAULT_PROPERTIES = {
     "EngineID": 1,
     "ObjectSubType": "SNMP",
     "SNMPVersion": 2,
+    'Status': 1,
 }
 
 DEFAULT_POLLERS = {
