@@ -7,7 +7,7 @@ from solarwinds.core.exceptions import (
     SWObjectNotFoundError,
     SWObjectPropertyError,
 )
-from pysolarwinds.models import BaseModel
+from solarwinds.models import BaseModel
 
 DEFAULT_PROPERTIES = {
     "EngineID": 1,
