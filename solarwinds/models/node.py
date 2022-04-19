@@ -48,55 +48,43 @@ class Node(BaseModel):
         self.properties = kwargs.get("properties")
         self.custom_properties = kwargs.get("custom_properties")
 
+    def create(self):
+        if self.exists():
+            # TODO: implement overwrite/re-create option
+            raise SWObjectExistsError(f"Node with IP {self.ip} already exists.")
+
         # default properties
         defaults = deepcopy(DEFAULT_PROPERTIES)
         if self.properties:
             defaults.update(self.properties)
         self.properties = defaults
-        self.properties.update({"IPAddress": self.ip})
+        self.properties["IPAddress"] = self.ip
         if self.hostname:
-            self.properties.update({"Caption": self.hostname})
+            self.properties["Caption"] = self.hostname
 
         # polling method
         self.polling_method = self.properties.get("ObjectSubType")
         if self.polling_method:
             self.polling_method = self.polling_method.lower()
         else:
-            if self.snmpv2c is not None:
-                self.polling_method = 'snmp'
-                self.properties['ObjectSubType'] = 'SNMP'
+            if self.snmpv2c is None:
+                self.polling_method = "icmp"
+                self.properties["ObjectSubType"] = "ICMP"
             else:
-                self.polling_method = 'icmp'
-                self.properties['ObjectSubtype'] = 'ICMP'
+                self.polling_method = "snmp"
+                self.properties["ObjectSubtype"] = "SNMP"
 
         # pollers
         self.pollers = self.properties.get("pollers")
         if self.pollers is None:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
 
-        # snmpv2c community
+        # snmpv2c
         if self.snmpv2c is not None:
+            self.properties["SNMPVersion"] = 2
             community = self.snmpv2c.get("rw") or self.snmpv2c.get("ro")
-            if community is not None and self.polling_method == 'snmp':
-                self.properties.update({"Community": community})
-
-
-    def create(self):
-        if self.exists():
-            # TODO: implement overwrite/re-create option
-            raise SWObjectExistsError(f"Node with IP {self.ip} already exists.")
-
-
-        # pollers
-        self.pollers = self.properties.get("pollers")
-        if not self.pollers:
-            self.pollers = DEFAULT_POLLERS[self.polling_method]
-
-        # snmpv2c community
-        if self.snmpv2c:
-            community = self.snmpv2c.get("rw") or self.snmpv2c.get("ro")
-            if community is not None and self.polling_method == 'snmp':
-                    self.properties.update({"Community": community})
+            if community is not None and self.polling_method == "snmp":
+                self.properties["Community"] = community
 
         # create node
         self.uri = self.swis.create("Orion.Nodes", **self.properties)
@@ -164,8 +152,10 @@ class Node(BaseModel):
 
     def update(self, update="all"):
         uri = self.get_uri()
-        if update == "all" or update == "properties":
+        if (update == "all" or update == "properties") and self.properties is not None:
             self.swis.update(uri, **self.properties)
-        if update == "all" or update == "custom_properties":
+        if (
+            update == "all" or update == "custom_properties"
+        ) and self.properties is not None:
             self.swis.update(f"{uri}/CustomProperties", **self.custom_properties)
         return True
