@@ -48,11 +48,6 @@ class Node(BaseModel):
         self.properties = kwargs.get("properties")
         self.custom_properties = kwargs.get("custom_properties")
 
-    def create(self):
-        if self.exists():
-            # TODO: implement overwrite/re-create option
-            raise SWObjectExistsError(f"Node with IP {self.ip} already exists.")
-
         # default properties
         defaults = deepcopy(DEFAULT_PROPERTIES)
         if self.properties:
@@ -72,7 +67,7 @@ class Node(BaseModel):
                 self.properties["ObjectSubType"] = "ICMP"
             else:
                 self.polling_method = "snmp"
-                self.properties["ObjectSubtype"] = "SNMP"
+                self.properties["ObjectSubType"] = "SNMP"
 
         # pollers
         self.pollers = self.properties.get("pollers")
@@ -86,10 +81,21 @@ class Node(BaseModel):
             if community is not None and self.polling_method == "snmp":
                 self.properties["Community"] = community
 
-        # create node
-        self.uri = self.swis.create("Orion.Nodes", **self.properties)
+
+
+    def create(self, properties=None, custom_properties=None):
+        if properties is None:
+            properties = self.properties
+        if custom_properties is None:
+            custom_properties = self.custom_properties
+        if properties is None:
+            raise ValueError("Must provide properties to create node.")
+        if self.exists():
+            # TODO: implement overwrite/re-create option
+            raise SWObjectExistsError(f"Node with IP {self.ip} already exists.")
+        self.uri = self.swis.create("Orion.Nodes", **properties)
         if self.custom_properties:
-            self.update("custom_properties")
+            self.update(custom_properties=custom_properties)
         if self.pollers:
             self.enable_pollers()
         return True
@@ -100,6 +106,19 @@ class Node(BaseModel):
 
     def details(self):
         return self.swis.read(self.get_uri())
+
+    def diff(self, properties=None):
+        if properties is None:
+            properties = self.properties
+            if self.hostname:
+                properties['Caption'] = self.hostname
+        if properties is not None:
+            diff = {}
+            details = self.details()
+            for k, v in properties.items():
+                if details[k] != v:
+                    diff[k] = v
+            return diff
 
     def enable_pollers(self):
         node_id = self.get_id()
@@ -150,12 +169,18 @@ class Node(BaseModel):
         self.id = int(re.search(r"(\d+)$", self.get_uri()).group(0))
         return self.id
 
-    def update(self, update="all"):
+    def update(self, properties=None, custom_properties=None):
+        if properties is None:
+            properties = self.properties
+        if custom_properties is None:
+            custom_properties = self.custom_properties
+        if properties is None and custom_properties is None:
+            raise ValueError('Must provide properties, custom_properties, or both.')
         uri = self.get_uri()
-        if (update == "all" or update == "properties") and self.properties is not None:
-            self.swis.update(uri, **self.properties)
-        if (
-            update == "all" or update == "custom_properties"
-        ) and self.properties is not None:
-            self.swis.update(f"{uri}/CustomProperties", **self.custom_properties)
-        return True
+        if properties is not None:
+            diff = self.diff()
+            result = self.swis.update(uri, **diff)
+        if custom_properties is not None:
+            result = self.swis.update(f"{uri}/CustomProperties", **custom_properties)
+        if result:
+            return True
