@@ -1,7 +1,7 @@
 import re
 from copy import deepcopy
 
-from pysolarwinds.core.exceptions import (
+from solarwinds.core.exceptions import (
     SWNonUniqueResultError,
     SWObjectExistsError,
     SWObjectNotFoundError,

@@ -1,3 +1,3 @@
-# pysolarwinds
+# solarwinds
 
-A more ergonomic wrapper for OrionSDK
+An ergonomic wrapper for OrionSDK

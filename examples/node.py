@@ -3,7 +3,7 @@ from pprint import pprint
 import ipdb
 from config import sw_args
 
-from pysolarwinds import Solarwinds
+from solarwinds import Solarwinds
 
 sw = Solarwinds(**sw_args)
 

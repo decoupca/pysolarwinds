@@ -2,7 +2,7 @@ import requests
 from orionsdk import SwisClient
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
-from pysolarwinds.models.node import Node
+from solarwinds.models.node import Node
 
 
 class Solarwinds(object):
