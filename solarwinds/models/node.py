@@ -141,24 +141,13 @@ class Node(BaseModel):
 
     def get_uri(self, force=False):
         if (not self.uri) or (self.uri and force):
-            if self.hostname is None and self.ip is None:
-                raise ValueError("Must provide hostname, IP, or both")
-            where = []
-            if self.hostname:
-                where.append(f"Caption = '{self.hostname}'")
-            if self.ip:
-                where.append(f"IPAddress = '{self.ip}'")
-            where_clause = " AND ".join(where)
-            query = f"SELECT Uri AS uri FROM Orion.Nodes WHERE {where_clause}"
+            query = f"SELECT Uri AS uri FROM Orion.Nodes WHERE IPAddress = '{self.ip}'"
             results = self.swis.query(query)["results"]
             if not results:
-                msg = f"Node not found. Check hostname/IP. SWQL query: {query}"
+                msg = f"Node with monitoring IP {self.ip} not found."
                 raise SWObjectNotFoundError(msg)
             if len(results) > 1:
-                msg = (
-                    f"Got {len(results)} results. Try a different combination of hostname/ip, "
-                    f"or remove duplicates in Solarwinds.\nSWQL query: {query}"
-                )
+                msg = f"Found more than 1 node with monitoring IP {self.ip}. Check Solarwinds for duplicate."
                 raise SWNonUniqueResultError(msg)
             else:
                 self.uri = results[0]["uri"]
@@ -179,8 +168,7 @@ class Node(BaseModel):
         uri = self.get_uri()
         if properties is not None:
             diff = self.diff()
-            result = self.swis.update(uri, **diff)
+            self.swis.update(uri, **diff)
         if custom_properties is not None:
-            result = self.swis.update(f"{uri}/CustomProperties", **custom_properties)
-        if result:
-            return True
+            self.swis.update(f"{uri}/CustomProperties", **custom_properties)
+        return True
