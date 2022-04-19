@@ -11,9 +11,7 @@ from solarwinds.models import BaseModel
 
 DEFAULT_PROPERTIES = {
     "EngineID": 1,
-    "ObjectSubType": "SNMP",
-    "SNMPVersion": 2,
-    'Status': 1,
+    "Status": 1,
 }
 
 DEFAULT_POLLERS = {
@@ -37,18 +35,50 @@ DEFAULT_POLLERS = {
 class Node(BaseModel):
     def __init__(self, swis, **kwargs):
         super().__init__(swis)
-        self.ip = kwargs.get("ip") or kwargs['properties'].get("IPAddress")
+        self.ip = kwargs.get("ip") or kwargs["properties"].get("IPAddress")
         if self.ip is None:
             raise SWObjectPropertyError(
                 "Must provide polling IP as either ip argument, "
                 "or IPAddress key in properties argument."
             )
-        self.hostname = kwargs.get("hostname") or kwargs['properties'].get("Caption")
-        self.custom_properties = kwargs.get("custom_properties")
-        self.id = kwargs.get("id")
-        self.uri = kwargs.get("uri")
+        self.hostname = kwargs.get("hostname") or kwargs["properties"].get("Caption")
+        self.id = None
+        self.uri = None
         self.snmpv2c = kwargs.get("snmpv2c")
         self.properties = kwargs.get("properties")
+        self.custom_properties = kwargs.get("custom_properties")
+
+        # default properties
+        defaults = deepcopy(DEFAULT_PROPERTIES)
+        if self.properties:
+            defaults.update(self.properties)
+        self.properties = defaults
+        self.properties.update({"IPAddress": self.ip})
+        if self.hostname:
+            self.properties.update({"Caption": self.hostname})
+
+        # polling method
+        self.polling_method = self.properties.get("ObjectSubType")
+        if self.polling_method:
+            self.polling_method = self.polling_method.lower()
+        else:
+            if self.snmpv2c is not None:
+                self.polling_method = 'snmp'
+                self.properties['ObjectSubType'] = 'SNMP'
+            else:
+                self.polling_method = 'icmp'
+                self.properties['ObjectSubtype'] = 'ICMP'
+
+        # pollers
+        self.pollers = self.properties.get("pollers")
+        if self.pollers is None:
+            self.pollers = DEFAULT_POLLERS[self.polling_method]
+
+        # snmpv2c community
+        if self.snmpv2c is not None:
+            community = self.snmpv2c.get("rw") or self.snmpv2c.get("ro")
+            if community is not None and self.polling_method == 'snmp':
+                self.properties.update({"Community": community})
 
 
     def create(self):
@@ -56,24 +86,19 @@ class Node(BaseModel):
             # TODO: implement overwrite/re-create option
             raise SWObjectExistsError(f"Node with IP {self.ip} already exists.")
 
-        defaults = deepcopy(DEFAULT_PROPERTIES)
-        if self.properties:
-            self.properties.update({"IPAddress": self.ip})
-            if self.hostname:
-                self.properties.update({"Caption": self.hostname})
-            defaults.update(self.properties)
-        self.properties = defaults
 
-        self.polling_method = self.properties.get("ObjectSubType")
-        self.pollers = kwargs.get("pollers")
+        # pollers
+        self.pollers = self.properties.get("pollers")
         if not self.pollers:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
+
+        # snmpv2c community
         if self.snmpv2c:
             community = self.snmpv2c.get("rw") or self.snmpv2c.get("ro")
-            if community and self.polling_method == "snmp":
-                self.properties.update({"Community": community})
+            if community is not None and self.polling_method == 'snmp':
+                    self.properties.update({"Community": community})
 
-
+        # create node
         self.uri = self.swis.create("Orion.Nodes", **self.properties)
         if self.custom_properties:
             self.update("custom_properties")
@@ -139,8 +164,8 @@ class Node(BaseModel):
 
     def update(self, update="all"):
         uri = self.get_uri()
-        if update == 'all' or update == "properties":
+        if update == "all" or update == "properties":
             self.swis.update(uri, **self.properties)
-        if update == 'all' or update == "custom_properties":
+        if update == "all" or update == "custom_properties":
             self.swis.update(f"{uri}/CustomProperties", **self.custom_properties)
         return True
