@@ -108,17 +108,18 @@ class Node(BaseModel):
         return self.swis.read(self.get_uri())
 
     def diff(self, properties=None):
-        if properties is None:
-            properties = self.properties
-            if self.hostname:
-                properties['Caption'] = self.hostname
-        if properties is not None:
-            diff = {}
-            details = self.details()
-            for k, v in properties.items():
-                if details[k] != v:
-                    diff[k] = v
-            return diff
+        if self.exists():
+            if properties is None:
+                properties = self.properties
+                if self.hostname:
+                    properties['Caption'] = self.hostname
+            if properties is not None:
+                diff = {}
+                details = self.details()
+                for k, v in properties.items():
+                    if details[k] != v:
+                        diff[k] = v
+                return diff
 
     def enable_pollers(self):
         node_id = self.get_id()
