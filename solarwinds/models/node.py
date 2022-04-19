@@ -10,7 +10,7 @@ from solarwinds.core.exceptions import (
 from solarwinds.models import BaseModel
 
 DEFAULT_PROPERTIES = {
-#    "EngineID": 1,
+    #    "EngineID": 1,
     "Status": 1,
 }
 
@@ -81,8 +81,6 @@ class Node(BaseModel):
             if community is not None and self.polling_method == "snmp":
                 self.properties["Community"] = community
 
-
-
     def create(self, properties=None, custom_properties=None):
         if properties is None:
             properties = self.properties
@@ -93,8 +91,8 @@ class Node(BaseModel):
         if self.exists():
             # TODO: implement overwrite/re-create option
             raise SWObjectExistsError(f"Node with IP {self.ip} already exists.")
-        if not properties.get('EngineID'):
-            properties['EngineID'] = 1
+        if not properties.get("EngineID"):
+            properties["EngineID"] = 1
         self.uri = self.swis.create("Orion.Nodes", **properties)
         if self.custom_properties:
             self.update(custom_properties=custom_properties)
@@ -114,7 +112,7 @@ class Node(BaseModel):
             if properties is None:
                 properties = self.properties
                 if self.hostname:
-                    properties['Caption'] = self.hostname
+                    properties["Caption"] = self.hostname
             if properties is not None:
                 diff = {}
                 details = self.details()
@@ -167,7 +165,7 @@ class Node(BaseModel):
         if custom_properties is None:
             custom_properties = self.custom_properties
         if properties is None and custom_properties is None:
-            raise ValueError('Must provide properties, custom_properties, or both.')
+            raise ValueError("Must provide properties, custom_properties, or both.")
         uri = self.get_uri()
         if properties is not None:
             diff = self.diff()
