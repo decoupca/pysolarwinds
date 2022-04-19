@@ -10,7 +10,7 @@ from solarwinds.core.exceptions import (
 from solarwinds.models import BaseModel
 
 DEFAULT_PROPERTIES = {
-    "EngineID": 1,
+#    "EngineID": 1,
     "Status": 1,
 }
 
@@ -93,6 +93,8 @@ class Node(BaseModel):
         if self.exists():
             # TODO: implement overwrite/re-create option
             raise SWObjectExistsError(f"Node with IP {self.ip} already exists.")
+        if not properties.get('EngineID'):
+            properties['EngineID'] = 1
         self.uri = self.swis.create("Orion.Nodes", **properties)
         if self.custom_properties:
             self.update(custom_properties=custom_properties)
