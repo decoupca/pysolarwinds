@@ -49,17 +49,18 @@ class Node(BaseModel):
         self.uri = kwargs.get("uri")
         self.snmpv2c = kwargs.get("snmpv2c")
         self.properties = kwargs.get("properties")
-        if self.properties:
-            self.properties.update({"IPAddress": self.ip})
-        if self.hostname:
-            self.properties.update({"Caption": self.hostname})
 
 
     def create(self):
         if self.exists():
+            # TODO: implement overwrite/re-create option
             raise SWObjectExistsError(f"Node with IP {self.ip} already exists.")
+
         defaults = deepcopy(DEFAULT_PROPERTIES)
         if self.properties:
+            self.properties.update({"IPAddress": self.ip})
+            if self.hostname:
+                self.properties.update({"Caption": self.hostname})
             defaults.update(self.properties)
         self.properties = defaults
 
@@ -138,15 +139,8 @@ class Node(BaseModel):
 
     def update(self, update="all"):
         uri = self.get_uri()
-        if update == "all":
+        if update == 'all' or update == "properties":
             self.swis.update(uri, **self.properties)
+        if update == 'all' or update == "custom_properties":
             self.swis.update(f"{uri}/CustomProperties", **self.custom_properties)
-            return True
-        if update == "custom_properties":
-            self.swis.update(f"{uri}/CustomProperties", **self.custom_properties)
-            return True
-        if update == "properties":
-            self.swis.update(uri, **self.properties)
-            return True
-        else:
-            return None
+        return True
