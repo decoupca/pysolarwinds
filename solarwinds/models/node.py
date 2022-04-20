@@ -1,7 +1,7 @@
 import re
 from copy import deepcopy
 
-from solarwinds.core.exceptions import (
+from solarwinds.exceptions import (
     SWNonUniqueResult,
     SWObjectExists,
     SWObjectNotFound,
@@ -136,7 +136,11 @@ class Node(BaseModel):
                         if details["custom_properties"][k] != v:
                             diff["custom_properties"][k] = v
             if diff["properties"] or diff["custom_properties"]:
+                logger.debug(f'{self.ip}: diff(): found differences: {diff}')
                 return diff
+            else:
+                logger.debug(f'{self.ip}: diff(): no differences found')
+                return None
 
     def enable_pollers(self):
         node_id = self.get_id()
@@ -160,9 +164,6 @@ class Node(BaseModel):
             return True
         else:
             try:
-                logger.debug(
-                    f"{self.ip}: exists(): uri not cached or refresh forced, checking api..."
-                )
                 self.get_uri(force=True)
                 logger.debug(f"{self.ip}: exists(): uri found, node exists")
                 return True
