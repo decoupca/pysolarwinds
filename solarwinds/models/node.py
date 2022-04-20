@@ -2,12 +2,13 @@ import re
 from copy import deepcopy
 
 from solarwinds.core.exceptions import (
-    SWNonUniqueResultError,
-    SWObjectExistsError,
-    SWObjectNotFoundError,
+    SWNonUniqueResult,
+    SWObjectExists,
+    SWObjectNotFound,
     SWObjectPropertyError,
 )
 from solarwinds.models import BaseModel
+from solarwinds.logging import logger
 
 DEFAULT_PROPERTIES = {
     #    "EngineID": 1,
@@ -90,7 +91,7 @@ class Node(BaseModel):
             raise ValueError("Must provide properties to create node.")
         if self.exists():
             # TODO: implement overwrite/re-create option
-            raise SWObjectExistsError(f"Node with IP {self.ip} already exists.")
+            raise SWObjectExists(f"Node with IP {self.ip} already exists.")
         if not properties.get("EngineID"):
             properties["EngineID"] = 1
         self.uri = self.swis.create("Orion.Nodes", **properties)
@@ -98,24 +99,30 @@ class Node(BaseModel):
             self.update(custom_properties=custom_properties)
         if self.pollers:
             self.enable_pollers()
+        logger.info(f"{self.ip}: node created")
         return True
 
     def delete(self):
         self.swis.delete(self.get_uri())
         self.uri = None
         self.id = None
+        logger.info(f"{self.ip}: node deleted")
         return True
 
     def details(self):
         uri = self.get_uri()
+        properties = self.swis.read(uri)
+        logger.debug(f"{self.ip}: details(): got existing properties")
+        custom_properties = self.swis.read(f"{uri}/CustomProperties")
+        logger.debug(f"{self.ip}: details(): got existing custom properties")
         return {
-            "properties": self.swis.read(uri),
-            "custom_properties": self.swis.read(f"{uri}/CustomProperties"),
+            "properties": properties,
+            "custom_properties": custom_properties,
         }
 
     def diff(self):
         if self.exists():
-            diff = {"properties": None, "custom_properties": None}
+            diff = {"properties": {}, "custom_properties": {}}
             if self.hostname:
                 self.properties["Caption"] = self.hostname
             if self.properties is not None or self.custom_properties is not None:
@@ -128,7 +135,7 @@ class Node(BaseModel):
                     for k, v in self.custom_properties.items():
                         if details["custom_properties"][k] != v:
                             diff["custom_properties"][k] = v
-            if diff["properties"] is not None or diff["custom_properties"] is not None:
+            if diff["properties"] or diff["custom_properties"]:
                 return diff
 
     def enable_pollers(self):
@@ -142,48 +149,75 @@ class Node(BaseModel):
                 "Enabled": True,
             }
             self.swis.create("Orion.Pollers", **poller)
+            logger.debug(f"{self.ip}: enable_pollers(): enabled poller {poller_type}")
+        return True
 
     def exists(self, force=False):
         if self.uri and force is False:
+            logger.debug(
+                f"{self.ip}: exists(): uri cached and no refresh forced, node exists"
+            )
             return True
         else:
             try:
+                logger.debug(
+                    f"{self.ip}: exists(): uri not cached or refresh forced, checking api..."
+                )
                 self.get_uri(force=True)
+                logger.debug(f"{self.ip}: exists(): uri found, node exists")
                 return True
-            except SWObjectNotFoundError:
+            except SWObjectNotFound:
+                logger.debug(f"{self.ip}: exists(): uri not found, node does not exist")
                 return False
 
     def get_uri(self, force=False):
         if (not self.uri) or (self.uri and force):
+            logger.debug(
+                f"{self.ip}: get_uri(): uri not cached (or refresh forced), querying api..."
+            )
             query = f"SELECT Uri AS uri FROM Orion.Nodes WHERE IPAddress = '{self.ip}'"
             results = self.swis.query(query)["results"]
             if not results:
                 msg = f"Node with monitoring IP {self.ip} not found."
-                raise SWObjectNotFoundError(msg)
+                raise SWObjectNotFound(msg)
             if len(results) > 1:
                 msg = f"Found more than 1 node with monitoring IP {self.ip}. Check Solarwinds for duplicate."
-                raise SWNonUniqueResultError(msg)
+                raise SWNonUniqueResult(msg)
             else:
                 self.uri = results[0]["uri"]
                 self.id = self.get_id()
+                logger.debug(f"{self.ip}: get_uri(): got uri: {self.uri}")
         return self.uri
 
     def get_id(self):
         self.id = int(re.search(r"(\d+)$", self.get_uri()).group(0))
+        logger.debug(f"{self.ip}: get_id(): got id: {self.id}")
         return self.id
 
-    def update(self):
+    def update(self, properties=None, custom_properties=None):
         if self.exists():
+            if properties is None:
+                properties = self.properties
+            if custom_properties is None:
+                properties = self.custom_properties
             if self.properties is not None or self.custom_properties is not None:
                 uri = self.get_uri()
                 diff = self.diff()
                 if diff:
-                    if diff["properties"] is not None:
+                    if diff["properties"]:
                         self.swis.update(uri, **diff["properties"])
-                    if diff["custom_properties"] is not None:
+                        logger.debug(
+                            f'{self.ip}: update(): updated properties: {diff["properties"]}'
+                        )
+                    if diff["custom_properties"]:
                         self.swis.update(
                             f"{uri}/CustomProperties", **diff["custom_properties"]
                         )
+                        logger.debug(
+                            f'{self.ip}: update(): updated custom properties: {diff["custom_properties"]}'
+                        )
+                    logger.info(f"{self.ip}: node updated")
                     return True
         else:
+            logger.debug(f"{self.ip}: update(): node does not exist, creating")
             return self.create()

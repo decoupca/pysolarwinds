@@ -1,1 +1,1 @@
-from solarwinds.core.api import api
+from solarwinds.api import api
