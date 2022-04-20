@@ -171,5 +171,6 @@ class Node(BaseModel):
             diff = self.diff()
             self.swis.update(uri, **diff)
         if custom_properties is not None:
+            # TODO: diff custom properties too
             self.swis.update(f"{uri}/CustomProperties", **custom_properties)
         return True
