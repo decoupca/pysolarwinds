@@ -1,3 +1,3 @@
-# solarwinds-python
+# solarwinds
 
 An ergonomic wrapper for OrionSDK
