@@ -1,1 +1,1 @@
-from solarwinds.core.solarwinds import Solarwinds
+from solarwinds.core.api import api

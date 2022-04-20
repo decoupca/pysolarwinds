@@ -5,7 +5,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from solarwinds.models.node import Node
 
 
-class Solarwinds(object):
+class api(object):
     def __init__(self, host, username, password, snmpv2c=None, validate_cert=False):
         if not validate_cert:
             requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
