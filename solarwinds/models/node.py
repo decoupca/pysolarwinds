@@ -102,6 +102,8 @@ class Node(BaseModel):
 
     def delete(self):
         self.swis.delete(self.get_uri())
+        self.uri = None
+        self.id = None
         return True
 
     def details(self):
@@ -134,11 +136,14 @@ class Node(BaseModel):
             self.swis.create("Orion.Pollers", **poller)
 
     def exists(self):
-        try:
-            self.get_uri(force=True)
+        if self.uri:
             return True
-        except SWObjectNotFoundError:
-            return False
+        else:
+            try:
+                self.get_uri(force=True)
+                return True
+            except SWObjectNotFoundError:
+                return False
 
     def get_uri(self, force=False):
         if (not self.uri) or (self.uri and force):
@@ -160,17 +165,20 @@ class Node(BaseModel):
         return self.id
 
     def update(self, properties=None, custom_properties=None):
-        if properties is None:
-            properties = self.properties
-        if custom_properties is None:
-            custom_properties = self.custom_properties
-        if properties is None and custom_properties is None:
-            raise ValueError("Must provide properties, custom_properties, or both.")
-        uri = self.get_uri()
-        if properties is not None:
-            diff = self.diff()
-            self.swis.update(uri, **diff)
-        if custom_properties is not None:
-            # TODO: diff custom properties too
-            self.swis.update(f"{uri}/CustomProperties", **custom_properties)
+        if self.exists():
+            if properties is None:
+                properties = self.properties
+            if custom_properties is None:
+                custom_properties = self.custom_properties
+            if properties is None and custom_properties is None:
+                raise ValueError("Must provide properties, custom_properties, or both.")
+            uri = self.get_uri()
+            if properties is not None:
+                diff = self.diff()
+                self.swis.update(uri, **diff)
+            if custom_properties is not None:
+                # TODO: diff custom properties too
+                self.swis.update(f"{uri}/CustomProperties", **custom_properties)
+        else:
+            self.create()
         return True
