@@ -107,20 +107,28 @@ class Node(BaseModel):
         return True
 
     def details(self):
-        return self.swis.read(self.get_uri())
+        uri = self.get_uri()
+        return {
+            "properties": self.swis.read(uri),
+            "custom_properties": self.swis.read(f"{uri}/CustomProperties"),
+        }
 
-    def diff(self, properties=None):
+    def diff(self):
         if self.exists():
-            if properties is None:
-                properties = self.properties
-                if self.hostname:
-                    properties["Caption"] = self.hostname
-            if properties is not None:
-                diff = {}
+            diff = {"properties": None, "custom_properties": None}
+            if self.hostname:
+                self.properties["Caption"] = self.hostname
+            if self.properties is not None or self.custom_properties is not None:
                 details = self.details()
-                for k, v in properties.items():
-                    if details[k] != v:
-                        diff[k] = v
+                if self.properties is not None:
+                    for k, v in self.properties.items():
+                        if details["properties"][k] != v:
+                            diff["properties"][k] = v
+                if self.custom_properties is not None:
+                    for k, v in self.custom_properties.items():
+                        if details["custom_properties"][k] != v:
+                            diff["custom_properties"][k] = v
+            if diff["properties"] is not None or diff["custom_properties"] is not None:
                 return diff
 
     def enable_pollers(self):
@@ -135,8 +143,8 @@ class Node(BaseModel):
             }
             self.swis.create("Orion.Pollers", **poller)
 
-    def exists(self):
-        if self.uri:
+    def exists(self, force=False):
+        if self.uri and force is False:
             return True
         else:
             try:
@@ -164,21 +172,18 @@ class Node(BaseModel):
         self.id = int(re.search(r"(\d+)$", self.get_uri()).group(0))
         return self.id
 
-    def update(self, properties=None, custom_properties=None):
+    def update(self):
         if self.exists():
-            if properties is None:
-                properties = self.properties
-            if custom_properties is None:
-                custom_properties = self.custom_properties
-            if properties is None and custom_properties is None:
-                raise ValueError("Must provide properties, custom_properties, or both.")
-            uri = self.get_uri()
-            if properties is not None:
+            if self.properties is not None or self.custom_properties is not None:
+                uri = self.get_uri()
                 diff = self.diff()
-                self.swis.update(uri, **diff)
-            if custom_properties is not None:
-                # TODO: diff custom properties too
-                self.swis.update(f"{uri}/CustomProperties", **custom_properties)
+                if diff:
+                    if diff["properties"] is not None:
+                        self.swis.update(uri, **diff["properties"])
+                    if diff["custom_properties"] is not None:
+                        self.swis.update(
+                            f"{uri}/CustomProperties", **diff["custom_properties"]
+                        )
+                    return True
         else:
-            self.create()
-        return True
+            return self.create()
