@@ -215,7 +215,7 @@ class Node(BaseModel):
         if self.exists():
             details = self.details()  # TODO: cache this
             if details["properties"]["UnManaged"] == True:
-                self.swis.invoke("Orion.Nodes", f"N:{self.id}")
+                self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
                 logger.debug(f"{self.ip}: remanage(): re-managed node")
                 return True
             else:
@@ -237,7 +237,9 @@ class Node(BaseModel):
         if self.exists():
             details = self.details()
             if details["properties"]["UnManaged"] == False:
-                self.swis.invoke("Orion.Nodes", f"N:{self.id}", start, end, False)
+                self.swis.invoke(
+                    "Orion.Nodes", "Unmanage", f"N:{self.id}", start, end, False
+                )
                 logger.debug(f"{self.ip}: unmanage(): unmanaged node until {end}")
                 return True
             else:
