@@ -34,20 +34,25 @@ DEFAULT_POLLERS = {
 
 
 class Node(BaseModel):
-    def __init__(self, swis, **kwargs):
+    def __init__(self, swis, ip=None, hostname=None, **kwargs):
         super().__init__(swis)
-        self.ip = kwargs.get("ip") or kwargs["properties"].get("IPAddress")
-        if self.ip is None:
-            raise SWObjectPropertyError(
-                "Must provide polling IP as either ip argument, "
-                "or IPAddress key in properties argument."
-            )
-        self.hostname = kwargs.get("hostname") or kwargs["properties"].get("Caption")
         self.id = None
         self.uri = None
-        self.snmpv2c = kwargs.get("snmpv2c")
         self.properties = kwargs.get("properties")
         self.custom_properties = kwargs.get("custom_properties")
+        self.snmpv2c = kwargs.get("snmpv2c")
+        if ip is None:
+            if self.properties is not None:
+                self.ip = self.properties.get("ip")
+        else:
+            self.ip = ip
+        if hostname is None:
+            if self.properties is not None:
+                self.hostname = self.properties.get("hostname")
+        else:
+            self.hostname = hostname
+        if ip is None and hostname is None:
+            raise ValueError("Must provide IP, hostname, or both.")
 
         # default properties
         defaults = deepcopy(DEFAULT_PROPERTIES)
@@ -136,10 +141,10 @@ class Node(BaseModel):
                         if details["custom_properties"][k] != v:
                             diff["custom_properties"][k] = v
             if diff["properties"] or diff["custom_properties"]:
-                logger.debug(f'{self.ip}: diff(): found differences: {diff}')
+                logger.debug(f"{self.ip}: diff(): found differences: {diff}")
                 return diff
             else:
-                logger.debug(f'{self.ip}: diff(): no differences found')
+                logger.debug(f"{self.ip}: diff(): no differences found")
                 return None
 
     def enable_pollers(self):
@@ -176,13 +181,20 @@ class Node(BaseModel):
             logger.debug(
                 f"{self.ip}: get_uri(): uri not cached (or refresh forced), querying api..."
             )
-            query = f"SELECT Uri AS uri FROM Orion.Nodes WHERE IPAddress = '{self.ip}'"
+            if self.ip is not None:
+                query = (
+                    f"SELECT Uri AS uri FROM Orion.Nodes WHERE IPAddress = '{self.ip}'"
+                )
+                err_msg = f"Node with IP address {self.ip} not found in Solarwinds."
+            elif self.hostname is not None:
+                query = f"SELECT Uri AS uri FROM Orion.Nodes WHERE Caption = '{self.hostname}'"
+                err_msg = f"Node with hostname {self.hostname} not found in Solarwinds."
+
             results = self.swis.query(query)["results"]
             if not results:
-                msg = f"Node with monitoring IP {self.ip} not found."
-                raise SWObjectNotFound(msg)
+                raise SWObjectNotFound(err_msg)
             if len(results) > 1:
-                msg = f"Found more than 1 node with monitoring IP {self.ip}. Check Solarwinds for duplicate."
+                msg = f"Found more than 1 node. Check Solarwinds for duplicate. SWQL query: {query}"
                 raise SWNonUniqueResult(msg)
             else:
                 self.uri = results[0]["uri"]
