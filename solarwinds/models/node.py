@@ -10,6 +10,8 @@ from solarwinds.exceptions import (
 from solarwinds.models import BaseModel
 from solarwinds.logging import logger
 
+from datetime import datetime, timedelta
+
 DEFAULT_PROPERTIES = {
     #    "EngineID": 1,
     "Status": 1,
@@ -116,7 +118,7 @@ class Node(BaseModel):
         logger.info(f"{self.ip}: node deleted")
         return True
 
-    def details(self):
+    def details(self, force=False):
         uri = self.get_uri()
         properties = self.swis.read(uri)
         logger.debug(f"{self.ip}: details(): got existing properties")
@@ -208,6 +210,44 @@ class Node(BaseModel):
         self.id = int(re.search(r"(\d+)$", self.get_uri()).group(0))
         logger.debug(f"{self.ip}: get_id(): got id: {self.id}")
         return self.id
+
+    def remanage(self):
+        if self.exists():
+            details = self.details()  # TODO: cache this
+            if details["properties"]["UnManaged"] == True:
+                self.swis.invoke("Orion.Nodes", f"N:{self.id}")
+                logger.debug(f"{self.ip}: remanage(): re-managed node")
+                return True
+            else:
+                logger.debug(
+                    f"{self.ip}: remanage(): node is already managed, doing nothing"
+                )
+                return False
+        else:
+            logger.debug(f"{self.ip}: remanage(): node does not exist, doing nothing")
+
+    def unmanage(self, start=None, end=None):
+        if start is None:
+            now = datetime.utcnow()
+            start = now - timedelta(
+                hours=1
+            )  # accounts for variance in clock synchronization
+        if end is None:
+            end = now + timedelta(days=1)
+        if self.exists():
+            details = self.details()
+            if details["properties"]["UnManaged"] == False:
+                self.swis.invoke("Orion.Nodes", f"N:{self.id}", start, end, False)
+                logger.debug(f"{self.ip}: unmanage(): unmanaged node until {end}")
+                return True
+            else:
+                logger.debug(
+                    f"{self.ip}: unmanage(): node is already unmanaged, doing nothing"
+                )
+                return False
+        else:
+            logger.debug(f"{self.ip}: unmanage(): node does not exist, doing nothing")
+            return False
 
     def update(self, properties=None, custom_properties=None):
         if self.exists():
