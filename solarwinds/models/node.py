@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 
 DEFAULT_PROPERTIES = {
     #    "EngineID": 1,
-    "Status": 1,
+    #"Status": 1,
 }
 
 DEFAULT_POLLERS = {
