@@ -36,6 +36,8 @@ DEFAULT_POLLERS = {
 class Node(BaseModel):
     def __init__(self, swis, ip=None, hostname=None, **kwargs):
         super().__init__(swis)
+        self.ip = None
+        self.hostname = None
         self.id = None
         self.uri = None
         self.properties = kwargs.get("properties")
