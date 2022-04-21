@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 
 DEFAULT_PROPERTIES = {
     #    "EngineID": 1,
-    #"Status": 1,
+    # "Status": 1,
 }
 
 DEFAULT_POLLERS = {
@@ -189,14 +189,23 @@ class Node(BaseModel):
                 query = (
                     f"SELECT Uri AS uri FROM Orion.Nodes WHERE IPAddress = '{self.ip}'"
                 )
-                err_msg = f"Node with IP address {self.ip} not found in Solarwinds."
-            elif self.hostname is not None:
-                query = f"SELECT Uri AS uri FROM Orion.Nodes WHERE Caption = '{self.hostname}'"
-                err_msg = f"Node with hostname {self.hostname} not found in Solarwinds."
+                results = self.swis.query(query)["results"]
+                if not results:
+                    if self.hostname is not None:
+                        logger.debug(
+                            f"Node with IP address {self.ip} not found, trying hostname"
+                        )
+                        query = f"SELECT Uri AS uri FROM Orion.Nodes WHERE Caption = '{self.hostname}'"
+                        results = self.swis.query(query)["results"]
+                        if not results:
+                            msg = f"Node with hostname {self.hostname} not found, giving up"
+                            raise SWObjectNotFound(msg)
+                    else:
+                        raise SWObjectNotFound(
+                            f"Node with IP address {self.ip} not found "
+                            "and no hostname given, nothing else to try"
+                        )
 
-            results = self.swis.query(query)["results"]
-            if not results:
-                raise SWObjectNotFound(err_msg)
             if len(results) > 1:
                 msg = f"Found more than 1 node. Check Solarwinds for duplicate. SWQL query: {query}"
                 raise SWNonUniqueResult(msg)
@@ -214,7 +223,7 @@ class Node(BaseModel):
     def remanage(self):
         if self.exists():
             details = self.details()  # TODO: cache this
-            if details["properties"]["UnManaged"] == True:
+            if details["properties"]["UnManaged"] is True:
                 self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
                 logger.debug(f"{self.ip}: remanage(): re-managed node")
                 return True
@@ -236,7 +245,7 @@ class Node(BaseModel):
             end = now + timedelta(days=1)
         if self.exists():
             details = self.details()
-            if details["properties"]["UnManaged"] == False:
+            if details["properties"]["UnManaged"] is False:
                 self.swis.invoke(
                     "Orion.Nodes", "Unmanage", f"N:{self.id}", start, end, False
                 )
