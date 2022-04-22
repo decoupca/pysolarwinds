@@ -3,7 +3,7 @@ import solarwinds
 from pprint import pprint
 
 import ipdb
-from config import sw_args
+from config import sw_args, snmpv2c
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -18,6 +18,6 @@ sw = solarwinds.api(**sw_args)
 # )
 
 
-node = sw.node(ip="10.12.104.97")
+node = sw.orion.node(ip="10.12.104.97", snmpv2c=snmpv2c)
 
 ipdb.set_trace()

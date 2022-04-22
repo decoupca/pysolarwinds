@@ -1,14 +1,15 @@
 import re
 from copy import deepcopy
 
-from solarwinds.exceptions import (
+from solarwinds.core.exceptions import (
     SWNonUniqueResult,
     SWObjectExists,
     SWObjectNotFound,
     SWObjectPropertyError,
 )
-from solarwinds.models import BaseModel
-from solarwinds.logging import logger
+from logging import getLogger
+
+logger = getLogger("solarwinds.orion.node")
 
 from datetime import datetime, timedelta
 
@@ -35,9 +36,9 @@ DEFAULT_POLLERS = {
 }
 
 
-class Node(BaseModel):
+class Node(object):
     def __init__(self, swis, ip=None, hostname=None, **kwargs):
-        super().__init__(swis)
+        self.swis = swis
         self.ip = None
         self.hostname = None
         self.id = None

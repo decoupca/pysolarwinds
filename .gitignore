@@ -1,5 +1,5 @@
+*.egg-info/
 *.swp
-venv/
 __pycache__/
 config.py
-*.egg-info/
+venv/
