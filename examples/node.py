@@ -18,6 +18,6 @@ sw = solarwinds.api(**sw_args)
 # )
 
 
-node = sw.orion.node(ip="10.12.104.97", snmpv2c=snmpv2c)
+node = sw.orion.nodes.node(ip="10.12.104.97", snmpv2c=snmpv2c)
 
 ipdb.set_trace()

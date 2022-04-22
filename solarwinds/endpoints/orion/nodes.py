@@ -1,13 +1,10 @@
 import re
 from copy import deepcopy
-
-from solarwinds.core.exceptions import (
-    SWNonUniqueResult,
-    SWObjectExists,
-    SWObjectNotFound,
-    SWObjectPropertyError,
-)
 from logging import getLogger
+
+from solarwinds.core.exceptions import (SWNonUniqueResult, SWObjectExists,
+                                        SWObjectNotFound,
+                                        SWObjectPropertyError)
 
 logger = getLogger("solarwinds.orion.node")
 
