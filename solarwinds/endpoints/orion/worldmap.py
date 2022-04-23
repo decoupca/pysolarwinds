@@ -9,6 +9,9 @@ class Point(object):
         self.street_address = street_address
         self.uri = None
 
+    def create(self):
+        pass
+
     def exists(self, refresh=False):
         return bool(self.get_uri(refresh=refresh))
 
