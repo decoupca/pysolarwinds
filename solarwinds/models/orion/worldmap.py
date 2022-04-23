@@ -1,9 +1,9 @@
+from solarwinds.core.model import BaseModel
 from solarwinds.endpoints.orion.worldmap import Point
 
 
-class WorldMap(object):
-    def __init__(self, swis):
-        self.swis = swis
+class WorldMap(BaseModel):
+    name = 'WorldMap'
 
     def point(self, **kwargs):
-        return Point(self.swis, **kwargs)
+        return Point(self, **kwargs)

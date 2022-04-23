@@ -2,6 +2,8 @@ import re
 from copy import deepcopy
 from logging import getLogger
 
+from solarwinds.core.endpoint import Endpoint
+
 from solarwinds.core.exceptions import (SWNonUniqueResult, SWObjectExists,
                                         SWObjectNotFound,
                                         SWObjectPropertyError)
@@ -33,9 +35,9 @@ DEFAULT_POLLERS = {
 }
 
 
-class Node(object):
-    def __init__(self, swis, ip=None, hostname=None, **kwargs):
-        self.swis = swis
+class Node(Endpoint):
+    def __init__(self, module, ip=None, hostname=None, **kwargs):
+        super().__init__(module)
         self.ip = None
         self.hostname = None
         self.id = None
