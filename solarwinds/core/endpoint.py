@@ -8,19 +8,27 @@ class Endpoint(object):
     _swdata = None
     # list of attributes required to lookup solarwinds object (OR, not AND)
     _required_attrs = None
+    _attr_map = {}
+
+    def _build_attr_map(self):
+        """ builds a map of local attributes to solarwinds properties """
+        for sw_k, sw_v in self._swdata.items():
+            local_attr = self._camel_to_snake(sw_k)
+            try:
+                getattr(self, local_attr)
+                self._attr_map[local_attr] = sw_k
+            except AttributeError:
+                pass
 
     def _update_object(self, overwrite=False):
         """ updates local python object's properties with properties read from solarwinds
             if overwrite=False, will not update any attributes that are already set
         """
-        for sw_k, sw_v in self._swdata.items():
-            local_attr = self._camel_to_snake(sw_k)
-            try:
-                local_v = getattr(self, local_attr)
-                if local_v is None or overwrite is True:
-                    setattr(self, local_attr, sw_v)
-            except AttributeError:
-                pass
+        for local_attr, sw_attr in self._attr_map.items():
+            local_v = getattr(self, local_attr)
+            if local_v is None or overwrite is True:
+                sw_v = self._swdata[sw_attr]
+                setattr(self, local_attr, sw_v)
 
     def _parse_response(self, response):
         if response is not None:
@@ -47,6 +55,7 @@ class Endpoint(object):
         """ Caches solarwinds data about an object """
         if self._swdata is None or refresh is True:
             self._swdata = self.swis.read(self.uri)
+            self._build_attr_map()
 
     def create(self):
         """ Create object """
@@ -77,5 +86,5 @@ class Endpoint(object):
 
     def update(self):
         """ Update object in solarwinds with local object's properties """
-        if self._swdata is None:
-            pass
+        self.get()
+
