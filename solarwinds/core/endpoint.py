@@ -14,6 +14,7 @@ class Endpoint(object):
     _changes = None
     # list of attributes required to lookup solarwinds object (OR, not AND)
     _required_attrs = None
+    _keys = None
     # args to exclude when serializing object to push to solarwinds
     _exclude_args = []
     _attr_map = None
