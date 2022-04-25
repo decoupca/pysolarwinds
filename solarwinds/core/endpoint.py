@@ -1,8 +1,8 @@
 import inspect
-import re
 from urllib.parse import urlencode, urlparse
 
 from solarwinds.core.exceptions import SWObjectPropertyError, SWUriNotFound
+from solarwinds.utils import camel_to_snake, parse_response, sanitize_swdata
 
 
 class Endpoint(object):
@@ -10,7 +10,7 @@ class Endpoint(object):
     uri = None
     _swdata = None
     _localdata = None
-    _updates = None
+    _changes = None
     # list of attributes required to lookup solarwinds object (OR, not AND)
     _required_attrs = None
     # args to exclude when serializing object to push to solarwinds
@@ -21,7 +21,7 @@ class Endpoint(object):
         """builds a map of local attributes to solarwinds properties"""
         attr_map = {}
         for sw_k, sw_v in self._swdata.items():
-            local_attr = self._camel_to_snake(sw_k)
+            local_attr = camel_to_snake(sw_k)
             try:
                 getattr(self, local_attr)
                 attr_map[local_attr] = sw_k
@@ -39,18 +39,6 @@ class Endpoint(object):
             if local_v is None or overwrite is True:
                 sw_v = self._swdata[sw_attr]
                 setattr(self, local_attr, sw_v)
-
-    def _parse_response(self, response):
-        if response is not None:
-            result = response.get("results")
-            if len(result) == 0:
-                return None
-            elif len(result) == 1:
-                return result[0]
-            else:
-                return result
-        else:
-            return None
 
     def _serialize(self):
         serialized = {}
@@ -78,12 +66,7 @@ class Endpoint(object):
                 if local_v != v:
                     updates[k] = self._localdata[k]
         if updates:
-            self._updates = updates
-
-    def _camel_to_snake(self, name):
-        """https://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-snake-case"""
-        name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
-        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
+            self._changes = updates
 
     def _get_uri(self):
         """Get an object's SWIS URI"""
@@ -92,15 +75,8 @@ class Endpoint(object):
     def _get_swdata(self, refresh=False):
         """Caches solarwinds data about an object"""
         if self._swdata is None or refresh is True:
-            self._swdata = self._sanitize_swdata(self.swis.read(self.uri))
+            self._swdata = sanitize_swdata(self.swis.read(self.uri))
             self._build_attr_map()
-
-    def _sanitize_swdata(self, swdata):
-        for k, v in swdata.items():
-            if isinstance(v, str):
-                if re.match(r"^\d+$", v):
-                    swdata[k] = int(v)
-        return swdata
 
     def create(self):
         """Create object"""
@@ -141,17 +117,17 @@ class Endpoint(object):
             self._update_object(overwrite=overwrite)
 
     def query(self, query):
-        return self._parse_response(self.swis.query(query))
+        return parse_response(self.swis.query(query))
 
     def update(self):
         """Update object in solarwinds with local object's properties"""
         if self.exists():
-            if self._updates is None:
+            if self._changes is None:
                 self._diff()
-            if self._updates is not None:
-                self.swis.update(self.uri, **self._updates)
+            if self._changes is not None:
+                self.swis.update(self.uri, **self._changes)
                 self.get(refresh=True)
-                self._updates = None
+                self._changes = None
                 return True
             else:
                 return False
