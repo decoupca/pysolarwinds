@@ -8,6 +8,7 @@ from solarwinds.utils import camel_to_snake, parse_response, sanitize_swdata
 class Endpoint(object):
     endpoint = None
     uri = None
+    id = None
     _swdata = None
     _localdata = None
     _changes = None
