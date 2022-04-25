@@ -48,9 +48,6 @@ class Point(Endpoint):
                 f'{", ".join(self._required_attrs)}'
             )
 
-    def create(self):
-        pass
-
 
 class PointLabel(Endpoint):
     pass

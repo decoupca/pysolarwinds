@@ -2,7 +2,7 @@ import inspect
 import re
 from urllib.parse import urlencode, urlparse
 
-from solarwinds.core.exceptions import SWObjectPropertyError
+from solarwinds.core.exceptions import SWObjectPropertyError, SWUriNotFound
 
 
 class Endpoint(object):
@@ -108,25 +108,31 @@ class Endpoint(object):
             return False
         else:
             self._serialize()
-            if self_.localdata is None:
+            if self._localdata is None:
                 raise SWObjectPropertyError(f"Can't create object without properties.")
             else:
-                self.swis.create(**self._localdata)
+                self.uri = self.swis.create(self.endpoint, **self._localdata)
                 return True
 
     def delete(self):
         """Delete object"""
         if self.exists():
             self.swis.delete(self.uri)
+            self.uri = None
             return True
         else:
             return False
 
     def exists(self, refresh=False):
         """Whether or not an object exists"""
+        if self.uri is not None:
+            return True
         if self.uri is None or refresh is True:
-            self._get_uri()
-        return bool(self.uri)
+            try:
+                self._get_uri()
+                return True
+            except SWUriNotFound:
+                return False
 
     def get(self, refresh=False, overwrite=False):
         """Gets object data from solarwinds and updates local object attributes"""
