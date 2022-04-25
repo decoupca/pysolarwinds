@@ -1,5 +1,5 @@
-from solarwinds.models.orion.worldmap import WorldMap
 from solarwinds.models.orion.nodes import Nodes
+from solarwinds.models.orion.worldmap import WorldMap
 
 
 class Orion(object):

@@ -3,7 +3,7 @@ from solarwinds.endpoints.orion.worldmap import Point
 
 
 class WorldMap(BaseModel):
-    name = 'WorldMap'
+    name = "WorldMap"
 
     def point(self, **kwargs):
         return Point(self.swis, **kwargs)

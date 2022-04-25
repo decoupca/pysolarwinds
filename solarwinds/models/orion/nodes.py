@@ -3,6 +3,7 @@ from solarwinds.endpoints.orion.nodes import Node
 
 
 class Nodes(BaseModel):
-    name = 'Nodes'
+    name = "Nodes"
+
     def node(self, swis, **kwargs):
         return Node(self, swis, **kwargs)

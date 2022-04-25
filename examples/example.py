@@ -1,10 +1,10 @@
-import solarwinds
-
+import logging
 from pprint import pprint
 
 import ipdb
-from config import sw_args, snmpv2c
-import logging
+import solarwinds
+
+from config import snmpv2c, sw_args
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -18,8 +18,8 @@ sw = solarwinds.api(**sw_args)
 # )
 
 
-#node = sw.orion.nodes.node(ip="10.12.104.97", snmpv2c=snmpv2c)
-#point = sw.orion.worldmap.point(instance_id=799)
+# node = sw.orion.nodes.node(ip="10.12.104.97", snmpv2c=snmpv2c)
+# point = sw.orion.worldmap.point(instance_id=799)
 point2 = sw.orion.worldmap.point()
 point2.instance_id = 800
 point2.get()
