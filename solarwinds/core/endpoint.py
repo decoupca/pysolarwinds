@@ -1,11 +1,13 @@
 from urllib.parse import urlencode, urlparse
 import re
-
+from solarwinds.core.exceptions import SWObjectPropertyError
 
 class Endpoint(object):
     endpoint = None
     uri = None
     _swdata = None
+    # list of attributes required to lookup solarwinds object (OR, not AND)
+    _required_attrs = None
 
     def _update_object(self):
         """ updates local python object's properties with properties read from solarwinds """
@@ -16,7 +18,19 @@ class Endpoint(object):
                 setattr(self, attr, v)
             except AttributeError:
                 pass
-                
+
+    def _parse_response(self, response):
+        if response is not None:
+            result = response.get('results')
+            if len(result) == 0:
+                return None
+            elif len(result) == 1:
+                return result[0]
+            else:
+                return result
+        else:
+            return None
+
     def _camel_to_snake(self, name):
         """ https://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-snake-case """
         name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
@@ -49,8 +63,17 @@ class Endpoint(object):
         return bool(self.uri)
 
     def get(self):
-        self._swdata = self.swis.read(self.uri)
-        self._update_object()
+        if self.uri is None:
+            self.uri = self._get_uri()
+        if self.uri is not None:
+            self._swdata = self.swis.read(self.uri)
+            self._update_object()
+        else:
+            raise SWObjectPropertyError('Must provide one of these required attributes: '
+                                        f'{", ".join(self._required_attrs)}')
+
+    def query(self, query):
+        return self._parse_response(self.swis.query(query))
 
     def update(self):
         """ Update object in solarwinds with local object's properties """

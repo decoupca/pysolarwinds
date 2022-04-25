@@ -1,3 +1,7 @@
+class SWUriNotFound(Exception):
+    pass
+
+
 class SWObjectNotFound(Exception):
     pass
 
