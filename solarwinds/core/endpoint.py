@@ -1,24 +1,31 @@
 from urllib.parse import urlencode, urlparse
 import re
 from solarwinds.core.exceptions import SWObjectPropertyError
+import inspect
 
 class Endpoint(object):
     endpoint = None
     uri = None
     _swdata = None
+    _localdata = None
     # list of attributes required to lookup solarwinds object (OR, not AND)
     _required_attrs = None
-    _attr_map = {}
+    # args to exclude when serializing object to push to solarwinds
+    _exclude_args = []
+    _attr_map = None
 
     def _build_attr_map(self):
         """ builds a map of local attributes to solarwinds properties """
+        attr_map = {}
         for sw_k, sw_v in self._swdata.items():
             local_attr = self._camel_to_snake(sw_k)
             try:
                 getattr(self, local_attr)
-                self._attr_map[local_attr] = sw_k
+                attr_map[local_attr] = sw_k
             except AttributeError:
                 pass
+        if attr_map:
+            self._attr_map = attr_map
 
     def _update_object(self, overwrite=False):
         """ updates local python object's properties with properties read from solarwinds
@@ -41,6 +48,18 @@ class Endpoint(object):
                 return result
         else:
             return None
+
+    def _serialize(self):
+        serialized = {}
+        args = inspect.getfullargspec(self.__init__)[0]
+        exclude_args = ['self', 'swis']
+        exclude_args.extend(self._exclude_args)
+        for arg in args:
+            if arg not in exclude_args:
+                value = getattr(self, arg)
+                serialized[arg] = value
+        self._localdata = serialized
+        
 
     def _camel_to_snake(self, name):
         """ https://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-snake-case """

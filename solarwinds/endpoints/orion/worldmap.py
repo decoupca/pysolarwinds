@@ -5,7 +5,7 @@ class Point(Endpoint):
     name = 'Point'
     endpoint = 'Orion.WorldMap.Point'
     _required_attrs = ['node', 'instance_id']
-
+    _exclude_args = ['node']
     def __init__(self, swis, node=None, instance_id=None, instance='Orion.Nodes', latitude=None, longitude=None, auto_added=False, street_address=None):
         self.swis = swis
         self.node = node
