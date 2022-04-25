@@ -1,5 +1,5 @@
 from solarwinds.core.endpoint import Endpoint
-from solarwinds.core.exceptions import SWUriNotFound
+from solarwinds.core.exceptions import SWUriNotFound, SWObjectPropertyError
 
 class Point(Endpoint):
     name = 'Point'
@@ -15,21 +15,22 @@ class Point(Endpoint):
         self.longitude = longitude
         self.auto_added = auto_added
         self.street_address = street_address
-        self.uri = self._get_uri()
 
     def _get_uri(self):
-        if self.instance_id:
+        if self.instance_id is not None:
             query = f"SELECT Uri as uri FROM {self.endpoint} WHERE InstanceID = '{self.instance_id}'"
             result = self.query(query)
             if result is None:
                 raise SWUriNotFound(f'{self.endpoint}: URI not found for InstanceID="{self.instance_id}"')
             else:
-                return result['uri']
+                self.uri = result['uri']
 
-        elif self.node:
+        elif self.node is not None:
             pass
 
-            
+        else:
+            raise SWObjectPropertyError(f'Must provide one of these required attributes: '
+                                        f'{", ".join(self._required_attrs)}')
 
     def create(self):
         pass

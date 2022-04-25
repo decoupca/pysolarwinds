@@ -9,13 +9,16 @@ class Endpoint(object):
     # list of attributes required to lookup solarwinds object (OR, not AND)
     _required_attrs = None
 
-    def _update_object(self):
-        """ updates local python object's properties with properties read from solarwinds """
-        for k, v in self._swdata.items():
-            attr = self._camel_to_snake(k)
+    def _update_object(self, overwrite=False):
+        """ updates local python object's properties with properties read from solarwinds
+            if overwrite=False, will not update any attributes that are already set
+        """
+        for sw_k, sw_v in self._swdata.items():
+            local_attr = self._camel_to_snake(sw_k)
             try:
-                getattr(self, attr)
-                setattr(self, attr, v)
+                local_v = getattr(self, local_attr)
+                if local_v is None or overwrite is True:
+                    setattr(self, local_attr, sw_v)
             except AttributeError:
                 pass
 
@@ -40,9 +43,10 @@ class Endpoint(object):
         """ Get an object's SWIS URI """
         pass
 
-    def _get_swdata(self):
+    def _get_swdata(self, refresh=False):
         """ Caches solarwinds data about an object """
-        self._swdata = self.swis.read(self.uri)
+        if self._swdata is None or refresh is True:
+            self._swdata = self.swis.read(self.uri)
 
     def create(self):
         """ Create object """
@@ -58,23 +62,20 @@ class Endpoint(object):
 
     def exists(self, refresh=False):
         """ Whether or not an object exists """
-        if refresh is True:
-            self.uri = self._get_uri()
+        if self.uri is None or refresh is True:
+            self._get_uri()
         return bool(self.uri)
 
-    def get(self):
-        if self.uri is None:
-            self.uri = self._get_uri()
-        if self.uri is not None:
-            self._swdata = self.swis.read(self.uri)
-            self._update_object()
-        else:
-            raise SWObjectPropertyError('Must provide one of these required attributes: '
-                                        f'{", ".join(self._required_attrs)}')
+    def get(self, refresh=False, overwrite=False):
+        """ Gets object data from solarwinds and updates local object attributes """
+        if self.exists(refresh=refresh):
+            self._get_swdata(refresh=refresh)
+            self._update_object(overwrite=overwrite)
 
     def query(self, query):
         return self._parse_response(self.swis.query(query))
 
     def update(self):
         """ Update object in solarwinds with local object's properties """
-        pass
+        if self._swdata is None:
+            pass
