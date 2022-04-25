@@ -1,4 +1,3 @@
 class BaseModel(object):
-    def __init__(self, swis, module):
+    def __init__(self, swis):
         self.swis = swis
-        self.module = module

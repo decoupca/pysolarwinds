@@ -1,30 +1,41 @@
 from urllib.parse import urlencode, urlparse
+import re
+
 
 class Endpoint(object):
-    def __init__(self, parent):
-        self.module = parent.module
-        self.parent = parent.name
-        self.endpoint = f'{self.module}.{self.parent}.{self.name}'
-        self.swis = parent.swis
-        self.uri = self._build_uri()
-        self._cache = self.get()
-        self.id = None
+    endpoint = None
+    uri = None
+    _swdata = None
 
-    def _build_uri_key(self):
-        key = []
-        for k, v in self._uri_key.items():
-            key.append(f'{k}="{v}"')
-        return ','.join(key)
+    def _update_object(self):
+        """ updates local python object's properties with properties read from solarwinds """
+        for k, v in self._swdata.items():
+            attr = self._camel_to_snake(k)
+            try:
+                getattr(self, attr)
+                setattr(self, attr, v)
+            except AttributeError:
+                pass
+                
+    def _camel_to_snake(self, name):
+        """ https://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-snake-case """
+        name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+        
+    def _get_uri(self):
+        """ Get an object's SWIS URI """
+        pass
 
-    def _build_uri(self):
-        # swis://PTC-WBSOLARW702.ad.moodys.net/Orion/Orion.WorldMap.Point/Instance="Orion.Nodes",InstanceID="799"
-        # swis://PTC-WBSOLARW702.ad.moodys.net/Orion/Orion.Nodes/NodeID=1503
-        return f'swis://{urlparse(self.swis.url).hostname}/{self.module}/{self.endpoint}/{self._build_uri_key()}'
+    def _get_swdata(self):
+        """ Caches solarwinds data about an object """
+        self._swdata = self.swis.read(self.uri)
 
     def create(self):
+        """ Create object """
         pass
 
     def delete(self):
+        """ Delete object """
         if self.exists():
             self.swis.delete(self.uri)
             return True
@@ -32,13 +43,15 @@ class Endpoint(object):
             return False
 
     def exists(self, refresh=False):
-        pass 
+        """ Whether or not an object exists """
+        if refresh is True:
+            self.uri = self._get_uri()
+        return bool(self.uri)
 
     def get(self):
-        return self.swis.read(self.uri)
-
-    def read(self):
-        pass
+        self._swdata = self.swis.read(self.uri)
+        self._update_object()
 
     def update(self):
+        """ Update object in solarwinds with local object's properties """
         pass
