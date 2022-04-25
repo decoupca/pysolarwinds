@@ -18,7 +18,7 @@ class Point(Endpoint):
 
     def _get_uri(self):
         if self.instance_id is not None:
-            query = f"SELECT Uri as uri FROM {self.endpoint} WHERE InstanceID = '{self.instance_id}'"
+            query = f"SELECT Uri as uri FROM {self.endpoint} WHERE InstanceID = {self.instance_id}"
             result = self.query(query)
             if result is None:
                 raise SWUriNotFound(f'{self.endpoint}: URI not found for InstanceID="{self.instance_id}"')

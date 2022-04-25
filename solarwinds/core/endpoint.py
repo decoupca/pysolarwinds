@@ -8,6 +8,7 @@ class Endpoint(object):
     uri = None
     _swdata = None
     _localdata = None
+    _update = None
     # list of attributes required to lookup solarwinds object (OR, not AND)
     _required_attrs = None
     # args to exclude when serializing object to push to solarwinds
@@ -57,9 +58,25 @@ class Endpoint(object):
         for arg in args:
             if arg not in exclude_args:
                 value = getattr(self, arg)
+                # store args without underscores so they match
+                # solarwinds argument names
+                arg = arg.replace('_', '')
                 serialized[arg] = value
         self._localdata = serialized
-        
+
+    def _diff(self):
+        update = {}
+        if self._localdata is None:
+            self._serialize()
+        if self._swdata is None:
+            self._get_swdata()
+        for k, v in self._swdata.items():
+            k = k.lower()
+            local_v = self._localdata.get(k)
+            if local_v:
+                if local_v != v:
+                    update[k] = self._localdata[k]
+        self._update = update
 
     def _camel_to_snake(self, name):
         """ https://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-snake-case """
@@ -73,8 +90,16 @@ class Endpoint(object):
     def _get_swdata(self, refresh=False):
         """ Caches solarwinds data about an object """
         if self._swdata is None or refresh is True:
-            self._swdata = self.swis.read(self.uri)
+            self._swdata = self._sanitize_swdata(self.swis.read(self.uri))
             self._build_attr_map()
+
+    def _sanitize_swdata(self, swdata):
+        for k, v in swdata.items():
+            if isinstance(v, str):
+                if re.match(r'^\d+$', v):
+                    swdata[k] = int(v)
+        return swdata
+        
 
     def create(self):
         """ Create object """
