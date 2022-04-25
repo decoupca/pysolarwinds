@@ -68,8 +68,7 @@ class Endpoint(object):
 
     def _diff(self):
         updates = {}
-        if self._localdata is None:
-            self._serialize()
+        self._serialize()
         if self._swdata is None:
             self._get_swdata()
         for k, v in self._swdata.items():
@@ -78,7 +77,8 @@ class Endpoint(object):
             if local_v:
                 if local_v != v:
                     updates[k] = self._localdata[k]
-        self._updates = updates
+        if updates:
+            self._updates = updates
 
     def _camel_to_snake(self, name):
         """https://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-snake-case"""
@@ -144,6 +144,8 @@ class Endpoint(object):
                 self._diff()
             if self._updates is not None:
                 self.swis.update(self.uri, **self._updates)
+                self.get(refresh=True)
+                self._updates = None
                 return True
             else:
                 return False
