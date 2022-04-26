@@ -5,6 +5,7 @@ from logging import getLogger
 from solarwinds.core.endpoint import Endpoint
 from solarwinds.utils import parse_response, sanitize_swdata
 from solarwinds.core.exceptions import (
+    SWUriNotFound,
     SWNonUniqueResult,
     SWObjectExists,
     SWObjectNotFound,
@@ -39,16 +40,30 @@ DEFAULT_POLLERS = {
 
 
 class Node(Endpoint):
-    name = 'Node'
-    endoint = 'Orion.Nodes'
-    _required_attrs = ["ip", "caption"]
-    _keys = ['ip', 'caption']
-    _exclude_args = []
+    name = "Node"
+    endoint = "Orion.Nodes"
+    _required_attrs = ["ipaddress", "caption"]
+    _keys = ["ipaddress", "caption"]
+    _exclude_attrs = []
 
-    def __init__(self, swis, ip=None, caption=None, snmp_version=0, community=None, rw_community=None, engine_id=1,  polling_method='icmp', custom_properties=None, pollers=None):
-        self.ip = ip
+    def __init__(
+        self,
+        swis,
+        node_id=None,
+        ipaddress=None,
+        caption=None,
+        snmp_version=0,
+        community=None,
+        rw_community=None,
+        engine_id=1,
+        polling_method="icmp",
+        custom_properties=None,
+        pollers=None,
+    ):
+        self.node_id = node_id
+        self.ipaddress = ipaddress
         self.caption = caption
-        self.engine_id = engine_id,
+        self.engine_id = (engine_id,)
         self.snmp_version = snmp_version
         self.community = community
         self.rw_community = rw_community
@@ -56,16 +71,14 @@ class Node(Endpoint):
         self.custom_properties = custom_properties
         self.pollers = pollers
         if ip is None and caption is None:
-            raise ValueError("Must provide IP, caption, or both.")
+            raise ValueError("Must provide IP address, caption, or both.")
         if self.pollers is None:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
 
     def _get_uri(self):
         if self.ip is not None:
             query = f'SELECT Uri as uri FROM Orion.Nodes WHERE IPAddress = "{self.ip}"'
-
-
-
+            response = self.query
 
     def enable_pollers(self):
         node_id = self.get_id()
@@ -80,7 +93,6 @@ class Node(Endpoint):
             self.swis.create("Orion.Pollers", **poller)
             logger.debug(f"{self.ip}: enable_pollers(): enabled poller {poller_type}")
         return True
-
 
     def get_id(self):
         self.id = int(re.search(r"(\d+)$", self.get_uri()).group(0))

@@ -6,7 +6,8 @@ class Point(Endpoint):
     name = "Point"
     endpoint = "Orion.WorldMap.Point"
     _required_attrs = ["node", "instance_id"]
-    _exclude_args = ["node"]
+    _keys = ["instance_id"]
+    _exclude_attrs = ["node"]
 
     def __init__(
         self,
@@ -27,26 +28,11 @@ class Point(Endpoint):
         self.longitude = longitude
         self.auto_added = auto_added
         self.street_address = street_address
-
-    def _get_uri(self):
-        if self.instance_id is not None:
-            query = f"SELECT Uri as uri FROM {self.endpoint} WHERE InstanceID = {self.instance_id}"
-            result = self.query(query)
-            if result is None:
-                raise SWUriNotFound(
-                    f'{self.endpoint}: URI not found for InstanceID="{self.instance_id}"'
-                )
+        if self.instance_id is None:
+            if self.node is None:
+                return SWObjectPropertyError("Must provide either node or instance_id")
             else:
-                self.uri = result["uri"]
-
-        elif self.node is not None:
-            pass
-
-        else:
-            raise SWObjectPropertyError(
-                f"Must provide one of these required attributes: "
-                f'{", ".join(self._required_attrs)}'
-            )
+                self.instance_id = self.node.node_id
 
 
 class PointLabel(Endpoint):

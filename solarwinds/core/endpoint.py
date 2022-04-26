@@ -2,7 +2,6 @@ import inspect
 from urllib.parse import urlencode, urlparse
 
 from solarwinds.core.exceptions import SWObjectPropertyError, SWUriNotFound
-from solarwinds.utils import camel_to_snake, parse_response, sanitize_swdata
 
 
 class Endpoint(object):
@@ -15,8 +14,8 @@ class Endpoint(object):
     # list of attributes required to lookup solarwinds object (OR, not AND)
     _required_attrs = None
     _keys = None
-    # args to exclude when serializing object to push to solarwinds
-    _exclude_args = []
+    # attributes to exclude when serializing object to push to solarwinds
+    _exclude_attrs = []
     _attr_map = None
 
     def _build_attr_map(self):
@@ -45,10 +44,10 @@ class Endpoint(object):
     def _serialize(self):
         serialized = {}
         args = inspect.getfullargspec(self.__init__)[0]
-        exclude_args = ["self", "swis"]
-        exclude_args.extend(self._exclude_args)
+        exclude_attrs = ["self", "swis"]
+        exclude_attrs.extend(self._exclude_attrs)
         for arg in args:
-            if arg not in exclude_args:
+            if arg not in exclude_attrs:
                 value = getattr(self, arg)
                 # store args without underscores so they match
                 # solarwinds argument names
@@ -72,7 +71,28 @@ class Endpoint(object):
 
     def _get_uri(self):
         """Get an object's SWIS URI"""
-        pass
+        queries = []
+        for key in self._keys:
+            value = getattr(self, key)
+            if value:
+                queries.append(
+                    f"SELECT Uri as uri FROM {self.endpoint} WHERE {key} = '{value}'"
+                )
+        if queries:
+            for query in queries:
+                result = self.query(query)
+                if result:
+                    self.uri = result["uri"]
+                    return True
+            query_lines = "\n".join(queries)
+            raise SWUriNotFound(
+                f"No results found for any of these queries:\n{query_lines}"
+            )
+        else:
+            key_props = ", ".join(self._keys)
+            raise SWUriNotFound(
+                f"Must provide a value for at least one key property: {key_props}"
+            )
 
     def _get_swdata(self, refresh=False):
         """Caches solarwinds data about an object"""
