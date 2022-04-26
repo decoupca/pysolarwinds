@@ -12,5 +12,4 @@ sw = solarwinds.api(**sw_args)
 
 node = sw.orion.nodes.node(ipaddress="10.12.104.97")
 node.get()
-node.map_point.get()
 ipdb.set_trace()

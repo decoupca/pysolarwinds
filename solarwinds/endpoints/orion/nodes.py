@@ -66,6 +66,13 @@ class Node(Endpoint):
         self.map_point = None
         self._get_logger()
 
+    def _update_object(self, overwrite=False):
+        super()._update_object(overwrite=overwrite)
+        if self.latitude is None or overwrite is True:
+            self.latitude = self.map_point.latitude
+        if self.longitude is None or overwrite is True:
+            self.longitude = self.map_point.longitude
+
     def enable_pollers(self):
         self.id = self._get_id()
         for poller_type in self.pollers:
