@@ -40,7 +40,7 @@ class Node(Endpoint):
         latitude=None,
         longitude=None,
         rw_community=None,
-        engine_id=1,
+        engine_id=None,
         polling_method="icmp",
         custom_properties=None,
         pollers=None,
@@ -49,7 +49,7 @@ class Node(Endpoint):
         self.node_id = node_id
         self.ipaddress = ipaddress
         self.caption = caption
-        self.engine_id = (engine_id,)
+        self.engine_id = engine_id
         self.snmp_version = snmp_version
         self.community = community
         self.latitude = latitude

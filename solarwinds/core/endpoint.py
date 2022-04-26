@@ -18,6 +18,7 @@ class Endpoint(object):
     _keys = None
     # attributes to exclude when serializing object to push to solarwinds
     _exclude_attrs = []
+    _exclude_custom_props = ['NodeID', 'InstanceType', 'Uri', 'InstanceSiteId']
     _attr_map = None
 
     def _get_logger(self):
@@ -26,7 +27,7 @@ class Endpoint(object):
     def _build_attr_map(self):
         """builds a map of local attributes to solarwinds properties"""
         attr_map = {}
-        for sw_k, sw_v in self._swdata['properties'].items():
+        for sw_k, sw_v in self._swdata["properties"].items():
             local_attr = camel_to_snake(sw_k)
             try:
                 getattr(self, local_attr)
@@ -37,19 +38,26 @@ class Endpoint(object):
             self._attr_map = attr_map
 
     def _update_object(self, overwrite=False):
-        """updates local python object's properties with properties read from solarwinds
+        """changes local python object's properties with properties read from solarwinds
         if overwrite=False, will not update any attributes that are already set
         """
         for local_attr, sw_attr in self._attr_map.items():
             local_v = getattr(self, local_attr)
             if local_v is None or overwrite is True:
-                sw_v = self._swdata['properties'][sw_attr]
+                sw_v = self._swdata["properties"][sw_attr]
                 setattr(self, local_attr, sw_v)
+        if self._swdata['custom_properties'] is not None:
+            cprops = {}
+            for k, v in self._swdata['custom_properties'].items():
+                if k not in self._exclude_custom_props:
+                    cprops[k] = v
+            if len(cprops) > 0:
+                self.custom_properties = cprops
 
     def _serialize(self):
-        serialized = {'properties': {}, 'custom_properties': None}
+        serialized = {"properties": {}, "custom_properties": None}
         args = inspect.getfullargspec(self.__init__)[0]
-        exclude_attrs = ["self", "swis", 'custom_properties']
+        exclude_attrs = ["self", "swis", "custom_properties"]
         exclude_attrs.extend(self._exclude_attrs)
         for arg in args:
             if arg not in exclude_attrs:
@@ -57,28 +65,50 @@ class Endpoint(object):
                 # store args without underscores so they match
                 # solarwinds argument names
                 arg = arg.replace("_", "")
-                serialized['properties'][arg] = value
+                serialized["properties"][arg] = value
         if self.custom_properties is not None:
-            serialized['custom_properties'] = self.custom_properties
+            serialized["custom_properties"] = self.custom_properties
         self._localdata = serialized
 
-    def _diff(self):
-        updates = {'properties': None, 'custom_properties': None}
+    def _diff_properties(self):
+        changes = {}
         self._serialize()
         if self._swdata is None:
             self._get_swdata()
-        for name, data in self._swdata.items():
-            for k, v in data.items():
-                if name == 'properties':
-                    # need to lowercase property names to match local attributes
-                    # but leave custom property case intact
-                    k = k.lower()
-                local_v = self._localdata[name].get(k)
+        for k, sw_v in self._swdata["properties"].items():
+            k = k.lower()
+            if self._localdata["properties"] is not None:
+                local_v = self._localdata["properties"].get(k)
                 if local_v:
-                    if local_v != v:
-                        updates[name][k] = self._localdata[name][k]
-        if updates['properties'] is not None or updates['custom_properties'] is not None:
-            self._changes = updates
+                    if local_v != sw_v:
+                        changes["properties"][k] = local_v
+        if len(changes) > 0:
+            return changes
+
+    def _diff_custom_properties(self):
+        changes = {}
+        self._serialize()
+        if self._swdata is None:
+            self._get_swdata()
+        for k, local_v in self._localdata["custom_properties"].items():
+            if k not in self._swdata["custom_properties"].keys():
+                changes[k] = local_v
+            sw_v = self._swdata["custom_properties"].get(k)
+            if sw_v != local_v:
+                changes[k] = local_v
+        if len(changes) > 0:
+            return changes
+
+    def _diff(self):
+        changes = {
+            "properties": self._diff_properties(),
+            "custom_properties": self._diff_custom_properties(),
+        }
+        if (
+            changes["properties"] is not None
+            or changes["custom_properties"] is not None
+        ):
+            self._changes = changes
 
     def _get_id(self):
         self.id = int(re.search(r"(\d+)$", self.uri).group(0))
@@ -95,7 +125,7 @@ class Endpoint(object):
                 )
         if queries:
             query_lines = "\n".join(queries)
-            self.logger.debug(f'Found queries:\n{query_lines}')
+            self.logger.debug(f"Found queries:\n{query_lines}")
             for query in queries:
                 result = self.query(query)
                 if result:
@@ -114,8 +144,10 @@ class Endpoint(object):
         """Caches solarwinds data about an object"""
         if self._swdata is None or refresh is True:
             self._swdata = {}
-            self._swdata['properties'] = sanitize_swdata(self.swis.read(self.uri))
-            self._swdata['custom_properties'] = sanitize_swdata(self.swis.read(f'{self.uri}/CustomProperties'))
+            self._swdata["properties"] = sanitize_swdata(self.swis.read(self.uri))
+            self._swdata["custom_properties"] = sanitize_swdata(
+                self.swis.read(f"{self.uri}/CustomProperties")
+            )
             self._build_attr_map()
 
     def create(self):
@@ -165,7 +197,13 @@ class Endpoint(object):
             if self._changes is None:
                 self._diff()
             if self._changes is not None:
-                self.swis.update(self.uri, **self._changes)
+                if self._changes["properties"] is not None:
+                    self.swis.update(self.uri, **self._changes["properties"])
+                if self._changes["custom_properties"] is not None:
+                    self.swis.update(
+                        f"{self.uri}/CustomProperties",
+                        **self._changes["custom_properties"],
+                    )
                 self.get(refresh=True)
                 self._changes = None
                 return True
