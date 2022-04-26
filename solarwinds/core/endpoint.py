@@ -46,7 +46,7 @@ class Endpoint(object):
             if local_v is None or overwrite is True:
                 sw_v = self._swdata["properties"][sw_attr]
                 setattr(self, local_attr, sw_v)
-        if self._swdata['custom_properties'] is not None:
+        if self._swdata.get('custom_properties') is not None:
             cprops = {}
             for k, v in self._swdata['custom_properties'].items():
                 if k not in self._exclude_custom_props:
@@ -120,8 +120,9 @@ class Endpoint(object):
         for key in self._keys:
             value = getattr(self, key)
             if value is not None:
+                sw_key = key.replace('_', '')
                 queries.append(
-                    f"SELECT Uri as uri FROM {self.endpoint} WHERE {key} = '{value}'"
+                    f"SELECT Uri as uri FROM {self.endpoint} WHERE {sw_key} = '{value}'"
                 )
         if queries:
             query_lines = "\n".join(queries)
@@ -145,9 +146,13 @@ class Endpoint(object):
         if self._swdata is None or refresh is True:
             self._swdata = {}
             self._swdata["properties"] = sanitize_swdata(self.swis.read(self.uri))
-            self._swdata["custom_properties"] = sanitize_swdata(
-                self.swis.read(f"{self.uri}/CustomProperties")
-            )
+            try:
+                getattr(self, 'custom_properties')
+                self._swdata["custom_properties"] = sanitize_swdata(
+                    self.swis.read(f"{self.uri}/CustomProperties")
+                )
+            except AttributeError:
+                pass
             self._build_attr_map()
 
     def create(self):

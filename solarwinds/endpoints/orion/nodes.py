@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from solarwinds.core.exceptions import SWObjectPropertyError
 
 from solarwinds.core.endpoint import Endpoint
+from solarwinds.endpoints.orion import worldmap
 
 DEFAULT_PROPERTIES = {}
 
@@ -62,8 +63,7 @@ class Node(Endpoint):
         self.pollers = pollers
         if self.pollers is None:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
-        if self.latitude or self.longitude:
-            raise SWObjectPropertyError("Must provide both latitude and longitude (or neither).")
+        self.map_point = None
         self._get_logger()
 
     def enable_pollers(self):
@@ -79,6 +79,11 @@ class Node(Endpoint):
             self.swis.create("Orion.Pollers", **poller)
             self.logger.debug(f"enable_pollers(): enabled poller {poller_type}")
         return True
+
+    def get(self, refresh=False, overwrite=False):
+        super().get(refresh=refresh, overwrite=overwrite)
+        self.map_point = worldmap.Point(swis=self.swis, instance_id=self.node_id)
+        self.map_point.get()
 
     def remanage(self):
         if self.exists():

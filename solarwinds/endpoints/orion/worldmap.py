@@ -33,7 +33,7 @@ class Point(Endpoint):
                 return SWObjectPropertyError("Must provide either node or instance_id")
             else:
                 self.instance_id = self.node.id
-
+        self._get_logger()
 
 class PointLabel(Endpoint):
     pass
