@@ -26,7 +26,7 @@ class Endpoint(object):
     def _build_attr_map(self):
         """builds a map of local attributes to solarwinds properties"""
         attr_map = {}
-        for sw_k, sw_v in self._swdata.items():
+        for sw_k, sw_v in self._swdata['properties'].items():
             local_attr = camel_to_snake(sw_k)
             try:
                 getattr(self, local_attr)
@@ -43,13 +43,13 @@ class Endpoint(object):
         for local_attr, sw_attr in self._attr_map.items():
             local_v = getattr(self, local_attr)
             if local_v is None or overwrite is True:
-                sw_v = self._swdata[sw_attr]
+                sw_v = self._swdata['properties'][sw_attr]
                 setattr(self, local_attr, sw_v)
 
     def _serialize(self):
-        serialized = {}
+        serialized = {'properties': {}, 'custom_properties': None}
         args = inspect.getfullargspec(self.__init__)[0]
-        exclude_attrs = ["self", "swis"]
+        exclude_attrs = ["self", "swis", 'custom_properties']
         exclude_attrs.extend(self._exclude_attrs)
         for arg in args:
             if arg not in exclude_attrs:
@@ -57,21 +57,27 @@ class Endpoint(object):
                 # store args without underscores so they match
                 # solarwinds argument names
                 arg = arg.replace("_", "")
-                serialized[arg] = value
+                serialized['properties'][arg] = value
+        if self.custom_properties is not None:
+            serialized['custom_properties'] = self.custom_properties
         self._localdata = serialized
 
     def _diff(self):
-        updates = {}
+        updates = {'properties': None, 'custom_properties': None}
         self._serialize()
         if self._swdata is None:
             self._get_swdata()
-        for k, v in self._swdata.items():
-            k = k.lower()
-            local_v = self._localdata.get(k)
-            if local_v:
-                if local_v != v:
-                    updates[k] = self._localdata[k]
-        if updates:
+        for name, data in self._swdata.items():
+            for k, v in data.items():
+                if name == 'properties':
+                    # need to lowercase property names to match local attributes
+                    # but leave custom property case intact
+                    k = k.lower()
+                local_v = self._localdata[name].get(k)
+                if local_v:
+                    if local_v != v:
+                        updates[name][k] = self._localdata[name][k]
+        if updates['properties'] is not None or updates['custom_properties'] is not None:
             self._changes = updates
 
     def _get_id(self):
@@ -107,7 +113,9 @@ class Endpoint(object):
     def _get_swdata(self, refresh=False):
         """Caches solarwinds data about an object"""
         if self._swdata is None or refresh is True:
-            self._swdata = sanitize_swdata(self.swis.read(self.uri))
+            self._swdata = {}
+            self._swdata['properties'] = sanitize_swdata(self.swis.read(self.uri))
+            self._swdata['custom_properties'] = sanitize_swdata(self.swis.read(f'{self.uri}/CustomProperties'))
             self._build_attr_map()
 
     def create(self):
