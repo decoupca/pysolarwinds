@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+from solarwinds.core.exceptions import SWObjectPropertyError
+
 from solarwinds.core.endpoint import Endpoint
 
 DEFAULT_PROPERTIES = {}
@@ -60,6 +62,8 @@ class Node(Endpoint):
         self.pollers = pollers
         if self.pollers is None:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
+        if self.latitude or self.longitude:
+            raise SWObjectPropertyError("Must provide both latitude and longitude (or neither).")
         self._get_logger()
 
     def enable_pollers(self):
