@@ -24,7 +24,7 @@ DEFAULT_POLLERS = {
 
 class Node(Endpoint):
     name = "Node"
-    endoint = "Orion.Nodes"
+    endpoint = "Orion.Nodes"
     _required_attrs = ["ipaddress", "caption"]
     _keys = ["ipaddress", "caption"]
     _exclude_attrs = []
@@ -45,6 +45,7 @@ class Node(Endpoint):
         custom_properties=None,
         pollers=None,
     ):
+        self.swis = swis
         self.node_id = node_id
         self.ipaddress = ipaddress
         self.caption = caption

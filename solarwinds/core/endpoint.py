@@ -77,24 +77,24 @@ class Endpoint(object):
     def _get_id(self):
         self.id = int(re.search(r"(\d+)$", self.uri).group(0))
         self.logger.debug(f"get_id(): got id: {self.id}")
-        return self.id
 
     def _get_uri(self):
         """Get an object's SWIS URI"""
         queries = []
         for key in self._keys:
             value = getattr(self, key)
-            if value:
+            if value is not None:
                 queries.append(
                     f"SELECT Uri as uri FROM {self.endpoint} WHERE {key} = '{value}'"
                 )
         if queries:
+            query_lines = "\n".join(queries)
+            self.logger.debug(f'Found queries:\n{query_lines}')
             for query in queries:
                 result = self.query(query)
                 if result:
                     self.uri = result["uri"]
                     return True
-            query_lines = "\n".join(queries)
             raise SWUriNotFound(
                 f"No results found for any of these queries:\n{query_lines}"
             )
