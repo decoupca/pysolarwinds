@@ -2,7 +2,7 @@ import inspect
 from urllib.parse import urlencode, urlparse
 
 from solarwinds.core.exceptions import SWObjectPropertyError, SWUriNotFound
-
+from logging import getLogger
 
 class Endpoint(object):
     endpoint = None
@@ -17,6 +17,9 @@ class Endpoint(object):
     # attributes to exclude when serializing object to push to solarwinds
     _exclude_attrs = []
     _attr_map = None
+
+    def _get_logger(self):
+        self.logger = getLogger(self.endpoint)
 
     def _build_attr_map(self):
         """builds a map of local attributes to solarwinds properties"""
@@ -68,6 +71,11 @@ class Endpoint(object):
                     updates[k] = self._localdata[k]
         if updates:
             self._changes = updates
+
+    def _get_id(self):
+        self.id = int(re.search(r"(\d+)$", self.uri).group(0))
+        logger.debug(f"get_id(): got id: {self.id}")
+        return self.id
 
     def _get_uri(self):
         """Get an object's SWIS URI"""
