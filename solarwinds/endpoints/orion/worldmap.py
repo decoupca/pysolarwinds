@@ -1,5 +1,5 @@
 from solarwinds.core.endpoint import Endpoint
-from solarwinds.core.exceptions import SWObjectPropertyError, SWUriNotFound
+from solarwinds.core.exceptions import SWObjectPropertyError
 
 
 class Point(Endpoint):
@@ -32,7 +32,7 @@ class Point(Endpoint):
             if self.node is None:
                 return SWObjectPropertyError("Must provide either node or instance_id")
             else:
-                self.instance_id = self.node.node_id
+                self.instance_id = self.node.id
 
 
 class PointLabel(Endpoint):

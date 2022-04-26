@@ -1,17 +1,6 @@
-import re
-from copy import deepcopy
+from datetime import datetime, timedelta
 
 from solarwinds.core.endpoint import Endpoint
-from solarwinds.utils import parse_response, sanitize_swdata
-from solarwinds.core.exceptions import (
-    SWUriNotFound,
-    SWNonUniqueResult,
-    SWObjectExists,
-    SWObjectNotFound,
-    SWObjectPropertyError,
-)
-
-from datetime import datetime, timedelta
 
 DEFAULT_PROPERTIES = {}
 
@@ -77,27 +66,24 @@ class Node(Endpoint):
         for poller_type in self.pollers:
             poller = {
                 "PollerType": poller_type,
-                "NetObject": f"N:{node_id}",
+                "NetObject": f"N:{self.id}",
                 "NetObjectType": "N",
-                "NetObjectID": node_id,
+                "NetObjectID": self.id,
                 "Enabled": True,
             }
             self.swis.create("Orion.Pollers", **poller)
             self.logger.debug(f"enable_pollers(): enabled poller {poller_type}")
         return True
 
-
     def remanage(self):
         if self.exists():
             details = self.details()  # TODO: cache this
             if details["properties"]["UnManaged"] is True:
-                self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.node_id}")
+                self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
                 self.logger.debug(f"remanage(): re-managed node")
                 return True
             else:
-                self.logger.debug(
-                    f"remanage(): node is already managed, doing nothing"
-                )
+                self.logger.debug(f"remanage(): node is already managed, doing nothing")
                 return False
         else:
             self.logger.debug(f"remanage(): node does not exist, doing nothing")
@@ -126,4 +112,3 @@ class Node(Endpoint):
         else:
             self.logger.debug(f"unmanage(): node does not exist, doing nothing")
             return False
-

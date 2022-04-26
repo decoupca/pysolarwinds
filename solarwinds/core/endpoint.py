@@ -1,8 +1,10 @@
 import inspect
-from urllib.parse import urlencode, urlparse
+import re
+from logging import getLogger
 
 from solarwinds.core.exceptions import SWObjectPropertyError, SWUriNotFound
-from logging import getLogger
+from solarwinds.utils import camel_to_snake, parse_response, sanitize_swdata
+
 
 class Endpoint(object):
     endpoint = None
@@ -74,7 +76,7 @@ class Endpoint(object):
 
     def _get_id(self):
         self.id = int(re.search(r"(\d+)$", self.uri).group(0))
-        logger.debug(f"get_id(): got id: {self.id}")
+        self.logger.debug(f"get_id(): got id: {self.id}")
         return self.id
 
     def _get_uri(self):
@@ -115,7 +117,7 @@ class Endpoint(object):
         else:
             self._serialize()
             if self._localdata is None:
-                raise SWObjectPropertyError(f"Can't create object without properties.")
+                raise SWObjectPropertyError("Can't create object without properties.")
             else:
                 self.uri = self.swis.create(self.endpoint, **self._localdata)
                 return True
