@@ -78,13 +78,13 @@ class Node(Endpoint):
         self._get_logger()
 
     def enable_pollers(self):
-        self.id = self._get_id()
+        node_id = self.node_id or self._get_id()
         for poller_type in self.pollers:
             poller = {
                 "PollerType": poller_type,
-                "NetObject": f"N:{self.id}",
+                "NetObject": f"N:{node_id}",
                 "NetObjectType": "N",
-                "NetObjectID": self.id,
+                "NetObjectID": node_id,
                 "Enabled": True,
             }
             self.swis.create("Orion.Pollers", **poller)
@@ -93,8 +93,8 @@ class Node(Endpoint):
 
     def remanage(self):
         if self.exists():
-            details = self.details()  # TODO: cache this
-            if details["properties"]["UnManaged"] is True:
+            self._get_swdata(data='properties')
+            if self._swdata["properties"]["UnManaged"] is True:
                 self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
                 self.logger.debug(f"remanage(): re-managed node")
                 return True
@@ -113,8 +113,8 @@ class Node(Endpoint):
         if end is None:
             end = now + timedelta(days=1)
         if self.exists():
-            details = self.details()
-            if details["properties"]["UnManaged"] is False:
+            self._get_swdata(data='properties')
+            if self._swdata["properties"]["UnManaged"] is False:
                 self.swis.invoke(
                     "Orion.Nodes", "Unmanage", f"N:{self.node_id}", start, end, False
                 )
