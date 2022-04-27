@@ -41,7 +41,7 @@ class Endpoint(object):
                         else:
                             child_args[child_arg] = parent_v
                     setattr(self, local_attr, child_object(self.swis, **child_args))
-                    self.log.debug(f'{self.name}: _init_child_objects(): initialized child object {str(child_object}}')
+                    self.log.debug(f'{self.name}: _init_child_objects(): initialized child object {str(child_object)}')
                     child = getattr(self, local_attr)
                     child.get()
                     for local_attr, child_attr in attr_map.items():
