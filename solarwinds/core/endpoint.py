@@ -74,7 +74,7 @@ class Endpoint(object):
         if self._swdata.get("custom_properties") is not None:
             cprops = {}
             for k, v in self._swdata["custom_properties"].items():
-                if k not in self._exclude_custom_props:
+                if k not in self._exclude_custom_props or overwrite is True:
                     cprops[k] = v
             if cprops:
                 self.custom_properties = cprops
@@ -95,6 +95,7 @@ class Endpoint(object):
             if self.custom_properties is not None:
                 serialized["custom_properties"] = self.custom_properties
         self._localdata = serialized
+        self.log.debug(f'_serialize(): serialized object: {serialized}')
         if self._child_objects is not None:
             for child_object, props in self._child_objects.items():
                 attr_map = props["attr_map"]
@@ -167,6 +168,9 @@ class Endpoint(object):
             or changes.get("child_objects") is not None
         ):
             self._changes = changes
+            self.log.debug(f'_diff(): found changes: {changes}')
+        else:
+            self.log.debug(f'_diff(): found no changes')
 
     def _get_id(self):
         self.id = int(re.search(r"(\d+)$", self.uri).group(0))
@@ -264,6 +268,7 @@ class Endpoint(object):
         """Update object in solarwinds with local object's properties"""
         self._serialize()
         if self.exists():
+            self.log.debug(f'update(): updating node...')
             if self._changes is None:
                 self._diff()
             if self._changes is not None:
