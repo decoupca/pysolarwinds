@@ -27,8 +27,8 @@ DEFAULT_POLLERS = {
 class Node(Endpoint):
     name = "Node"
     endpoint = "Orion.Nodes"
-    _required_attrs = ["ipaddress", "caption"]
-    _keys = ["ipaddress", "caption"]
+    _required_attrs = ["ip_address", "caption"]
+    _keys = ["ip_address", "caption"]
     _exclude_attrs = []
     _child_objects = {
         WorldMapPoint: {
@@ -48,7 +48,7 @@ class Node(Endpoint):
         self,
         swis,
         node_id=None,
-        ipaddress=None,
+        ip_address=None,
         caption=None,
         snmp_version=0,
         community=None,
@@ -62,7 +62,7 @@ class Node(Endpoint):
     ):
         self.swis = swis
         self.node_id = node_id
-        self.ipaddress = ipaddress
+        self.ip_address = ip_address
         self.caption = caption
         self.engine_id = engine_id
         self.snmp_version = snmp_version
