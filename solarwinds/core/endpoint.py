@@ -148,11 +148,19 @@ class Endpoint(object):
 
     def _diff(self):
         changes = {}
-        changes["properties"] = self._diff_properties()
-        if hasattr(self, "custom_properties"):
-            changes["custom_properties"] = self._diff_custom_properties()
-        if self._child_objects is not None:
-            changes["child_objects"] = self._diff_child_objects()
+        self._serialize()
+        if self.exists():
+            changes["properties"] = self._diff_properties()
+            if hasattr(self, "custom_properties"):
+                changes["custom_properties"] = self._diff_custom_properties()
+            if self._child_objects is not None:
+                changes["child_objects"] = self._diff_child_objects()
+        else:
+            changes['properties'] = self._localdata.get('properties')
+            if hasattr(self, 'custom_properties'):
+                changes['custom_properties'] = self._localdata.get('custom_properties')
+            if self._child_objects is not None:
+                changes["child_objects"] = self._diff_child_objects()
         if (
             changes.get("properties") is not None
             or changes.get("custom_properties") is not None
@@ -213,7 +221,7 @@ class Endpoint(object):
             if self._localdata is None:
                 raise SWObjectPropertyError("Can't create object without properties.")
             else:
-                self.uri = self.swis.create(self.endpoint, **self._localdata)
+                self.uri = self.swis.create(self.endpoint, **self._localdata['properties'])
                 self.log.debug(f'create(): {self.name}: created object')
                 if self._child_objects is not None:
                     for child_object, props in self._child_objects.items():
