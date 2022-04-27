@@ -35,5 +35,6 @@ class WorldMapPoint(Endpoint):
                 self.instance_id = self.node.id
         self._get_logger()
 
+
 class WorldMapPointLabel(Endpoint):
     pass

@@ -18,23 +18,25 @@ class Endpoint(object):
     _keys = None
     # attributes to exclude when serializing object to push to solarwinds
     _exclude_attrs = []
-    _exclude_custom_props = ['NodeID', 'InstanceType', 'Uri', 'InstanceSiteId']
+    _exclude_custom_props = ["NodeID", "InstanceType", "Uri", "InstanceSiteId"]
     _attr_map = None
     _child_objects = None
 
     def _init_child_objects(self):
         if self._child_objects is not None:
             for child_object, props in self._child_objects.items():
-                local_attr = props['local_attr']
+                local_attr = props["local_attr"]
                 child = getattr(self, local_attr)
                 if child is None:
-                    init_args = props['init_args']
-                    attr_map = props['attr_map']
+                    init_args = props["init_args"]
+                    attr_map = props["attr_map"]
                     child_args = {}
                     for child_arg, parent_arg in init_args.items():
                         parent_v = getattr(self, parent_arg)
                         if parent_v is None:
-                            raise SWObjectPropertyError(f"Can't init child object {child_object}, parent arg {parent_arg} is None")
+                            raise SWObjectPropertyError(
+                                f"Can't init child object {child_object}, parent arg {parent_arg} is None"
+                            )
                         else:
                             child_args[child_arg] = parent_v
                     setattr(self, local_attr, child_object(self.swis, **child_args))
@@ -67,9 +69,9 @@ class Endpoint(object):
             if local_v is None or overwrite is True:
                 sw_v = self._swdata["properties"][sw_attr]
                 setattr(self, local_attr, sw_v)
-        if self._swdata.get('custom_properties') is not None:
+        if self._swdata.get("custom_properties") is not None:
             cprops = {}
-            for k, v in self._swdata['custom_properties'].items():
+            for k, v in self._swdata["custom_properties"].items():
                 if k not in self._exclude_custom_props:
                     cprops[k] = v
             if cprops:
@@ -87,20 +89,19 @@ class Endpoint(object):
                 # solarwinds argument names
                 arg = arg.replace("_", "")
                 serialized["properties"][arg] = value
-        if hasattr(self, 'custom_properties'):
+        if hasattr(self, "custom_properties"):
             if self.custom_properties is not None:
                 serialized["custom_properties"] = self.custom_properties
         self._localdata = serialized
         if self._child_objects is not None:
             for child_object, props in self._child_objects.items():
-                attr_map = props['attr_map']
-                local_attr = props['local_attr']
+                attr_map = props["attr_map"]
+                local_attr = props["local_attr"]
                 child = getattr(self, local_attr)
                 for local_attr, child_attr in attr_map.items():
                     local_v = getattr(self, local_attr)
                     setattr(child, child_attr, local_v)
                 child._serialize()
-            
 
     def _diff_properties(self):
         changes = {}
@@ -136,7 +137,7 @@ class Endpoint(object):
         self._serialize()
         if self._child_objects is not None:
             for child_object, props in self._child_objects.items():
-                child = getattr(self, props['local_attr'])
+                child = getattr(self, props["local_attr"])
                 child._diff()
                 if child._changes is not None:
                     changes[child_object] = child._changes
@@ -146,11 +147,15 @@ class Endpoint(object):
     def _diff(self):
         changes = {}
         changes["properties"] = self._diff_properties()
-        if hasattr(self, 'custom_properties'):
+        if hasattr(self, "custom_properties"):
             changes["custom_properties"] = self._diff_custom_properties()
         if self._child_objects is not None:
-            changes['child_objects'] = self._diff_child_objects()
-        if changes.get('properties') is not None or changes.get('custom_properties') is not None or changes.get('child_objects') is not None:
+            changes["child_objects"] = self._diff_child_objects()
+        if (
+            changes.get("properties") is not None
+            or changes.get("custom_properties") is not None
+            or changes.get("child_objects") is not None
+        ):
             self._changes = changes
 
     def _get_id(self):
@@ -163,7 +168,7 @@ class Endpoint(object):
         for key in self._keys:
             value = getattr(self, key)
             if value is not None:
-                sw_key = key.replace('_', '')
+                sw_key = key.replace("_", "")
                 queries.append(
                     f"SELECT Uri as uri FROM {self.endpoint} WHERE {sw_key} = '{value}'"
                 )
@@ -184,15 +189,15 @@ class Endpoint(object):
                 f"Must provide a value for at least one key property: {key_props}"
             )
 
-    def _get_swdata(self, refresh=False, data='both'):
+    def _get_swdata(self, refresh=False, data="both"):
         """Caches solarwinds data about an object"""
         if self._swdata is None or refresh is True:
             self._swdata = {}
-            if data == 'both' or data == 'properties':
+            if data == "both" or data == "properties":
                 self._swdata["properties"] = sanitize_swdata(self.swis.read(self.uri))
                 self._build_attr_map()
-            if data == 'both' or data == 'custom_properties':
-                if hasattr(self, 'custom_properties'):
+            if data == "both" or data == "custom_properties":
+                if hasattr(self, "custom_properties"):
                     self._swdata["custom_properties"] = sanitize_swdata(
                         self.swis.read(f"{self.uri}/CustomProperties")
                     )
@@ -209,7 +214,7 @@ class Endpoint(object):
                 self.uri = self.swis.create(self.endpoint, **self._localdata)
                 if self._child_objects is not None:
                     for child_object, props in self._child_objects.items():
-                        getattr(self, props['local_attr']).create()
+                        getattr(self, props["local_attr"]).create()
                 return True
 
     def delete(self):
@@ -251,17 +256,17 @@ class Endpoint(object):
             if self._changes is not None:
                 if self._changes.get("properties") is not None:
                     self.swis.update(self.uri, **self._changes["properties"])
-                    self._get_swdata(refresh=True, data='properties')
+                    self._get_swdata(refresh=True, data="properties")
                 if self._changes.get("custom_properties") is not None:
                     self.swis.update(
                         f"{self.uri}/CustomProperties",
                         **self._changes["custom_properties"],
                     )
-                    self._get_swdata(refresh=True, data='custom_properties')
-                if self._changes.get('child_objects') is not None:
-                    for child_object, changes in self._changes['child_objects'].items():
+                    self._get_swdata(refresh=True, data="custom_properties")
+                if self._changes.get("child_objects") is not None:
+                    for child_object, changes in self._changes["child_objects"].items():
                         props = self._child_objects[child_object]
-                        child = getattr(self, props['local_attr'])
+                        child = getattr(self, props["local_attr"])
                         child.update()
                 self._changes = None
                 return True

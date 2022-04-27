@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
 
-from solarwinds.core.exceptions import SWObjectPropertyError
-
 from solarwinds.core.endpoint import Endpoint
+from solarwinds.core.exceptions import SWObjectPropertyError
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 
 DEFAULT_PROPERTIES = {}
@@ -33,11 +32,13 @@ class Node(Endpoint):
     _exclude_attrs = []
     _child_objects = {
         WorldMapPoint: {
-            'init_args': {'instance_id': 'node_id',},
-            'local_attr': 'map_point',
-            'attr_map': {
-                'latitude': 'latitude',
-                'longitude': 'longitude',
+            "init_args": {
+                "instance_id": "node_id",
+            },
+            "local_attr": "map_point",
+            "attr_map": {
+                "latitude": "latitude",
+                "longitude": "longitude",
             },
         },
     }
