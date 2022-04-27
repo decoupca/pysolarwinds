@@ -2,7 +2,7 @@ from solarwinds.core.endpoint import Endpoint
 from solarwinds.core.exceptions import SWObjectPropertyError
 
 
-class Point(Endpoint):
+class WorldMapPoint(Endpoint):
     name = "Point"
     endpoint = "Orion.WorldMap.Point"
     _required_attrs = ["node", "instance_id"]
@@ -35,5 +35,5 @@ class Point(Endpoint):
                 self.instance_id = self.node.id
         self._get_logger()
 
-class PointLabel(Endpoint):
+class WorldMapPointLabel(Endpoint):
     pass

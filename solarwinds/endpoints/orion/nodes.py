@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from solarwinds.core.exceptions import SWObjectPropertyError
 
 from solarwinds.core.endpoint import Endpoint
-from solarwinds.endpoints.orion import worldmap
+from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 
 DEFAULT_PROPERTIES = {}
 
@@ -31,6 +31,16 @@ class Node(Endpoint):
     _required_attrs = ["ipaddress", "caption"]
     _keys = ["ipaddress", "caption"]
     _exclude_attrs = []
+    _child_objects = {
+        WorldMapPoint: {
+            'init_args': {'instance_id': 'node_id',},
+            'local_attr': 'map_point',
+            'attr_map': {
+                'latitude': 'latitude',
+                'longitude': 'longitude',
+            },
+        },
+    }
 
     def __init__(
         self,
@@ -63,15 +73,7 @@ class Node(Endpoint):
         self.pollers = pollers
         if self.pollers is None:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
-        self.map_point = None
         self._get_logger()
-
-    def _update_object(self, overwrite=False):
-        super()._update_object(overwrite=overwrite)
-        if self.latitude is None or overwrite is True:
-            self.latitude = self.map_point.latitude
-        if self.longitude is None or overwrite is True:
-            self.longitude = self.map_point.longitude
 
     def enable_pollers(self):
         self.id = self._get_id()
@@ -86,11 +88,6 @@ class Node(Endpoint):
             self.swis.create("Orion.Pollers", **poller)
             self.logger.debug(f"enable_pollers(): enabled poller {poller_type}")
         return True
-
-    def get(self, refresh=False, overwrite=False):
-        super().get(refresh=refresh, overwrite=overwrite)
-        self.map_point = worldmap.Point(swis=self.swis, instance_id=self.node_id)
-        self.map_point.get()
 
     def remanage(self):
         if self.exists():

@@ -20,6 +20,22 @@ class Endpoint(object):
     _exclude_attrs = []
     _exclude_custom_props = ['NodeID', 'InstanceType', 'Uri', 'InstanceSiteId']
     _attr_map = None
+    _child_objects = None
+
+    def _init_child_objects(self):
+        if self._child_objects is not None:
+            for child_object, props in self._child_objects.items():
+                init_args = props['init_args']
+                local_attr = props['local_attr']
+                attr_map = props['attr_map']
+                child_args = {}
+                for child_arg, parent_arg in init_args.items():
+                    parent_v = getattr(self, parent_arg)
+                    if parent_v is None:
+                        raise SWObjectPropertyError(f"Can't init child object {child_object}, parent arg {parent_arg} is None")
+                    else:
+                        child_args[child_arg] = parent_arg
+                setattr(self, local_attr, child_object(self.swis, **child_args))
 
     def _get_logger(self):
         self.logger = getLogger(self.endpoint)
@@ -81,7 +97,7 @@ class Endpoint(object):
                 local_v = self._localdata["properties"].get(k)
                 if local_v:
                     if local_v != sw_v:
-                        changes["properties"][k] = local_v
+                        changes[k] = local_v
         if len(changes) > 0:
             return changes
 
@@ -192,6 +208,7 @@ class Endpoint(object):
         if self.exists(refresh=refresh):
             self._get_swdata(refresh=refresh)
             self._update_object(overwrite=overwrite)
+            self._init_child_objects()
 
     def query(self, query):
         return parse_response(self.swis.query(query))
