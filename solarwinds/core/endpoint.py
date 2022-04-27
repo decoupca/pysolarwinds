@@ -7,6 +7,7 @@ from solarwinds.utils import camel_to_snake, parse_response, sanitize_swdata
 
 
 class Endpoint(object):
+    name = None
     endpoint = None
     uri = None
     id = None
@@ -40,6 +41,7 @@ class Endpoint(object):
                         else:
                             child_args[child_arg] = parent_v
                     setattr(self, local_attr, child_object(self.swis, **child_args))
+                    self.log.debug(f'{self.name}: _init_child_objects(): initialized child object {str(child_object}}')
                     child = getattr(self, local_attr)
                     child.get()
                     for local_attr, child_attr in attr_map.items():
@@ -160,7 +162,7 @@ class Endpoint(object):
 
     def _get_id(self):
         self.id = int(re.search(r"(\d+)$", self.uri).group(0))
-        self.logger.debug(f"get_id(): got id: {self.id}")
+        self.log.debug(f"get_id(): got id: {self.id}")
 
     def _get_uri(self):
         """Get an object's SWIS URI"""
@@ -174,7 +176,7 @@ class Endpoint(object):
                 )
         if queries:
             query_lines = "\n".join(queries)
-            self.logger.debug(f"Found queries:\n{query_lines}")
+            self.log.debug(f"Found queries:\n{query_lines}")
             for query in queries:
                 result = self.query(query)
                 if result:
@@ -212,6 +214,7 @@ class Endpoint(object):
                 raise SWObjectPropertyError("Can't create object without properties.")
             else:
                 self.uri = self.swis.create(self.endpoint, **self._localdata)
+                self.log.debug(f'create(): {self.name}: created object')
                 if self._child_objects is not None:
                     for child_object, props in self._child_objects.items():
                         getattr(self, props["local_attr"]).create()
@@ -221,6 +224,7 @@ class Endpoint(object):
         """Delete object"""
         if self.exists():
             self.swis.delete(self.uri)
+            self.log.debug(f'delete(): {self.name}: deleted object')
             self.uri = None
             return True
         else:
@@ -239,6 +243,7 @@ class Endpoint(object):
 
     def get(self, refresh=False, overwrite=False):
         """Gets object data from solarwinds and updates local object attributes"""
+        self.log.debug(f'get(): {self.name}: getting object details...')
         if self.exists(refresh=refresh):
             self._get_swdata(refresh=refresh)
             self._update_object(overwrite=overwrite)
@@ -256,18 +261,21 @@ class Endpoint(object):
             if self._changes is not None:
                 if self._changes.get("properties") is not None:
                     self.swis.update(self.uri, **self._changes["properties"])
+                    self.log.debug(f'{self.name}: update(): updated properties')
                     self._get_swdata(refresh=True, data="properties")
                 if self._changes.get("custom_properties") is not None:
                     self.swis.update(
                         f"{self.uri}/CustomProperties",
                         **self._changes["custom_properties"],
                     )
+                    self.log.debug(f'{self.name}: update(): updated custom properties')
                     self._get_swdata(refresh=True, data="custom_properties")
                 if self._changes.get("child_objects") is not None:
                     for child_object, changes in self._changes["child_objects"].items():
                         props = self._child_objects[child_object]
                         child = getattr(self, props["local_attr"])
                         child.update()
+                    self.log.debug(f'{self.name}: update(): updated child objects')
                 self._changes = None
                 return True
             else:
