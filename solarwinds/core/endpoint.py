@@ -25,23 +25,25 @@ class Endpoint(object):
     def _init_child_objects(self):
         if self._child_objects is not None:
             for child_object, props in self._child_objects.items():
-                init_args = props['init_args']
                 local_attr = props['local_attr']
-                attr_map = props['attr_map']
-                child_args = {}
-                for child_arg, parent_arg in init_args.items():
-                    parent_v = getattr(self, parent_arg)
-                    if parent_v is None:
-                        raise SWObjectPropertyError(f"Can't init child object {child_object}, parent arg {parent_arg} is None")
-                    else:
-                        child_args[child_arg] = parent_v
-                setattr(self, local_attr, child_object(self.swis, **child_args))
                 child = getattr(self, local_attr)
-                child.get()
-                for local_attr, child_attr in attr_map.items():
-                    local_v = getattr(self, local_attr)
-                    child_v = getattr(child, child_attr)
-                    setattr(self, local_attr, child_v)
+                if child is None:
+                    init_args = props['init_args']
+                    attr_map = props['attr_map']
+                    child_args = {}
+                    for child_arg, parent_arg in init_args.items():
+                        parent_v = getattr(self, parent_arg)
+                        if parent_v is None:
+                            raise SWObjectPropertyError(f"Can't init child object {child_object}, parent arg {parent_arg} is None")
+                        else:
+                            child_args[child_arg] = parent_v
+                    setattr(self, local_attr, child_object(self.swis, **child_args))
+                    child = getattr(self, local_attr)
+                    child.get()
+                    for local_attr, child_attr in attr_map.items():
+                        local_v = getattr(self, local_attr)
+                        child_v = getattr(child, child_attr)
+                        setattr(self, local_attr, child_v)
 
     def _get_logger(self):
         self.logger = getLogger(self.endpoint)
@@ -51,11 +53,8 @@ class Endpoint(object):
         attr_map = {}
         for sw_k, sw_v in self._swdata["properties"].items():
             local_attr = camel_to_snake(sw_k)
-            try:
-                getattr(self, local_attr)
+            if hasattr(self, local_attr):
                 attr_map[local_attr] = sw_k
-            except AttributeError:
-                pass
         if attr_map:
             self._attr_map = attr_map
 
@@ -73,7 +72,7 @@ class Endpoint(object):
             for k, v in self._swdata['custom_properties'].items():
                 if k not in self._exclude_custom_props:
                     cprops[k] = v
-            if len(cprops) > 0:
+            if cprops:
                 self.custom_properties = cprops
 
     def _serialize(self):
@@ -185,19 +184,18 @@ class Endpoint(object):
                 f"Must provide a value for at least one key property: {key_props}"
             )
 
-    def _get_swdata(self, refresh=False):
+    def _get_swdata(self, refresh=False, data='both'):
         """Caches solarwinds data about an object"""
         if self._swdata is None or refresh is True:
             self._swdata = {}
-            self._swdata["properties"] = sanitize_swdata(self.swis.read(self.uri))
-            try:
-                getattr(self, 'custom_properties')
-                self._swdata["custom_properties"] = sanitize_swdata(
-                    self.swis.read(f"{self.uri}/CustomProperties")
-                )
-            except AttributeError:
-                pass
-            self._build_attr_map()
+            if data == 'both' or data == 'properties':
+                self._swdata["properties"] = sanitize_swdata(self.swis.read(self.uri))
+                self._build_attr_map()
+            if data == 'both' or data == 'custom_properties':
+                if hasattr(self, 'custom_properties'):
+                    self._swdata["custom_properties"] = sanitize_swdata(
+                        self.swis.read(f"{self.uri}/CustomProperties")
+                    )
 
     def create(self):
         """Create object"""
@@ -253,17 +251,18 @@ class Endpoint(object):
             if self._changes is not None:
                 if self._changes.get("properties") is not None:
                     self.swis.update(self.uri, **self._changes["properties"])
+                    self._get_swdata(refresh=True, data='properties')
                 if self._changes.get("custom_properties") is not None:
                     self.swis.update(
                         f"{self.uri}/CustomProperties",
                         **self._changes["custom_properties"],
                     )
+                    self._get_swdata(refresh=True, data='custom_properties')
                 if self._changes.get('child_objects') is not None:
                     for child_object, changes in self._changes['child_objects'].items():
                         props = self._child_objects[child_object]
                         child = getattr(self, props['local_attr'])
                         child.update()
-                self.get(refresh=True)
                 self._changes = None
                 return True
             else:
