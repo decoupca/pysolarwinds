@@ -115,7 +115,7 @@ class Endpoint(object):
                 if local_v:
                     if local_v != sw_v:
                         changes[k] = local_v
-        if len(changes) > 0:
+        if changes:
             return changes
 
     def _diff_custom_properties(self):
@@ -129,7 +129,19 @@ class Endpoint(object):
             sw_v = self._swdata["custom_properties"].get(k)
             if sw_v != local_v:
                 changes[k] = local_v
-        if len(changes) > 0:
+        if changes:
+            return changes
+
+    def _diff_child_objects(self):
+        changes = {}
+        self._serialize()
+        if self._child_objects is not None:
+            for child_object, props in self._child_objects.items():
+                child = getattr(self, props['local_attr'])
+                child._diff()
+                if child._changes is not None:
+                    changes[child_object] = child._changes
+        if changes:
             return changes
 
     def _diff(self):
@@ -137,7 +149,9 @@ class Endpoint(object):
         changes["properties"] = self._diff_properties()
         if hasattr(self, 'custom_properties'):
             changes["custom_properties"] = self._diff_custom_properties()
-        if changes['properties'] is not None or changes.get('custom_properties') is not None:
+        if self._child_objects is not None:
+            changes['child_objects'] = self._diff_child_objects()
+        if changes.get('properties') is not None or changes.get('custom_properties') is not None or changes.get('child_objects') is not None:
             self._changes = changes
 
     def _get_id(self):
@@ -232,20 +246,23 @@ class Endpoint(object):
 
     def update(self):
         """Update object in solarwinds with local object's properties"""
-        if self._child_objects is not None:
-            for child_object, props in self._child_objects.items():
-                getattr(self, props['local_attr']).update()
+        self._serialize()
         if self.exists():
             if self._changes is None:
                 self._diff()
             if self._changes is not None:
-                if self._changes["properties"] is not None:
+                if self._changes.get("properties") is not None:
                     self.swis.update(self.uri, **self._changes["properties"])
                 if self._changes.get("custom_properties") is not None:
                     self.swis.update(
                         f"{self.uri}/CustomProperties",
                         **self._changes["custom_properties"],
                     )
+                if self._changes.get('child_objects') is not None:
+                    for child_object, changes in self._changes['child_objects'].items():
+                        props = self._child_objects[child_object]
+                        child = getattr(self, props['local_attr'])
+                        child.update()
                 self.get(refresh=True)
                 self._changes = None
                 return True
