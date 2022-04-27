@@ -34,8 +34,14 @@ class Endpoint(object):
                     if parent_v is None:
                         raise SWObjectPropertyError(f"Can't init child object {child_object}, parent arg {parent_arg} is None")
                     else:
-                        child_args[child_arg] = parent_arg
+                        child_args[child_arg] = parent_v
                 setattr(self, local_attr, child_object(self.swis, **child_args))
+                child = getattr(self, local_attr)
+                child.get()
+                for local_attr, child_attr in attr_map.items():
+                    local_v = getattr(self, local_attr)
+                    child_v = getattr(child, child_attr)
+                    setattr(self, local_attr, child_v)
 
     def _get_logger(self):
         self.logger = getLogger(self.endpoint)

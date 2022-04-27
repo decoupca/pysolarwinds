@@ -41,6 +41,7 @@ class Node(Endpoint):
             },
         },
     }
+    map_point = None
 
     def __init__(
         self,
