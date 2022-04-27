@@ -88,7 +88,7 @@ class Node(Endpoint):
                 "Enabled": True,
             }
             self.swis.create("Orion.Pollers", **poller)
-            self.logger.debug(f"enable_pollers(): enabled poller {poller_type}")
+            self.log.debug(f"enable_pollers(): enabled poller {poller_type}")
         return True
 
     def remanage(self):
@@ -96,13 +96,13 @@ class Node(Endpoint):
             self._get_swdata(data='properties')
             if self._swdata["properties"]["UnManaged"] is True:
                 self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
-                self.logger.debug(f"remanage(): re-managed node")
+                self.log.debug(f"remanage(): re-managed node")
                 return True
             else:
-                self.logger.debug(f"remanage(): node is already managed, doing nothing")
+                self.log.debug(f"remanage(): node is already managed, doing nothing")
                 return False
         else:
-            self.logger.debug(f"remanage(): node does not exist, doing nothing")
+            self.log.debug(f"remanage(): node does not exist, doing nothing")
 
     def unmanage(self, start=None, end=None):
         if start is None:
@@ -118,13 +118,13 @@ class Node(Endpoint):
                 self.swis.invoke(
                     "Orion.Nodes", "Unmanage", f"N:{self.node_id}", start, end, False
                 )
-                self.logger.debug(f"unmanage(): unmanaged node until {end}")
+                self.log.debug(f"unmanage(): unmanaged node until {end}")
                 return True
             else:
-                self.logger.debug(
+                self.log.debug(
                     f"unmanage(): node is already unmanaged, doing nothing"
                 )
                 return False
         else:
-            self.logger.debug(f"unmanage(): node does not exist, doing nothing")
+            self.log.debug(f"unmanage(): node does not exist, doing nothing")
             return False

@@ -48,7 +48,7 @@ class Endpoint(object):
                         setattr(self, local_attr, child_v)
 
     def _get_logger(self):
-        self.logger = getLogger(self.endpoint)
+        self.log = getLogger(self.endpoint)
 
     def _build_attr_map(self):
         """builds a map of local attributes to solarwinds properties"""
