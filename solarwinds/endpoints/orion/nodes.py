@@ -12,14 +12,14 @@ DEFAULT_POLLERS = {
         "N.ResponseTime.ICMP.Native",
     ],
     "snmp": [
-        "N.ResponseTime.SNMP.Native",
-        "N.Details.SNMP.Generic",
-        "N.Uptime.SNMP.Generic",
-        "N.Cpu.SNMP.HrProcessorLoad",
-        "N.Memory.SNMP.NetSnmpReal",
         "N.AssetInventory.Snmp.Generic",
-        "N.Topology_Layer3.SNMP.ipNetToMedia",
+        "N.Cpu.SNMP.HrProcessorLoad",
+        "N.Details.SNMP.Generic",
+        "N.Memory.SNMP.NetSnmpReal",
+        "N.ResponseTime.SNMP.Native",
         "N.Routing.SNMP.Ipv4CidrRoutingTable",
+        "N.Topology_Layer3.SNMP.ipNetToMedia",
+        "N.Uptime.SNMP.Generic",
     ],
 }
 
@@ -47,32 +47,32 @@ class Node(Endpoint):
     def __init__(
         self,
         swis,
-        node_id=None,
-        ip_address=None,
         caption=None,
-        snmp_version=0,
         community=None,
+        custom_properties=None,
+        engine_id=None,
+        ip_address=None,
         latitude=None,
         longitude=None,
-        rw_community=None,
-        engine_id=None,
-        polling_method="icmp",
-        custom_properties=None,
+        node_id=None,
         pollers=None,
+        polling_method="icmp",
+        rw_community=None,
+        snmp_version=0,
     ):
         self.swis = swis
-        self.node_id = node_id
-        self.ip_address = ip_address
         self.caption = caption
-        self.engine_id = engine_id
-        self.snmp_version = snmp_version
         self.community = community
+        self.custom_properties = custom_properties
+        self.engine_id = engine_id
+        self.ip_address = ip_address
         self.latitude = latitude
         self.longitude = longitude
-        self.rw_community = rw_community
-        self.polling_method = polling_method
-        self.custom_properties = custom_properties
+        self.node_id = node_id
         self.pollers = pollers
+        self.polling_method = polling_method
+        self.rw_community = rw_community
+        self.snmp_version = snmp_version
         if self.pollers is None:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
         self._get_logger()
