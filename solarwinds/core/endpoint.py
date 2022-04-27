@@ -88,9 +88,20 @@ class Endpoint(object):
                 # solarwinds argument names
                 arg = arg.replace("_", "")
                 serialized["properties"][arg] = value
-        if self.custom_properties is not None:
-            serialized["custom_properties"] = self.custom_properties
+        if hasattr(self, 'custom_properties'):
+            if self.custom_properties is not None:
+                serialized["custom_properties"] = self.custom_properties
         self._localdata = serialized
+        if self._child_objects is not None:
+            for child_object, props in self._child_objects.items():
+                attr_map = props['attr_map']
+                local_attr = props['local_attr']
+                child = getattr(self, local_attr)
+                for local_attr, child_attr in attr_map.items():
+                    local_v = getattr(self, local_attr)
+                    setattr(child, child_attr, local_v)
+                child._serialize()
+            
 
     def _diff_properties(self):
         changes = {}
@@ -122,14 +133,11 @@ class Endpoint(object):
             return changes
 
     def _diff(self):
-        changes = {
-            "properties": self._diff_properties(),
-            "custom_properties": self._diff_custom_properties(),
-        }
-        if (
-            changes["properties"] is not None
-            or changes["custom_properties"] is not None
-        ):
+        changes = {}
+        changes["properties"] = self._diff_properties()
+        if hasattr(self, 'custom_properties'):
+            changes["custom_properties"] = self._diff_custom_properties()
+        if changes['properties'] is not None or changes.get('custom_properties') is not None:
             self._changes = changes
 
     def _get_id(self):
