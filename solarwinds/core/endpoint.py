@@ -195,6 +195,9 @@ class Endpoint(object):
                 raise SWObjectPropertyError("Can't create object without properties.")
             else:
                 self.uri = self.swis.create(self.endpoint, **self._localdata)
+                if self._child_objects is not None:
+                    for child_object, props in self._child_objects.items():
+                        getattr(self, props['local_attr']).create()
                 return True
 
     def delete(self):
@@ -229,13 +232,16 @@ class Endpoint(object):
 
     def update(self):
         """Update object in solarwinds with local object's properties"""
+        if self._child_objects is not None:
+            for child_object, props in self._child_objects.items():
+                getattr(self, props['local_attr']).update()
         if self.exists():
             if self._changes is None:
                 self._diff()
             if self._changes is not None:
                 if self._changes["properties"] is not None:
                     self.swis.update(self.uri, **self._changes["properties"])
-                if self._changes["custom_properties"] is not None:
+                if self._changes.get("custom_properties") is not None:
                     self.swis.update(
                         f"{self.uri}/CustomProperties",
                         **self._changes["custom_properties"],
