@@ -149,17 +149,18 @@ class Endpoint(object):
                 )
         if self._swdata.get("custom_properties") is not None:
             if hasattr(self, "custom_properties"):
-                self.log.debug("updating custom properties...")
-                cprops = {}
-                for k, v in self._swdata["custom_properties"].items():
-                    if k not in self._exclude_custom_props:
-                        local_v = self.custom_properties.get(k)
-                        if local_v is None or overwrite is True:
-                            cprops[k] = v
-                            self.log.debug(f"custom property {k} = {v}")
+                if self.custom_properties is not None:
+                    self.log.debug("updating custom properties...")
+                    cprops = {}
+                    for k, v in self._swdata["custom_properties"].items():
+                        if k not in self._exclude_custom_props:
+                            local_v = self.custom_properties.get(k)
+                            if local_v is None or overwrite is True:
+                                cprops[k] = v
+                                self.log.debug(f"custom property {k} = {v}")
 
-                if cprops:
-                    self.custom_properties = cprops
+                    if cprops:
+                        self.custom_properties = cprops
             else:
                 self.log.debug(
                     f"{self.name} object does not have custom_properties attribute, "
