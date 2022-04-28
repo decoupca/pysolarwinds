@@ -338,6 +338,7 @@ class Endpoint(object):
 
     def get(self, refresh=False, overwrite=False):
         """Gets object data from solarwinds and updates local object attributes"""
+        self.log.debug(f'self._localdata: {pprint(self._localdata)}') 
         if self.exists(refresh=refresh):
             self.log.debug("getting object details...")
             self._get_swdata(refresh=refresh)
