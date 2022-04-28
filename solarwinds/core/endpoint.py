@@ -4,6 +4,7 @@ import re
 from solarwinds.core.exceptions import SWObjectPropertyError, SWUriNotFound
 from solarwinds.utils import camel_to_snake, parse_response, sanitize_swdata
 from logging import getLogger, NullHandler
+from pprint import pprint
 
 class Endpoint(object):
     name = None
@@ -11,7 +12,7 @@ class Endpoint(object):
     uri = None
     id = None
     _swdata = None
-    _localdata = {'properties': {}, 'custom_properties': {}}
+    _localdata = {"properties": {}, "custom_properties": {}}
     _changes = None
     # list of attributes required to lookup solarwinds object (OR, not AND)
     _required_attrs = None
@@ -21,8 +22,6 @@ class Endpoint(object):
     _exclude_custom_props = ["NodeID", "InstanceType", "Uri", "InstanceSiteId"]
     _attr_map = None
     _child_objects = None
-    log = getLogger(__name__)
-    self.log.addHandler(NullHandler)
 
     def _get_uri(self, refresh=False):
         """Get an object's SWIS URI"""
@@ -122,13 +121,15 @@ class Endpoint(object):
                     attr_map[local_attr] = sw_k
                     self.log.debug(f"added {local_attr} to attribute map")
                 else:
-                    self.log.debug(f"{self.name} doesn't have attribute {local_attr}, skipping")
+                    self.log.debug(
+                        f"{self.name} doesn't have attribute {local_attr}, skipping"
+                    )
             if attr_map:
                 self._attr_map = attr_map
             else:
                 self.log.warning("found no attributes to map")
         else:
-            self.log.debug('attributes already mapped, doing nothing')
+            self.log.debug("attributes already mapped, doing nothing")
 
     def _update_object(self, overwrite=False):
         """changes local python object's properties with properties read from solarwinds
@@ -143,28 +144,30 @@ class Endpoint(object):
                 self.log.debug(f"updated attribute: {local_attr} = {sw_v}")
             else:
                 self.log.debug(
-                    "attribute already has a value and overwrite is False, "
-                    "leaving value intact"
+                    f"attribute {local_attr} already has value {local_v} and overwrite is False, "
+                    "leaving intact"
                 )
         if self._swdata.get("custom_properties") is not None:
-            self.log.debug("updating custom properties...")
-            cprops = {}
-            for k, v in self._swdata["custom_properties"].items():
-                if k not in self._exclude_custom_props or overwrite is True:
-                    self.log.debug(f"updating custom property {k} = {v}")
-                    cprops[k] = v
-            if cprops:
-                self.custom_properties = cprops
-        else:
-            self.log.debug(
-                f"{self.name} does not have custom_properties attribute, "
-                "not updating custom properties"
-            )
+            if hasattr(self, "custom_properties"):
+                self.log.debug("updating custom properties...")
+                cprops = {}
+                for k, v in self._swdata["custom_properties"].items():
+                    if k not in self._exclude_custom_props:
+                        local_v = self.custom_properties.get(k)
+                        if local_v is None or overwrite is True:
+                            cprops[k] = v
+                            self.log.debug(f"custom property {k} = {v}")
+
+                if cprops:
+                    self.custom_properties = cprops
+            else:
+                self.log.debug(
+                    f"{self.name} object does not have custom_properties attribute, "
+                    "not updating custom properties"
+                )
 
     def _serialize(self):
-        self.log.debug("serializing object attributes to _localdata...")
-        self._build_attr_map()
-        serialized = {"properties": {}, "custom_properties": None}
+        self.log.debug("serializing object attributes to self._localdata...")
         args = inspect.getfullargspec(self.__init__)[0]
         exclude_attrs = ["self", "swis", "custom_properties"]
         exclude_attrs.extend(self._exclude_attrs)
@@ -176,14 +179,14 @@ class Endpoint(object):
                 # solarwinds argument names
                 arg = arg.replace("_", "")
                 if self._localdata["properties"].get(arg) != value:
-                    serialized["properties"][arg] = value
-                    self.log.debug(f'updated _localdata["properties"][{arg}] = {value}')
+                    self._localdata["properties"][arg] = value
+                    self.log.debug(f'_localdata["properties"][{arg}] = {value}')
                 else:
-                    self.log.debug("attribute {arg} has not changed, doing nothing")
+                    self.log.debug(f"attribute {arg} has not changed, doing nothing")
         if hasattr(self, "custom_properties"):
             if self.custom_properties is not None:
-                if serialized["custom_properties"] != self.custom_properties:
-                    serialized["custom_properties"] = self.custom_properties
+                if self._localdata["custom_properties"] != self.custom_properties:
+                    self._localdata["custom_properties"] = self.custom_properties
                     self.log.debug(
                         'copied custom_properties attribute to _localdata["custom_properties"]'
                     )
@@ -191,7 +194,7 @@ class Endpoint(object):
                     self.log.debug(
                         "custom_properties attribute already matches _localdata, doing nothing"
                     )
-        self._localdata = serialized
+        self.log.debug(f'_localdata: {pprint(self._localdata)}')
         if self._child_objects is not None:
             self.log.debug("serializing child objects...")
             for child_object, props in self._child_objects.items():
@@ -208,7 +211,7 @@ class Endpoint(object):
                         )
                     else:
                         self.log.debug(
-                            "child attribute {child_attr} value already matches "
+                            f"child attribute {child_attr} value already matches "
                             "local attribute value, doing nothing"
                         )
                 child._serialize()
@@ -239,7 +242,9 @@ class Endpoint(object):
             sw_v = self._swdata["custom_properties"].get(k)
             if sw_v != local_v:
                 changes[k] = local_v
-                self.log.debug("custom property {k} has changed from {sw_v} to {local_v}")
+                self.log.debug(
+                    "custom property {k} has changed from {sw_v} to {local_v}"
+                )
         if changes:
             return changes
         else:

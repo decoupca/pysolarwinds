@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from solarwinds.core.endpoint import Endpoint
 from solarwinds.core.exceptions import SWObjectPropertyError
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
+from logging import getLogger, NullHandler
 
 DEFAULT_PROPERTIES = {}
 
@@ -43,6 +44,8 @@ class Node(Endpoint):
         },
     }
     map_point = None
+    log = getLogger(__name__)
+    log.addHandler(NullHandler())
 
     def __init__(
         self,

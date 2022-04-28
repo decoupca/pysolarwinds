@@ -1,5 +1,6 @@
 from solarwinds.core.endpoint import Endpoint
 from solarwinds.core.exceptions import SWObjectPropertyError
+from logging import getLogger, NullHandler
 
 
 class WorldMapPoint(Endpoint):
@@ -8,6 +9,8 @@ class WorldMapPoint(Endpoint):
     _required_attrs = ["node", "instance_id"]
     _keys = ["instance_id"]
     _exclude_attrs = ["node"]
+    log = getLogger(__name__)
+    log.addHandler(NullHandler())
 
     def __init__(
         self,
@@ -33,6 +36,7 @@ class WorldMapPoint(Endpoint):
                 raise SWObjectPropertyError("Must provide either node or instance_id")
             else:
                 self.instance_id = self.node.id
+                
 
 
 class WorldMapPointLabel(Endpoint):
