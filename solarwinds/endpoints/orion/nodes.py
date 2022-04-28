@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-from solarwinds.core.logging import log
 from solarwinds.core.endpoint import Endpoint
 from solarwinds.core.exceptions import SWObjectPropertyError
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
@@ -88,7 +87,7 @@ class Node(Endpoint):
                 "Enabled": True,
             }
             self.swis.create("Orion.Pollers", **poller)
-            log.info(f"enabled poller {poller_type}")
+            self.log.info(f"enabled poller {poller_type}")
         return True
 
     def remanage(self):
@@ -96,13 +95,13 @@ class Node(Endpoint):
             self._get_swdata(data='properties')
             if self._swdata["properties"]["UnManaged"] is True:
                 self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
-                log.info(f"re-managed node successfully")
+                self.log.info(f"re-managed node successfully")
                 return True
             else:
-                log.warning(f"node is already managed")
+                self.log.warning(f"node is already managed")
                 return False
         else:
-            log.warning(f"node does not exist, can't remanage")
+            self.log.warning(f"node does not exist, can't remanage")
 
     def unmanage(self, start=None, end=None):
         if start is None:
@@ -118,13 +117,13 @@ class Node(Endpoint):
                 self.swis.invoke(
                     "Orion.Nodes", "Unmanage", f"N:{self.node_id}", start, end, False
                 )
-                log.info(f"unmanaged node until {end}")
+                self.log.info(f"unmanaged node until {end}")
                 return True
             else:
-                log.warning(
+                self.log.warning(
                     f"node is already unmanaged"
                 )
                 return False
         else:
-            log.warning(f"node does not exist, can't unmanage")
+            self.log.warning(f"node does not exist, can't unmanage")
             return False

@@ -2,9 +2,8 @@ import inspect
 import re
 
 from solarwinds.core.exceptions import SWObjectPropertyError, SWUriNotFound
-from solarwinds.core.logging import log
 from solarwinds.utils import camel_to_snake, parse_response, sanitize_swdata
-
+from logging import getLogger, NullHandler
 
 class Endpoint(object):
     name = None
@@ -12,7 +11,7 @@ class Endpoint(object):
     uri = None
     id = None
     _swdata = None
-    _localdata = None
+    _localdata = {'properties': {}, 'custom_properties': {}}
     _changes = None
     # list of attributes required to lookup solarwinds object (OR, not AND)
     _required_attrs = None
@@ -22,11 +21,13 @@ class Endpoint(object):
     _exclude_custom_props = ["NodeID", "InstanceType", "Uri", "InstanceSiteId"]
     _attr_map = None
     _child_objects = None
+    log = getLogger(__name__)
+    self.log.addHandler(NullHandler)
 
     def _get_uri(self, refresh=False):
         """Get an object's SWIS URI"""
         if self.uri is None or refresh is True:
-            log.debug("self.uri is not set or refresh is True, updating...")
+            self.log.debug("self.uri is not set or refresh is True, updating...")
             queries = []
             for key in self._keys:
                 value = getattr(self, key)
@@ -37,12 +38,12 @@ class Endpoint(object):
                     )
             if queries:
                 query_lines = "\n".join(queries)
-                log.debug(f"built SWQL queries:\n{query_lines}")
+                self.log.debug(f"built SWQL queries:\n{query_lines}")
                 for query in queries:
                     result = self.query(query)
                     if result:
                         self.uri = result["uri"]
-                        log.debug(f"found uri: {self.uri}")
+                        self.log.debug(f"found uri: {self.uri}")
                         return True
                 raise SWUriNotFound(
                     f"No results found for any of these queries:\n{query_lines}"
@@ -53,29 +54,29 @@ class Endpoint(object):
                     f"Must provide a value for at least one key property: {key_props}"
                 )
         else:
-            log.debug("self.uri is set or refresh is False, doing nothing")
+            self.log.debug("self.uri is set or refresh is False, doing nothing")
 
     def _get_swdata(self, refresh=False, data="both"):
         """Caches solarwinds data about an object"""
         if self._swdata is None or refresh is True:
-            log.debug("getting object data from solarwinds...")
+            self.log.debug("getting object data from solarwinds...")
             self._swdata = {}
             if data == "both" or data == "properties":
                 self._swdata["properties"] = sanitize_swdata(self.swis.read(self.uri))
-                log.debug('updated _swdata["properties"]')
+                self.log.debug('updated _swdata["properties"]')
                 self._build_attr_map()
             if data == "both" or data == "custom_properties":
                 if hasattr(self, "custom_properties"):
                     self._swdata["custom_properties"] = sanitize_swdata(
                         self.swis.read(f"{self.uri}/CustomProperties")
                     )
-                    log.debug('updated _swdata["custom_properties"]')
+                    self.log.debug('updated _swdata["custom_properties"]')
         else:
-            log.debug("self._swdata is set or refresh is False, doing nothing")
+            self.log.debug("self._swdata is set or refresh is False, doing nothing")
 
     def _init_child_objects(self):
         if self._child_objects is not None:
-            log.debug("initializing child objects...")
+            self.log.debug("initializing child objects...")
             for child_object, props in self._child_objects.items():
                 local_attr = props["local_attr"]
                 child = getattr(self, local_attr)
@@ -93,104 +94,106 @@ class Endpoint(object):
                         else:
                             child_args[child_arg] = parent_v
                     setattr(self, local_attr, child_object(self.swis, **child_args))
-                    log.debug(f"initialized child object")
+                    self.log.debug(f"initialized child object")
                     child = getattr(self, local_attr)
                     child.get()
                     for local_attr, child_attr in attr_map.items():
                         local_v = getattr(self, local_attr)
                         child_v = getattr(child, child_attr)
                         setattr(self, local_attr, child_v)
-                        log.debug(
+                        self.log.debug(
                             f'updated local attribute {local_attr} to "{child_v}" '
                             f"from child object attribute {child_attr}"
                         )
                 else:
-                    log.debug("child object already initialized, doing nothing")
+                    self.log.debug("child object already initialized, doing nothing")
         else:
-            log.debug(f"no child objects found, doing nothing")
+            self.log.debug(f"no child objects found, doing nothing")
 
     def _build_attr_map(self):
         """builds a map of local attributes to solarwinds properties"""
-        self._get_swdata()
-        log.debug("building attribute map...")
-        attr_map = {}
-        for sw_k, sw_v in self._swdata["properties"].items():
-            local_attr = camel_to_snake(sw_k)
-            if hasattr(self, local_attr):
-                attr_map[local_attr] = sw_k
-                log.debug(f"added {local_attr} to attribute map")
+        if self._attr_map is None:
+            self.log.debug("building attribute map...")
+            self._get_swdata()
+            attr_map = {}
+            for sw_k, sw_v in self._swdata["properties"].items():
+                local_attr = camel_to_snake(sw_k)
+                if hasattr(self, local_attr):
+                    attr_map[local_attr] = sw_k
+                    self.log.debug(f"added {local_attr} to attribute map")
+                else:
+                    self.log.debug(f"{self.name} doesn't have attribute {local_attr}, skipping")
+            if attr_map:
+                self._attr_map = attr_map
             else:
-                log.debug(f"{self.name} doesn't have attribute {local_attr}, skipping")
-        if attr_map:
-            self._attr_map = attr_map
+                self.log.warning("found no attributes to map")
         else:
-            log.warning("found no attributes to map")
+            self.log.debug('attributes already mapped, doing nothing')
 
     def _update_object(self, overwrite=False):
         """changes local python object's properties with properties read from solarwinds
         if overwrite=False, will not update any attributes that are already set
         """
-        self._serialize()
-        log.debug(f"updating object attributes from solarwinds data...")
+        self.log.debug(f"updating object attributes from solarwinds data...")
         for local_attr, sw_attr in self._attr_map.items():
             local_v = getattr(self, local_attr)
             if local_v is None or overwrite is True:
                 sw_v = self._swdata["properties"][sw_attr]
                 setattr(self, local_attr, sw_v)
-                log.debug(f"updated attribute: {local_attr} = {sw_v}")
+                self.log.debug(f"updated attribute: {local_attr} = {sw_v}")
             else:
-                log.debug(
+                self.log.debug(
                     "attribute already has a value and overwrite is False, "
                     "leaving value intact"
                 )
         if self._swdata.get("custom_properties") is not None:
-            log.debug("updating custom properties...")
+            self.log.debug("updating custom properties...")
             cprops = {}
             for k, v in self._swdata["custom_properties"].items():
                 if k not in self._exclude_custom_props or overwrite is True:
-                    log.debug(f"updating custom property {k} = {v}")
+                    self.log.debug(f"updating custom property {k} = {v}")
                     cprops[k] = v
             if cprops:
                 self.custom_properties = cprops
         else:
-            log.debug(
+            self.log.debug(
                 f"{self.name} does not have custom_properties attribute, "
                 "not updating custom properties"
             )
 
     def _serialize(self):
-        log.debug("serializing object attributes to _localdata...")
+        self.log.debug("serializing object attributes to _localdata...")
         self._build_attr_map()
         serialized = {"properties": {}, "custom_properties": None}
         args = inspect.getfullargspec(self.__init__)[0]
         exclude_attrs = ["self", "swis", "custom_properties"]
         exclude_attrs.extend(self._exclude_attrs)
-        log.debug(f"excluding attributes from serialization: {exclude_attrs}")
+        self.log.debug(f"excluding attributes from serialization: {exclude_attrs}")
         for arg in args:
             if arg not in exclude_attrs:
                 value = getattr(self, arg)
                 # store args without underscores so they match
                 # solarwinds argument names
                 arg = arg.replace("_", "")
-                if self._localdata["properties"][arg] != value:
+                if self._localdata["properties"].get(arg) != value:
                     serialized["properties"][arg] = value
-                    log.debug(f'updated _localdata["properties"][{arg}] = {value}')
+                    self.log.debug(f'updated _localdata["properties"][{arg}] = {value}')
                 else:
-                    log.debug("attribute {arg} has not changed, doing nothing")
+                    self.log.debug("attribute {arg} has not changed, doing nothing")
         if hasattr(self, "custom_properties"):
             if self.custom_properties is not None:
                 if serialized["custom_properties"] != self.custom_properties:
                     serialized["custom_properties"] = self.custom_properties
-                    log.debug(
+                    self.log.debug(
                         'copied custom_properties attribute to _localdata["custom_properties"]'
                     )
                 else:
-                    log.debug(
+                    self.log.debug(
                         "custom_properties attribute already matches _localdata, doing nothing"
                     )
         self._localdata = serialized
         if self._child_objects is not None:
-            log.debug("serializing child objects...")
+            self.log.debug("serializing child objects...")
             for child_object, props in self._child_objects.items():
                 attr_map = props["attr_map"]
                 local_attr = props["local_attr"]
@@ -200,11 +203,11 @@ class Endpoint(object):
                     child_v = getattr(child, child_attr)
                     if local_v != child_v:
                         setattr(child, child_attr, local_v)
-                        log.debug(
+                        self.log.debug(
                             f"updated child object attribute {child_attr} = {local_v}"
                         )
                     else:
-                        log.debug(
+                        self.log.debug(
                             "child attribute {child_attr} value already matches "
                             "local attribute value, doing nothing"
                         )
@@ -216,16 +219,15 @@ class Endpoint(object):
             self._get_swdata()
         for k, sw_v in self._swdata["properties"].items():
             k = k.lower()
-            if self._localdata["properties"] is not None:
-                local_v = self._localdata["properties"].get(k)
-                if local_v:
-                    if local_v != sw_v:
-                        changes[k] = local_v
-                        log.debug("property {k} has changed from {sw_v} to {local_v}")
+            local_v = self._localdata["properties"].get(k)
+            if local_v:
+                if local_v != sw_v:
+                    changes[k] = local_v
+                    self.log.debug("property {k} has changed from {sw_v} to {local_v}")
         if changes:
             return changes
         else:
-            log.debug("no changes to properties found")
+            self.log.debug("no changes to properties found")
 
     def _diff_custom_properties(self):
         changes = {}
@@ -237,11 +239,11 @@ class Endpoint(object):
             sw_v = self._swdata["custom_properties"].get(k)
             if sw_v != local_v:
                 changes[k] = local_v
-                log.debug("custom property {k} has changed from {sw_v} to {local_v}")
+                self.log.debug("custom property {k} has changed from {sw_v} to {local_v}")
         if changes:
             return changes
         else:
-            log.debug("no changes to custom_properties found")
+            self.log.debug("no changes to custom_properties found")
 
     def _diff_child_objects(self):
         changes = {}
@@ -276,16 +278,16 @@ class Endpoint(object):
         ):
             self._changes = changes
         else:
-            log.debug(f"found no changes")
+            self.log.debug(f"found no changes")
 
     def _get_id(self):
         self.id = int(re.search(r"(\d+)$", self.uri).group(0))
-        log.debug(f"get_id(): got id: {self.id}")
+        self.log.debug(f"get_id(): got id: {self.id}")
 
     def create(self):
         """Create object"""
         if self.exists():
-            log.warning("object exists, can't create")
+            self.log.warning("object exists, can't create")
             return False
         else:
             self._serialize()
@@ -295,9 +297,9 @@ class Endpoint(object):
                 self.uri = self.swis.create(
                     self.endpoint, **self._localdata["properties"]
                 )
-                log.debug("created object")
+                self.log.debug("created object")
                 if self._child_objects is not None:
-                    log.debug("creating child objects...")
+                    self.log.debug("creating child objects...")
                     for child_object, props in self._child_objects.items():
                         getattr(self, props["local_attr"]).create()
                 return True
@@ -306,39 +308,40 @@ class Endpoint(object):
         """Delete object"""
         if self.exists():
             self.swis.delete(self.uri)
-            log.debug("deleted object")
+            self.log.debug("deleted object")
             self.uri = None
             return True
         else:
-            log.warning("object doesn't exist")
+            self.log.warning("object doesn't exist")
             return False
 
     def exists(self, refresh=False):
         """Whether or not an object exists"""
         if self.uri is not None:
-            log.debug("self.uri is set, object exists")
+            self.log.debug("self.uri is set, object exists")
             return True
         if self.uri is None or refresh is True:
             try:
                 self._get_uri()
-                log.debug("found uri from solarwinds, object exists")
+                self.log.debug("found uri from solarwinds, object exists")
                 return True
             except SWUriNotFound:
-                log.debug("solarwinds uri not found, object does not exist")
+                self.log.debug("solarwinds uri not found, object does not exist")
                 return False
 
     def get(self, refresh=False, overwrite=False):
         """Gets object data from solarwinds and updates local object attributes"""
         if self.exists(refresh=refresh):
-            log.debug("getting object details...")
+            self.log.debug("getting object details...")
             self._get_swdata(refresh=refresh)
             self._update_object(overwrite=overwrite)
             self._init_child_objects()
+            self._serialize()
         else:
-            log.warning("object doesn't exist, nothing to get")
+            self.log.warning("object doesn't exist, nothing to get")
 
     def query(self, query):
-        log.debug(f"executing SWIS query: {query}")
+        self.log.debug(f"executing SWIS query: {query}")
         return parse_response(self.swis.query(query))
 
     def update(self):
@@ -346,35 +349,35 @@ class Endpoint(object):
         self._serialize()
         if self.exists():
             if self._changes is None:
-                log.debug("found no changes, running _diff()...")
+                self.log.debug("found no changes, running _diff()...")
                 self._diff()
             if self._changes is not None:
-                log.debug("found changes")
+                self.log.debug("found changes")
                 if self._changes.get("properties") is not None:
-                    log.debug("found changes to properties")
+                    self.log.debug("found changes to properties")
                     self.swis.update(self.uri, **self._changes["properties"])
-                    log.info(f"updated properties")
+                    self.log.info(f"updated properties")
                     self._get_swdata(refresh=True, data="properties")
                 if self._changes.get("custom_properties") is not None:
-                    log.debug("found changes to custom properties")
+                    self.log.debug("found changes to custom properties")
                     self.swis.update(
                         f"{self.uri}/CustomProperties",
                         **self._changes["custom_properties"],
                     )
-                    log.info(f"updated custom properties")
+                    self.log.info(f"updated custom properties")
                     self._get_swdata(refresh=True, data="custom_properties")
                 if self._changes.get("child_objects") is not None:
-                    log.debug("found changes to child objects")
+                    self.log.debug("found changes to child objects")
                     for child_object, changes in self._changes["child_objects"].items():
                         props = self._child_objects[child_object]
                         child = getattr(self, props["local_attr"])
                         child.update()
-                    log.info(f"updated child objects")
+                    self.log.info(f"updated child objects")
                 self._changes = None
                 return True
             else:
-                log.warning("found no changes to update, doing nothing")
+                self.log.warning("found no changes to update, doing nothing")
                 return False
         else:
-            log.debug("object does not exist, creating...")
+            self.log.debug("object does not exist, creating...")
             return self.create()

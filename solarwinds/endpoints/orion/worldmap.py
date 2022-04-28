@@ -30,10 +30,9 @@ class WorldMapPoint(Endpoint):
         self.street_address = street_address
         if self.instance_id is None:
             if self.node is None:
-                return SWObjectPropertyError("Must provide either node or instance_id")
+                raise SWObjectPropertyError("Must provide either node or instance_id")
             else:
                 self.instance_id = self.node.id
-        self._get_logger()
 
 
 class WorldMapPointLabel(Endpoint):
