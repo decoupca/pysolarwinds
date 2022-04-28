@@ -169,6 +169,7 @@ class Endpoint(object):
 
     def _serialize(self):
         self.log.debug("serializing object attributes to self._localdata...")
+        self.log.debug(f'self._localdata: {pprint(self._localdata)}')
         args = inspect.getfullargspec(self.__init__)[0]
         exclude_attrs = ["self", "swis", "custom_properties"]
         exclude_attrs.extend(self._exclude_attrs)
@@ -181,9 +182,9 @@ class Endpoint(object):
                 arg = arg.replace("_", "")
                 if self._localdata["properties"].get(arg) != value:
                     self._localdata["properties"][arg] = value
-                    self.log.debug(f'_localdata["properties"][{arg}] = {value}')
+                    self.log.debug(f'self._localdata["properties"]["{arg}"] = {value}')
                 else:
-                    self.log.debug(f"attribute {arg} has not changed, doing nothing")
+                    self.log.debug(f"attribute {arg} has not changed from {value}, doing nothing")
         if hasattr(self, "custom_properties"):
             if self.custom_properties is not None:
                 if self._localdata["custom_properties"] != self.custom_properties:
