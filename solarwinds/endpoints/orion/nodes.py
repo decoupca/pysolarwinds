@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from solarwinds.core.logging import log
 from solarwinds.core.endpoint import Endpoint
 from solarwinds.core.exceptions import SWObjectPropertyError
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
@@ -75,7 +76,6 @@ class Node(Endpoint):
         self.snmp_version = snmp_version
         if self.pollers is None:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
-        self._get_logger()
 
     def enable_pollers(self):
         node_id = self.node_id or self._get_id()
@@ -88,7 +88,7 @@ class Node(Endpoint):
                 "Enabled": True,
             }
             self.swis.create("Orion.Pollers", **poller)
-            self.log.debug(f"enable_pollers(): enabled poller {poller_type}")
+            log.info(f"enabled poller {poller_type}")
         return True
 
     def remanage(self):
@@ -96,13 +96,13 @@ class Node(Endpoint):
             self._get_swdata(data='properties')
             if self._swdata["properties"]["UnManaged"] is True:
                 self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
-                self.log.debug(f"remanage(): re-managed node")
+                log.info(f"re-managed node successfully")
                 return True
             else:
-                self.log.debug(f"remanage(): node is already managed, doing nothing")
+                log.warning(f"node is already managed")
                 return False
         else:
-            self.log.debug(f"remanage(): node does not exist, doing nothing")
+            log.warning(f"node does not exist, can't remanage")
 
     def unmanage(self, start=None, end=None):
         if start is None:
@@ -118,13 +118,13 @@ class Node(Endpoint):
                 self.swis.invoke(
                     "Orion.Nodes", "Unmanage", f"N:{self.node_id}", start, end, False
                 )
-                self.log.debug(f"unmanage(): unmanaged node until {end}")
+                log.info(f"unmanaged node until {end}")
                 return True
             else:
-                self.log.debug(
-                    f"unmanage(): node is already unmanaged, doing nothing"
+                log.warning(
+                    f"node is already unmanaged"
                 )
                 return False
         else:
-            self.log.debug(f"unmanage(): node does not exist, doing nothing")
+            log.warning(f"node does not exist, can't unmanage")
             return False

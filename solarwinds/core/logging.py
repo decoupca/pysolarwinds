@@ -1,4 +1,4 @@
 from logging import NullHandler, getLogger
 
-logger = getLogger("solarwinds")
-logger.addHandler(NullHandler())
+log = getLogger(__name__)
+log.addHandler(NullHandler())
