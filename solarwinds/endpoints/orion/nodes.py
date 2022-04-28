@@ -78,6 +78,7 @@ class Node(Endpoint):
         self.snmp_version = snmp_version
         if self.pollers is None:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
+        self._localdata['properties']['ObjectSubType'] = self.polling_method.upper()
 
     def enable_pollers(self):
         node_id = self.node_id or self._get_id()

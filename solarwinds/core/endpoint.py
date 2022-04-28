@@ -59,19 +59,18 @@ class Endpoint(object):
         """Caches solarwinds data about an object"""
         if self._swdata is None or refresh is True:
             self.log.debug("getting object data from solarwinds...")
-            self._swdata = {}
+            swdata = {}
             if data == "both" or data == "properties":
-                self._swdata["properties"] = sanitize_swdata(self.swis.read(self.uri))
-                self.log.debug('updated _swdata["properties"]')
-                self._build_attr_map()
+                swdata["properties"] = sanitize_swdata(self.swis.read(self.uri))
             if data == "both" or data == "custom_properties":
                 if hasattr(self, "custom_properties"):
-                    self._swdata["custom_properties"] = sanitize_swdata(
+                    swdata["custom_properties"] = sanitize_swdata(
                         self.swis.read(f"{self.uri}/CustomProperties")
                     )
-                    self.log.debug('updated _swdata["custom_properties"]')
+            if swdata:
+                self._swdata = swdata
         else:
-            self.log.debug("self._swdata is set or refresh is False, doing nothing")
+            self.log.debug("self._swdata is already set and refresh is False, doing nothing")
 
     def _init_child_objects(self):
         if self._child_objects is not None:
@@ -98,11 +97,10 @@ class Endpoint(object):
                     child.get()
                     for local_attr, child_attr in attr_map.items():
                         local_v = getattr(self, local_attr)
-                        child_v = getattr(child, child_attr)
-                        setattr(self, local_attr, child_v)
+                        setattr(child, child_attr, local_v)
                         self.log.debug(
-                            f'updated local attribute {local_attr} to "{child_v}" '
-                            f"from child object attribute {child_attr}"
+                            f'updated child attribute {child_attr} to "{local_v}" '
+                            f"from local attribute {local_attr}"
                         )
                 else:
                     self.log.debug("child object already initialized, doing nothing")
@@ -113,7 +111,6 @@ class Endpoint(object):
         """builds a map of local attributes to solarwinds properties"""
         if self._attr_map is None:
             self.log.debug("building attribute map...")
-            self._get_swdata()
             attr_map = {}
             for sw_k, sw_v in self._swdata["properties"].items():
                 local_attr = camel_to_snake(sw_k)
@@ -160,7 +157,7 @@ class Endpoint(object):
                                 self.log.debug(f"custom property {k} = {v}")
 
                     if cprops:
-                        self.custom_properties = cprops
+                        self.custom_properties.update(cprops)
             else:
                 self.log.debug(
                     f"{self.name} object does not have custom_properties attribute, "
@@ -169,7 +166,6 @@ class Endpoint(object):
 
     def _serialize(self):
         self.log.debug("serializing object attributes to self._localdata...")
-        self.log.debug(f'self._localdata: {pprint(self._localdata)}')
         args = inspect.getfullargspec(self.__init__)[0]
         exclude_attrs = ["self", "swis", "custom_properties"]
         exclude_attrs.extend(self._exclude_attrs)
@@ -180,23 +176,11 @@ class Endpoint(object):
                 # store args without underscores so they match
                 # solarwinds argument names
                 arg = arg.replace("_", "")
-                if self._localdata["properties"].get(arg) != value:
-                    self._localdata["properties"][arg] = value
-                    self.log.debug(f'self._localdata["properties"]["{arg}"] = {value}')
-                else:
-                    self.log.debug(f"attribute {arg} has not changed from {value}, doing nothing")
+                self._localdata["properties"][arg] = value
+                self.log.debug(f'self._localdata["properties"]["{arg}"] = {value}')
         if hasattr(self, "custom_properties"):
-            if self.custom_properties is not None:
-                if self._localdata["custom_properties"] != self.custom_properties:
-                    self._localdata["custom_properties"] = self.custom_properties
-                    self.log.debug(
-                        'copied custom_properties attribute to _localdata["custom_properties"]'
-                    )
-                else:
-                    self.log.debug(
-                        "custom_properties attribute already matches _localdata, doing nothing"
-                    )
-        self.log.debug(f'_localdata: {pprint(self._localdata)}')
+            self._localdata["custom_properties"] = self.custom_properties
+            self.log.debug(f'self._localdata["custom_properties"] = {self.custom_properties}')
         if self._child_objects is not None:
             self.log.debug("serializing child objects...")
             for child_object, props in self._child_objects.items():
@@ -205,17 +189,8 @@ class Endpoint(object):
                 child = getattr(self, local_attr)
                 for local_attr, child_attr in attr_map.items():
                     local_v = getattr(self, local_attr)
-                    child_v = getattr(child, child_attr)
-                    if local_v != child_v:
-                        setattr(child, child_attr, local_v)
-                        self.log.debug(
-                            f"updated child object attribute {child_attr} = {local_v}"
-                        )
-                    else:
-                        self.log.debug(
-                            f"child attribute {child_attr} value already matches "
-                            "local attribute value, doing nothing"
-                        )
+                    setattr(child, child_attr, local_v)
+                    self.log.debug(f'child object attribute {child_attr} = {local_v}')
                 child._serialize()
 
     def _diff_properties(self):
@@ -228,7 +203,7 @@ class Endpoint(object):
             if local_v:
                 if local_v != sw_v:
                     changes[k] = local_v
-                    self.log.debug("property {k} has changed from {sw_v} to {local_v}")
+                    self.log.debug(f"property {k} has changed from {sw_v} to {local_v}")
         if changes:
             return changes
         else:
@@ -245,7 +220,7 @@ class Endpoint(object):
             if sw_v != local_v:
                 changes[k] = local_v
                 self.log.debug(
-                    "custom property {k} has changed from {sw_v} to {local_v}"
+                    f'custom property {k} has changed from "{sw_v}" to "{local_v}"'
                 )
         if changes:
             return changes
@@ -284,7 +259,7 @@ class Endpoint(object):
             or changes.get("child_objects") is not None
         ):
             self._changes = changes
-        else:
+        if not changes:
             self.log.debug(f"found no changes")
 
     def _get_id(self):
@@ -342,6 +317,7 @@ class Endpoint(object):
         if self.exists(refresh=refresh):
             self.log.debug("getting object details...")
             self._get_swdata(refresh=refresh)
+            self._build_attr_map()
             self._update_object(overwrite=overwrite)
             self._init_child_objects()
             self._serialize()
