@@ -32,9 +32,7 @@ class WorldMapPoint(Endpoint):
         self.auto_added = auto_added
         self.street_address = street_address
         if self.instance_id is None:
-            if self.node is None:
-                raise SWObjectPropertyError("Must provide either node or instance_id")
-            else:
+            if self.node is not None:
                 self.instance_id = self.node.id
                 
 

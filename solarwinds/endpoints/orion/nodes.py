@@ -28,16 +28,18 @@ DEFAULT_POLLERS = {
 class Node(Endpoint):
     name = "Node"
     endpoint = "Orion.Nodes"
+    _id_attr = 'node_id'
     _required_attrs = ["ip_address", "caption"]
     _keys = ["ip_address", "caption"]
-    _exclude_attrs = []
+    _exclude_attrs = ['pollers', 'latitude', 'longitude', 'polling_method', 'node_id']
     _child_objects = {
         WorldMapPoint: {
-            "init_args": {
-                "instance_id": "node_id",
-            },
+            #"init_args": {
+            #    "instance_id": "node_id",
+            #},
             "local_attr": "map_point",
             "attr_map": {
+                "node_id": "instance_id",
                 "latitude": "latitude",
                 "longitude": "longitude",
             },

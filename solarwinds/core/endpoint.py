@@ -11,6 +11,7 @@ class Endpoint(object):
     endpoint = None
     uri = None
     id = None
+    _id_attr = None
     _swdata = None
     _localdata = {"properties": {}, "custom_properties": {}}
     _changes = None
@@ -79,22 +80,22 @@ class Endpoint(object):
                 local_attr = props["local_attr"]
                 child = getattr(self, local_attr)
                 if child is None:
-                    init_args = props["init_args"]
-                    attr_map = props["attr_map"]
+                    init_args = props.get("init_args")
+                    attr_map = props.get("attr_map")
                     child_args = {}
-                    for child_arg, parent_arg in init_args.items():
-                        parent_v = getattr(self, parent_arg)
-                        if parent_v is None:
-                            raise SWObjectPropertyError(
-                                f"Can't init child object {child_object}, "
-                                f"parent arg {parent_arg} is None"
-                            )
-                        else:
-                            child_args[child_arg] = parent_v
+                    if init_args is not None:
+                        for child_arg, parent_arg in init_args.items():
+                            parent_v = getattr(self, parent_arg)
+                            if parent_v is None:
+                                raise SWObjectPropertyError(
+                                    f"Can't init child object {child_object}, "
+                                    f"parent arg {parent_arg} is None"
+                                )
+                            else:
+                                child_args[child_arg] = parent_v
                     setattr(self, local_attr, child_object(self.swis, **child_args))
                     self.log.debug(f"initialized child object")
                     child = getattr(self, local_attr)
-                    child.get()
                     for local_attr, child_attr in attr_map.items():
                         local_v = getattr(self, local_attr)
                         setattr(child, child_attr, local_v)
@@ -187,11 +188,12 @@ class Endpoint(object):
                 attr_map = props["attr_map"]
                 local_attr = props["local_attr"]
                 child = getattr(self, local_attr)
-                for local_attr, child_attr in attr_map.items():
-                    local_v = getattr(self, local_attr)
-                    setattr(child, child_attr, local_v)
-                    self.log.debug(f'child object attribute {child_attr} = {local_v}')
-                child._serialize()
+                if child is not None:
+                    for local_attr, child_attr in attr_map.items():
+                        local_v = getattr(self, local_attr)
+                        setattr(child, child_attr, local_v)
+                        self.log.debug(f'child object attribute {child_attr} = {local_v}')
+                    child._serialize()
 
     def _diff_properties(self):
         changes = {}
@@ -264,7 +266,10 @@ class Endpoint(object):
 
     def _get_id(self):
         self.id = int(re.search(r"(\d+)$", self.uri).group(0))
-        self.log.debug(f"get_id(): got id: {self.id}")
+        self.log.debug(f"got solarwinds object id {self.id}")
+        if self._id_attr is not None:
+            setattr(self, self._id_attr, self.id)
+            self.log.debug(f'set attribute "{self._id_attr}" to {self.id}')
 
     def create(self):
         """Create object"""
@@ -280,7 +285,11 @@ class Endpoint(object):
                     self.endpoint, **self._localdata["properties"]
                 )
                 self.log.debug("created object")
+                self._get_id()
+                self._get_swdata()
+                self._serialize()
                 if self._child_objects is not None:
+                    self._init_child_objects()
                     self.log.debug("creating child objects...")
                     for child_object, props in self._child_objects.items():
                         getattr(self, props["local_attr"]).create()
@@ -313,7 +322,6 @@ class Endpoint(object):
 
     def get(self, refresh=False, overwrite=False):
         """Gets object data from solarwinds and updates local object attributes"""
-        self.log.debug(f'self._localdata: {pprint(self._localdata)}') 
         if self.exists(refresh=refresh):
             self.log.debug("getting object details...")
             self._get_swdata(refresh=refresh)
