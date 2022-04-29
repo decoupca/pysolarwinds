@@ -107,6 +107,7 @@ class Endpoint(object):
             if swdata:
                 self._swdata = swdata
                 self._build_attr_map()
+                self._get_id()
         else:
             self.log.debug(
                 "self._swdata is already set and refresh is False, doing nothing"
@@ -389,9 +390,6 @@ class Endpoint(object):
 
     def exists(self, refresh=False):
         """Whether or not an object exists"""
-        if self.uri is not None:
-            self.log.debug("self.uri is set, object exists")
-            return True
         if self.uri is None or refresh is True:
             try:
                 self._get_uri()
@@ -400,13 +398,16 @@ class Endpoint(object):
             except SWUriNotFound:
                 self.log.debug("solarwinds uri not found, object does not exist")
                 return False
+        else:
+            self.log.debug("self.uri is set, object exists")
+            return True
+            
 
     def get(self, refresh=False, overwrite=False):
         """Gets object data from solarwinds and updates local object attributes"""
         if self.exists(refresh=refresh):
             self.log.debug("getting object details...")
             self._get_swdata(refresh=refresh)
-            self._get_id()
             self._update_object(overwrite=overwrite)
             self._build_swargs()
         else:

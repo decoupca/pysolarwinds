@@ -100,6 +100,12 @@ class OrionNode(Endpoint):
             self.log.info(f"enabled poller {poller_type}")
         return True
 
+    def create(self):
+        created = super().create()
+        if created is True:
+            self.enable_pollers()
+        return created
+
     def remanage(self):
         if self.exists():
             self._get_swdata(data='properties')
