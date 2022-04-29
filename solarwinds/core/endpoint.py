@@ -258,7 +258,7 @@ class Endpoint(object):
 
         # custom swargs
         if self._extra_swargs is not None:
-            swargs.update(self._extra_swargs)
+            swargs['properties'].update(self._extra_swargs)
 
         # update _swargs
         if swargs["properties"] or swargs["custom_properties"]:

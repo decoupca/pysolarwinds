@@ -83,7 +83,7 @@ class OrionNode(Endpoint):
         self.snmp_version = snmp_version
         if self.pollers is None:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
-        self._extra_swargs = {'properties': {'ObjectSubType': self.polling_method.upper()}}
+        self._extra_swargs = {'ObjectSubType': self.polling_method.upper()}
         super().__init__()
 
     def enable_pollers(self):
