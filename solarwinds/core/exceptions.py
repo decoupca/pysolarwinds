@@ -1,3 +1,6 @@
+class SWIDNotFound(Exception):
+    pass
+
 class SWUriNotFound(Exception):
     pass
 

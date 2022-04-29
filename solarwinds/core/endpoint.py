@@ -1,7 +1,7 @@
 import inspect
 import re
 
-from solarwinds.core.exceptions import SWObjectPropertyError, SWUriNotFound
+from solarwinds.core.exceptions import SWObjectPropertyError, SWUriNotFound, SWIDNotFound
 from solarwinds.utils import camel_to_snake, parse_response, sanitize_swdata
 from logging import getLogger, NullHandler
 from pprint import pprint
@@ -18,7 +18,11 @@ class Endpoint(object):
     id = None
 
     # object-specific id attribute to store id in (e.g. node_id)
+    # shoul also correspond to swdata key (nodeid)
     _id_attr = None
+
+    # key in solarwinds data to read ID value from
+    _sw_id_key = None
 
     # local attrs to use as keys when building solarwinds queries
     _swquery_attrs = None
@@ -29,6 +33,10 @@ class Endpoint(object):
 
     # solarwinds arguments when built live here
     _swargs = None
+
+    # place to hold any other swargs that might not directly map to 
+    # object attributes
+    _extra_swargs = None
 
     # cached solarwinds data lives here
     _swdata = None
@@ -48,8 +56,9 @@ class Endpoint(object):
     def __init__(self):
         self.log = getLogger(__name__)
         self.log.addHandler(NullHandler())
-        self._build_swargs()
         self._init_child_objects()
+        self._build_swargs()
+        self._update_child_objects()
 
     def _get_uri(self, refresh=False):
         """Get an object's SWIS URI"""
@@ -76,7 +85,7 @@ class Endpoint(object):
                     f"No results found for any of these queries:\n{query_lines}"
                 )
             else:
-                key_props = ", ".join(self._keys)
+                key_props = ", ".join(self._swquery_attrs)
                 raise SWUriNotFound(
                     f"Must provide a value for at least one key property: {key_props}"
                 )
@@ -120,7 +129,7 @@ class Endpoint(object):
                     # some child classes might need args to init.
                     # most should be able to init without any args, but just in case,
                     # here we provide the option.
-                    if child_props["init_args"] is not None:
+                    if child_props.get("init_args") is not None:
                         for child_arg, parent_arg in child_props["init_args"].items():
                             parent_value = getattr(self, parent_arg)
                             if parent_value is None:
@@ -144,12 +153,12 @@ class Endpoint(object):
         and builds child swargs
         """
         if self._child_objects is not None:
-            for child_class, child_props in self._child_objects:
+            for child_class, child_props in self._child_objects.items():
                 child_object = getattr(self, child_props["child_attr"])
                 if child_object is not None:
                     for local_attr, child_attr in child_props["attr_map"].items():
                         local_value = getattr(self, local_attr)
-                        setattr(child_object, child_props['child_attr'], local_value)
+                        setattr(child_object, child_attr, local_value)
                         self.log.debug(
                             f'updated child attribute {child_props["child_attr"]} to "{local_value}" '
                             f"from local attribute {local_attr}"
@@ -246,7 +255,11 @@ class Endpoint(object):
             swargs["custom_properties"] = self.custom_properties
             self.log.debug(f'_swargs["custom_properties"] = {self.custom_properties}')
 
-        # update _swdata
+        # custom swargs
+        if self._extra_swargs is not None:
+            swargs.update(self._extra_swargs)
+
+        # update _swargs
         if swargs["properties"] or swargs["custom_properties"]:
             self._swargs = swargs
 
@@ -321,11 +334,16 @@ class Endpoint(object):
             self.log.debug("no changes found")
 
     def _get_id(self):
-        self.id = int(re.search(r"(\d+)$", self.uri).group(0))
-        self.log.debug(f"got solarwinds object id {self.id}")
-        if self._id_attr is not None:
-            setattr(self, self._id_attr, self.id)
-            self.log.debug(f'set attribute "{self._id_attr}" to {self.id}')
+        if self._swdata is not None:
+            object_id = self._swdata['properties'].get(self._sw_id_key)
+            if object_id is not None:
+                self.id = object_id
+                setattr(self, self._id_attr, object_id)
+                self.log.debug(f"got solarwinds object id {self.id}")
+            else:
+                raise SWIDNotFound(f'Could not find id value in _swdata["{self._sw_id_key}"]')
+        else:
+            self.log.debug("_swdata is None, can't get id")
 
     def create(self):
         """Create object"""
@@ -333,22 +351,29 @@ class Endpoint(object):
             self.log.warning("object exists, can't create")
             return False
         else:
-            self._serialize()
-            if self._localdata is None:
+            self._build_swargs()
+            if self._swargs is None:
                 raise SWObjectPropertyError("Can't create object without properties.")
             else:
                 self.uri = self.swis.create(
-                    self.endpoint, **self._localdata["properties"]
+                    self.endpoint, **self._swargs["properties"]
                 )
                 self.log.debug("created object")
                 self._get_id()
                 self._get_swdata()
-                self._serialize()
+                self._update_object()
                 if self._child_objects is not None:
-                    self._init_child_objects()
-                    self.log.debug("creating child objects...")
-                    for child_object, props in self._child_objects.items():
-                        getattr(self, props["local_attr"]).create()
+                    # child objects usually (always?) rely on IDs from parent objects
+                    # that we don't have until we create the parent object
+                    self._update_child_objects()
+                    for child_class, child_props in self._child_objects.items():
+                        child_object = getattr(self, child_props['child_attr'])
+                        # though unlikely, a child object may exist when a parent
+                        # object doesn't
+                        if child_object.exists():
+                            child_object.update()
+                        else:
+                            child_object.create()
                 return True
 
     def delete(self):
@@ -381,6 +406,7 @@ class Endpoint(object):
         if self.exists(refresh=refresh):
             self.log.debug("getting object details...")
             self._get_swdata(refresh=refresh)
+            self._get_id()
             self._update_object(overwrite=overwrite)
             self._build_swargs()
         else:
@@ -392,20 +418,17 @@ class Endpoint(object):
 
     def update(self):
         """Update object in solarwinds with local object's properties"""
-        self._serialize()
+        self._build_swargs()
         if self.exists():
             if self._changes is None:
                 self.log.debug("found no changes, running _diff()...")
                 self._diff()
             if self._changes is not None:
-                self.log.debug("found changes")
                 if self._changes.get("properties") is not None:
-                    self.log.debug("found changes to properties")
                     self.swis.update(self.uri, **self._changes["properties"])
                     self.log.info(f"updated properties")
                     self._get_swdata(refresh=True, data="properties")
                 if self._changes.get("custom_properties") is not None:
-                    self.log.debug("found changes to custom properties")
                     self.swis.update(
                         f"{self.uri}/CustomProperties",
                         **self._changes["custom_properties"],
@@ -415,9 +438,9 @@ class Endpoint(object):
                 if self._changes.get("child_objects") is not None:
                     self.log.debug("found changes to child objects")
                     for child_object, changes in self._changes["child_objects"].items():
-                        props = self._child_objects[child_object]
-                        child = getattr(self, props["local_attr"])
-                        child.update()
+                        child_props = self._child_objects[child_object.__class__]
+                        child_object = getattr(self, child_props["child_attr"])
+                        child_object.update()
                     self.log.info(f"updated child objects")
                 self._changes = None
                 return True

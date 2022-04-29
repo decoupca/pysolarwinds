@@ -6,16 +6,22 @@ from logging import getLogger, NullHandler
 class WorldMapPoint(Endpoint):
     name = "Point"
     endpoint = "Orion.WorldMap.Point"
-    _required_attrs = ["node", "instance_id"]
-    _keys = ["instance_id"]
-    _exclude_attrs = ["node"]
-    log = getLogger(__name__)
-    log.addHandler(NullHandler())
-
+    _id_attr = 'point_id'
+    _sw_id_key = 'PointId'
+    _swquery_attrs = ['point_id', 'instance_id']
+    _swargs_attrs = [
+        'instance_id',
+        'instance',
+        'latitude',
+        'longitude',
+        'auto_added',
+        'street_address',
+    ]
     def __init__(
         self,
         swis,
         node=None,
+        point_id=None,
         instance_id=None,
         instance="Orion.Nodes",
         latitude=None,
@@ -25,6 +31,7 @@ class WorldMapPoint(Endpoint):
     ):
         self.swis = swis
         self.node = node
+        self.point_id = point_id
         self.instance_id = instance_id
         self.instance = instance
         self.latitude = latitude
@@ -35,6 +42,7 @@ class WorldMapPoint(Endpoint):
             if self.node is not None:
                 self.instance_id = self.node.id
                 
+        super().__init__()
 
 
 class WorldMapPointLabel(Endpoint):
