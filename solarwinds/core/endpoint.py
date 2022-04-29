@@ -21,6 +21,9 @@ class Endpoint(object):
     # shoul also correspond to swdata key (nodeid)
     _id_attr = None
 
+    # attributes required to create object
+    _required_attrs = None
+
     # key in solarwinds data to read ID value from
     _sw_id_key = None
 
@@ -228,6 +231,12 @@ class Endpoint(object):
                             self.log.debug(
                                 f"no custom properties to update, doing nothing"
                             )
+                    else:
+                        self.custom_properties = {}
+                        for k, v in self._swdata['custom_properties'].items():
+                            if k not in self._exclude_custom_props:
+                                self.custom_properties[k] = v
+                                self.log.debug(f'custom property {k} = {v}')
                 else:
                     self.log.debug(
                         f"{self.name} object does not have custom_properties attribute, "
@@ -363,6 +372,10 @@ class Endpoint(object):
             self.log.warning("object exists, can't create")
             return False
         else:
+            if self._required_attrs is not None:
+                for attr in self._required_attrs:
+                    if getattr(self, attr) is None:
+                        raise SWObjectPropertyError(f'Missing required attribute: {attr}')
             self._build_swargs()
             if self._swargs is None:
                 raise SWObjectPropertyError("Can't create object without properties.")

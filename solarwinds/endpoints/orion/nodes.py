@@ -29,6 +29,7 @@ class OrionNode(Endpoint):
     endpoint = "Orion.Nodes"
     _id_attr = 'node_id'
     _sw_id_key = 'NodeID'
+    _required_attrs = ['ip_address', 'engine_id']
     _swquery_attrs = ["ip_address", "caption"]
     _swargs_attrs = [
         'caption',
@@ -58,7 +59,7 @@ class OrionNode(Endpoint):
         caption=None,
         community=None,
         custom_properties=None,
-        engine_id=None,
+        engine_id=1,
         ip_address=None,
         latitude=None,
         longitude=None,
