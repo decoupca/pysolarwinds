@@ -82,7 +82,7 @@ class OrionNode(Endpoint):
         self.rw_community = rw_community
         self.snmp_version = snmp_version
         if self.polling_method is None:
-            if self.community is not None or self.rwcommunity is not None:
+            if self.community is not None or self.rw_community is not None:
                 self.polling_method = 'snmp'
                 self.snmp_version = 2
             else:

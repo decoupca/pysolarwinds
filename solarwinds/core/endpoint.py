@@ -45,7 +45,7 @@ class Endpoint(object):
     _changes = None
 
     # keys to exclude when building custom properties for swargs
-    _exclude_custom_props = ["NodeID", "InstanceType", "Uri", "InstanceSiteId"]
+    _exclude_custom_props = ["DisplayName", "NodeID", "InstanceType", "Uri", "InstanceSiteId"]
 
     # dynamically generated map of local object attrs to solarwinds args
     _attr_map = None
@@ -371,6 +371,9 @@ class Endpoint(object):
                     self.endpoint, **self._swargs["properties"]
                 )
                 self.log.debug("created object")
+                if self._swargs['custom_properties']:
+                    self.swis.update(f'{self.uri}/CustomProperties', **self._swargs['custom_properties'])
+                    self.log.debug("added custom properties")
                 self._get_id()
                 self._get_swdata()
                 self._update_object()
