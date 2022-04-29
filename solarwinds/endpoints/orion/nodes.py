@@ -25,19 +25,24 @@ DEFAULT_POLLERS = {
 }
 
 
-class Node(Endpoint):
-    name = "Node"
+class OrionNode(Endpoint):
     endpoint = "Orion.Nodes"
     _id_attr = 'node_id'
-    _required_attrs = ["ip_address", "caption"]
-    _keys = ["ip_address", "caption"]
-    _exclude_attrs = ['pollers', 'latitude', 'longitude', 'polling_method', 'node_id']
+    _swquery_attrs = ["ip_address", "caption"]
+    _swargs_attrs = [
+        'caption',
+        'community',
+        'engine_id',
+        'ip_address',
+        'rw_community',
+        'snmp_version',
+    ]
     _child_objects = {
+        # child object class
         WorldMapPoint: {
-            #"init_args": {
-            #    "instance_id": "node_id",
-            #},
-            "local_attr": "map_point",
+            # which attribute in this object to store child object
+            "child_attr": "map_point",
+            # which attrs of parents to map to child attrs
             "attr_map": {
                 "node_id": "instance_id",
                 "latitude": "latitude",
@@ -45,9 +50,6 @@ class Node(Endpoint):
             },
         },
     }
-    map_point = None
-    log = getLogger(__name__)
-    log.addHandler(NullHandler())
 
     def __init__(
         self,
@@ -81,6 +83,7 @@ class Node(Endpoint):
         if self.pollers is None:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
         self._localdata['properties']['ObjectSubType'] = self.polling_method.upper()
+        super().__init__()
 
     def enable_pollers(self):
         node_id = self.node_id or self._get_id()
