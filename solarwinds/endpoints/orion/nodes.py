@@ -82,14 +82,19 @@ class OrionNode(Endpoint):
         self.rw_community = rw_community
         self.snmp_version = snmp_version
         if self.polling_method is None:
-            if self.snmp_version > 0 and (self.commmunity is not None or self.rwcommunity is not None):
+            if self.community is not None or self.rwcommunity is not None:
                 self.polling_method = 'snmp'
+                self.snmp_version = 2
             else:
                 self.polling_method = 'icmp'
         if self.pollers is None:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
-        self._extra_swargs = {'ObjectSubType': self.polling_method.upper()}
         super().__init__()
+
+    def _get_extra_swargs(self):
+        return {
+            'objectsubtype': self.polling_method.upper(),
+        }
 
     def enable_pollers(self):
         node_id = self.node_id or self._get_id()

@@ -251,14 +251,17 @@ class Endpoint(object):
                 swargs["properties"][arg] = value
                 self.log.debug(f'_swargs["properties"]["{arg}"] = {value}')
 
+        # extra swargs
+        extra_swargs = self._get_extra_swargs()
+        if extra_swargs:
+            for k, v in extra_swargs.items():
+                swargs['properties'][k] = v
+                self.log.debug(f'_swargs["properties"]["{k}"] = {v}')
+
         # custom properties
         if hasattr(self, "custom_properties"):
             swargs["custom_properties"] = self.custom_properties
             self.log.debug(f'_swargs["custom_properties"] = {self.custom_properties}')
-
-        # custom swargs
-        if self._extra_swargs is not None:
-            swargs['properties'].update(self._extra_swargs)
 
         # update _swargs
         if swargs["properties"] or swargs["custom_properties"]:
@@ -267,8 +270,13 @@ class Endpoint(object):
         # child objects
         self._update_child_objects()
 
+    def _get_extra_swargs(self):
+        # overwrite in subcasses if they have extra swargs
+        return {}
+
     def _diff_properties(self):
         changes = {}
+        self.log.debug("diff'ing properties...")
         for k, sw_v in self._swdata["properties"].items():
             k = k.lower()
             local_v = self._swargs["properties"].get(k)
@@ -283,15 +291,17 @@ class Endpoint(object):
 
     def _diff_custom_properties(self):
         changes = {}
-        for k, local_v in self._swargs["custom_properties"].items():
-            if k not in self._swdata["custom_properties"].keys():
-                changes[k] = local_v
-            sw_v = self._swdata["custom_properties"].get(k)
-            if sw_v != local_v:
-                changes[k] = local_v
-                self.log.debug(
-                    f'custom property {k} has changed from "{sw_v}" to "{local_v}"'
-                )
+        self.log.debug("diff'ing custom properties...")
+        if self._swargs['custom_properties'] is not None:
+            for k, local_v in self._swargs["custom_properties"].items():
+                if k not in self._swdata["custom_properties"].keys():
+                    changes[k] = local_v
+                sw_v = self._swdata["custom_properties"].get(k)
+                if sw_v != local_v:
+                    changes[k] = local_v
+                    self.log.debug(
+                        f'custom property {k} has changed from "{sw_v}" to "{local_v}"'
+                    )
         if changes:
             return changes
         else:
@@ -299,6 +309,7 @@ class Endpoint(object):
 
     def _diff_child_objects(self):
         changes = {}
+        self.log.debug("diff'ing child objects...")
         if self._child_objects is not None:
             for child_class, child_props in self._child_objects.items():
                 child_object = getattr(self, child_props["child_attr"])
