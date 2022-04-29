@@ -5,7 +5,6 @@ from solarwinds.core.endpoint import Endpoint
 from solarwinds.core.exceptions import SWObjectPropertyError
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 
-DEFAULT_PROPERTIES = {}
 
 DEFAULT_POLLERS = {
     "icmp": [
@@ -94,8 +93,19 @@ class OrionNode(Endpoint):
 
     def _get_extra_swargs(self):
         return {
+            "status": 1,
             "objectsubtype": self.polling_method.upper(),
         }
+
+    def _update_object(self, overwrite=False):
+        super()._update_object(overwrite=overwrite)
+        if self._swdata is not None:
+            polling_method = self._swdata["properties"]["ObjectSubType"].lower()
+            self.polling_method = polling_method
+            self.log.debug(f"polling_method = {polling_method}")
+            snmp_version = self._swdata["properties"]["SNMPVersion"]
+            self.snmp_version = snmp_version
+            self.log.debug(f"snmp_version = {snmp_version}")
 
     def enable_pollers(self):
         node_id = self.node_id or self._get_id()
