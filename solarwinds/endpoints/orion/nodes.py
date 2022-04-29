@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
+from logging import NullHandler, getLogger
 
 from solarwinds.core.endpoint import Endpoint
 from solarwinds.core.exceptions import SWObjectPropertyError
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
-from logging import getLogger, NullHandler
 
 DEFAULT_PROPERTIES = {}
 
@@ -27,17 +27,17 @@ DEFAULT_POLLERS = {
 
 class OrionNode(Endpoint):
     endpoint = "Orion.Nodes"
-    _id_attr = 'node_id'
-    _sw_id_key = 'NodeID'
-    _required_attrs = ['ip_address', 'engine_id']
+    _id_attr = "node_id"
+    _sw_id_key = "NodeID"
+    _required_attrs = ["ip_address", "engine_id"]
     _swquery_attrs = ["ip_address", "caption"]
     _swargs_attrs = [
-        'caption',
-        'community',
-        'engine_id',
-        'ip_address',
-        'rw_community',
-        'snmp_version',
+        "caption",
+        "community",
+        "engine_id",
+        "ip_address",
+        "rw_community",
+        "snmp_version",
     ]
     _child_objects = {
         # child object class
@@ -84,17 +84,17 @@ class OrionNode(Endpoint):
         self.snmp_version = snmp_version
         if self.polling_method is None:
             if self.community is not None or self.rw_community is not None:
-                self.polling_method = 'snmp'
+                self.polling_method = "snmp"
                 self.snmp_version = 2
             else:
-                self.polling_method = 'icmp'
+                self.polling_method = "icmp"
         if self.pollers is None:
             self.pollers = DEFAULT_POLLERS[self.polling_method]
         super().__init__()
 
     def _get_extra_swargs(self):
         return {
-            'objectsubtype': self.polling_method.upper(),
+            "objectsubtype": self.polling_method.upper(),
         }
 
     def enable_pollers(self):
@@ -119,7 +119,7 @@ class OrionNode(Endpoint):
 
     def remanage(self):
         if self.exists():
-            self._get_swdata(data='properties')
+            self._get_swdata(data="properties")
             if self._swdata["properties"]["UnManaged"] is True:
                 self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
                 self.log.info(f"re-managed node successfully")
@@ -139,7 +139,7 @@ class OrionNode(Endpoint):
         if end is None:
             end = now + timedelta(days=1)
         if self.exists():
-            self._get_swdata(data='properties')
+            self._get_swdata(data="properties")
             if self._swdata["properties"]["UnManaged"] is False:
                 self.swis.invoke(
                     "Orion.Nodes", "Unmanage", f"N:{self.node_id}", start, end, False
@@ -147,9 +147,7 @@ class OrionNode(Endpoint):
                 self.log.info(f"unmanaged node until {end}")
                 return True
             else:
-                self.log.warning(
-                    f"node is already unmanaged"
-                )
+                self.log.warning(f"node is already unmanaged")
                 return False
         else:
             self.log.warning(f"node does not exist, can't unmanage")

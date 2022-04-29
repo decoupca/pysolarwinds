@@ -1,10 +1,11 @@
 import inspect
 import re
-
-from solarwinds.core.exceptions import SWObjectPropertyError, SWUriNotFound, SWIDNotFound
-from solarwinds.utils import camel_to_snake, parse_response, sanitize_swdata
-from logging import getLogger, NullHandler
+from logging import NullHandler, getLogger
 from pprint import pprint
+
+from solarwinds.core.exceptions import (SWIDNotFound, SWObjectPropertyError,
+                                        SWUriNotFound)
+from solarwinds.utils import camel_to_snake, parse_response, sanitize_swdata
 
 
 class Endpoint(object):
@@ -37,7 +38,7 @@ class Endpoint(object):
     # solarwinds arguments when built live here
     _swargs = None
 
-    # place to hold any other swargs that might not directly map to 
+    # place to hold any other swargs that might not directly map to
     # object attributes
     _extra_swargs = None
 
@@ -48,7 +49,13 @@ class Endpoint(object):
     _changes = None
 
     # keys to exclude when building custom properties for swargs
-    _exclude_custom_props = ["DisplayName", "NodeID", "InstanceType", "Uri", "InstanceSiteId"]
+    _exclude_custom_props = [
+        "DisplayName",
+        "NodeID",
+        "InstanceType",
+        "Uri",
+        "InstanceSiteId",
+    ]
 
     # dynamically generated map of local object attrs to solarwinds args
     _attr_map = None
@@ -122,7 +129,7 @@ class Endpoint(object):
             for child_class, child_props in self._child_objects.items():
 
                 # initialize child object attribute
-                child_attr = child_props['child_attr']
+                child_attr = child_props["child_attr"]
                 if not hasattr(self, child_attr):
                     setattr(self, child_attr, None)
                 child_object = getattr(self, child_attr)
@@ -233,10 +240,10 @@ class Endpoint(object):
                             )
                     else:
                         self.custom_properties = {}
-                        for k, v in self._swdata['custom_properties'].items():
+                        for k, v in self._swdata["custom_properties"].items():
                             if k not in self._exclude_custom_props:
                                 self.custom_properties[k] = v
-                                self.log.debug(f'custom property {k} = {v}')
+                                self.log.debug(f"custom property {k} = {v}")
                 else:
                     self.log.debug(
                         f"{self.name} object does not have custom_properties attribute, "
@@ -264,7 +271,7 @@ class Endpoint(object):
         extra_swargs = self._get_extra_swargs()
         if extra_swargs:
             for k, v in extra_swargs.items():
-                swargs['properties'][k] = v
+                swargs["properties"][k] = v
                 self.log.debug(f'_swargs["properties"]["{k}"] = {v}')
 
         # custom properties
@@ -301,7 +308,7 @@ class Endpoint(object):
     def _diff_custom_properties(self):
         changes = {}
         self.log.debug("diff'ing custom properties...")
-        if self._swargs['custom_properties'] is not None:
+        if self._swargs["custom_properties"] is not None:
             for k, local_v in self._swargs["custom_properties"].items():
                 if k not in self._swdata["custom_properties"].keys():
                     changes[k] = local_v
@@ -356,13 +363,15 @@ class Endpoint(object):
 
     def _get_id(self):
         if self._swdata is not None:
-            object_id = self._swdata['properties'].get(self._sw_id_key)
+            object_id = self._swdata["properties"].get(self._sw_id_key)
             if object_id is not None:
                 self.id = object_id
                 setattr(self, self._id_attr, object_id)
                 self.log.debug(f"got solarwinds object id {self.id}")
             else:
-                raise SWIDNotFound(f'Could not find id value in _swdata["{self._sw_id_key}"]')
+                raise SWIDNotFound(
+                    f'Could not find id value in _swdata["{self._sw_id_key}"]'
+                )
         else:
             self.log.debug("_swdata is None, can't get id")
 
@@ -375,17 +384,20 @@ class Endpoint(object):
             if self._required_attrs is not None:
                 for attr in self._required_attrs:
                     if getattr(self, attr) is None:
-                        raise SWObjectPropertyError(f'Missing required attribute: {attr}')
+                        raise SWObjectPropertyError(
+                            f"Missing required attribute: {attr}"
+                        )
             self._build_swargs()
             if self._swargs is None:
                 raise SWObjectPropertyError("Can't create object without properties.")
             else:
-                self.uri = self.swis.create(
-                    self.endpoint, **self._swargs["properties"]
-                )
+                self.uri = self.swis.create(self.endpoint, **self._swargs["properties"])
                 self.log.debug("created object")
-                if self._swargs['custom_properties']:
-                    self.swis.update(f'{self.uri}/CustomProperties', **self._swargs['custom_properties'])
+                if self._swargs["custom_properties"]:
+                    self.swis.update(
+                        f"{self.uri}/CustomProperties",
+                        **self._swargs["custom_properties"],
+                    )
                     self.log.debug("added custom properties")
                 self._get_id()
                 self._get_swdata()
@@ -395,7 +407,7 @@ class Endpoint(object):
                     # that we don't have until we create the parent object
                     self._update_child_objects()
                     for child_class, child_props in self._child_objects.items():
-                        child_object = getattr(self, child_props['child_attr'])
+                        child_object = getattr(self, child_props["child_attr"])
                         # though unlikely, a child object may exist when a parent
                         # object doesn't
                         if child_object.exists():
@@ -428,7 +440,6 @@ class Endpoint(object):
         else:
             self.log.debug("self.uri is set, object exists")
             return True
-            
 
     def get(self, refresh=False, overwrite=False):
         """Gets object data from solarwinds and updates local object attributes"""
