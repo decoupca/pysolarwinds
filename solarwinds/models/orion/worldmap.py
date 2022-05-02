@@ -1,5 +1,5 @@
-from solarwinds.model import BaseModel
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
+from solarwinds.model import BaseModel
 
 
 class WorldMap(BaseModel):

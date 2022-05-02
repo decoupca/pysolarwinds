@@ -1,8 +1,8 @@
-from solarwinds.models.orion import Orion
-
 import requests
 from orionsdk import SwisClient
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+from solarwinds.models.orion import Orion
 
 
 class api(object):
@@ -14,5 +14,6 @@ class api(object):
         self.password = password
         self.swis = SwisClient(host, username, password)
         self.orion = Orion(self.swis)
+
 
 __all__ = [api]

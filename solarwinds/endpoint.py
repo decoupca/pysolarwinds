@@ -1,17 +1,15 @@
 import inspect
-from typing import Union
 from logging import NullHandler, getLogger
+from typing import Union
 
-from solarwinds.exceptions import (
-    SWIDNotFound,
-    SWObjectPropertyError,
-    SWUriNotFound,
-)
 from solarwinds.config import EXCLUDE_CUSTOM_PROPS
+from solarwinds.exceptions import (SWIDNotFound, SWObjectPropertyError,
+                                   SWUriNotFound)
 from solarwinds.utils import camel_to_snake, parse_response, sanitize_swdata
 
 log = getLogger(__name__)
 log.addHandler(NullHandler())
+
 
 class Endpoint(object):
     endpoint = None
@@ -30,7 +28,6 @@ class Endpoint(object):
     _exclude_custom_props = EXCLUDE_CUSTOM_PROPS
     _child_objects = None
 
-
     def __init__(self):
         self._init_child_objects()
         if self.exists():
@@ -42,15 +39,19 @@ class Endpoint(object):
         if self.exists():
             self._get_swdata()
             self._get_id()
-            self._update_attrs(attr_updates=self._get_attr_updates(), cp_updates=self._get_cp_updates())
-            self._update_child_objects()
+            self._update_attrs(
+                attr_updates=self._get_attr_updates(), cp_updates=self._get_cp_updates()
+            )
+            self._update_child_attrs()
             self._refresh_child_objects()
             self._update_attrs_from_children()
         else:
             log.warning("object doesn't exist, can't refresh")
 
-
     def _set_defaults(self) -> None:
+        """
+        Set attribute defaults. Overridden in subclasses.
+        """
         pass
 
     def _get_uri(self, refresh: bool = False) -> Union[str, None]:
@@ -58,7 +59,7 @@ class Endpoint(object):
         Get object's SWIS URI
         """
         if self._swquery_attrs is None:
-            raise SWObjectPropertyError('Missing required property: _swquery_attrs')
+            raise SWObjectPropertyError("Missing required property: _swquery_attrs")
         if self.uri is None or refresh is True:
             log.debug("uri is not set or refresh is True, updating...")
             queries = []
@@ -75,7 +76,7 @@ class Endpoint(object):
                 for query in queries:
                     result = self.query(query)
                     if result:
-                        uri = result['uri']
+                        uri = result["uri"]
                         log.debug(f"found uri: {uri}")
                         self.uri = uri
                         return uri
@@ -98,7 +99,9 @@ class Endpoint(object):
         return self._exists
 
     def _get_swdata(self, refresh: bool = False, data: str = "both") -> None:
-        """Caches solarwinds data about an object"""
+        """
+        Caches solarwinds data
+        """
         if self._swdata is None or refresh is True:
             swdata = {"properties": None, "custom_properties": None}
             log.debug("getting object data from solarwinds...")
@@ -115,15 +118,17 @@ class Endpoint(object):
             ):
                 self._swdata = swdata
         else:
-            log.debug(
-                "_swdata is already set and refresh is False, doing nothing"
-            )
+            log.debug("_swdata is already set and refresh is False, doing nothing")
 
-    def _update_attrs(self, attr_updates: dict = None, cp_updates: dict = None, overwrite: bool = False) -> None:
+    def _update_attrs(
+        self,
+        attr_updates: dict = None,
+        cp_updates: dict = None,
+        overwrite: bool = False,
+    ) -> None:
         """
         Updates object attributes from dict
         """
-        
         if attr_updates is not None:
             for attr, new_v in attr_updates.items():
                 v = getattr(self, attr)
@@ -135,19 +140,25 @@ class Endpoint(object):
                         f"{attr} already has value '{v}' and overwrite is False, "
                         f"leaving intact"
                     )
-        
+
         if cp_updates is not None:
             self.custom_properties = cp_updates or None
 
-
     def _get_cp_updates(self, overwrite: bool = False) -> dict:
+        """
+        Get updates to custom_properties
+        """
         cprops = {}
         if self._swdata is not None:
             if self._swdata.get("custom_properties") is not None:
                 if hasattr(self, "custom_properties"):
                     for k, sw_v in self._swdata["custom_properties"].items():
                         if k not in self._exclude_custom_props:
-                            v = None if self.custom_properties is None else self.custom_properties.get(k)
+                            v = (
+                                None
+                                if self.custom_properties is None
+                                else self.custom_properties.get(k)
+                            )
                             if v is None or overwrite is True:
                                 cprops[k] = sw_v
                                 log.debug(f'custom_properties["{k}"] = {sw_v}')
@@ -160,9 +171,15 @@ class Endpoint(object):
         return cprops
 
     def _get_attr_updates(self):
+        """
+        Get attribute updates from self._swdata. Overridden in subclasses.
+        """
         return None
 
     def _init_child_objects(self):
+        """
+        Initialize child objects
+        """
         if self._child_objects is not None:
             log.debug("initializing child objects...")
             for attr, props in self._child_objects.items():
@@ -171,7 +188,7 @@ class Endpoint(object):
                 child_object = getattr(self, attr)
 
                 if child_object is None:
-                    child_class = props['class']
+                    child_class = props["class"]
                     child_args = {}
 
                     if props.get("init_args") is not None:
@@ -179,14 +196,21 @@ class Endpoint(object):
                             parent_value = getattr(self, parent_arg)
                             child_args[child_arg] = parent_value
 
-                    log.debug(f'initializing child object at self.{attr} with args {child_args}')
+                    log.debug(
+                        f"initializing child object at self.{attr} with args {child_args}"
+                    )
                     setattr(self, attr, child_class(self.swis, **child_args))
                 else:
-                    log.debug(f"child object at self.{attr} already initialized, doing nothing")
+                    log.debug(
+                        f"child object at self.{attr} already initialized, doing nothing"
+                    )
         else:
             log.debug(f"no child objects found, doing nothing")
 
-    def _update_child_objects(self):
+    def _update_child_attrs(self):
+        """
+        Update child attributes with self (parent) attributes, as mapped in self._child_objects
+        """
         if self._child_objects is not None:
             for attr, props in self._child_objects.items():
                 child = getattr(self, attr)
@@ -204,14 +228,20 @@ class Endpoint(object):
                     log.warning(
                         f'child object at {props["child_attr"]} is None, cannot update'
                     )
- 
-    def _refresh_child_objects(self) ->  None:
+
+    def _refresh_child_objects(self) -> None:
+        """
+        Call refresh() on all children
+        """
         if self._child_objects is not None:
             for attr, props in self._child_objects.items():
                 child = getattr(self, attr)
                 child.refresh()
 
     def _update_attrs_from_children(self, overwrite=False):
+        """
+        Update self (parent) attributes from child attributes, as mapped in self._child_objects
+        """
         if self._child_objects is not None:
             for attr, props in self._child_objects.items():
                 child = getattr(self, attr)
@@ -398,8 +428,6 @@ class Endpoint(object):
         else:
             log.warning("object doesn't exist")
             return False
-
-
 
     def get(self, refresh=False, overwrite=False):
         """Gets object data from solarwinds and updates local object attributes"""
