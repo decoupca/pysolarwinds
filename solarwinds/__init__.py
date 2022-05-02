@@ -1,4 +1,4 @@
-from solarwinds.core.api import API
+from solarwinds.api import API
 from solarwinds.models.orion import Orion
 
 

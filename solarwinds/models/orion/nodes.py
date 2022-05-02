@@ -1,4 +1,4 @@
-from solarwinds.core.model import BaseModel
+from solarwinds.model import BaseModel
 from solarwinds.endpoints.orion.nodes import OrionNode
 
 

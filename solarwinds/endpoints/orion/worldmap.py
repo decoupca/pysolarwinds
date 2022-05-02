@@ -1,7 +1,7 @@
 from logging import NullHandler, getLogger
 
-from solarwinds.core.endpoint import Endpoint
-from solarwinds.core.exceptions import SWObjectPropertyError
+from solarwinds.endpoint import Endpoint
+from solarwinds.exceptions import SWObjectPropertyError
 
 
 class WorldMapPoint(Endpoint):
