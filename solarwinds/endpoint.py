@@ -32,18 +32,26 @@ class Endpoint(object):
 
 
     def __init__(self):
-        self.refresh()
+        self._init_child_objects()
+        if self.exists():
+            self.refresh()
+        else:
+            self._set_defaults()
 
     def refresh(self) -> None:
-        self._init_child_objects()
-        self.uri = self._get_uri()
         if self.exists():
             self._get_swdata()
             self._get_id()
-            self._update_attrs(self._get_attr_updates())
+            self._update_attrs(attr_updates=self._get_attr_updates(), cp_updates=self._get_cp_updates())
             self._update_child_objects()
             self._refresh_child_objects()
-            #self._update_attrs(self._get_child_attr_updates())
+            self._update_attrs_from_children()
+        else:
+            log.warning("object doesn't exist, can't refresh")
+
+
+    def _set_defaults(self) -> None:
+        pass
 
     def _get_uri(self, refresh: bool = False) -> Union[str, None]:
         """
@@ -69,6 +77,7 @@ class Endpoint(object):
                     if result:
                         uri = result['uri']
                         log.debug(f"found uri: {uri}")
+                        self.uri = uri
                         return uri
                 return None
             else:
@@ -110,29 +119,25 @@ class Endpoint(object):
                 "_swdata is already set and refresh is False, doing nothing"
             )
 
-    def _update_attrs(self, attr_updates: dict, overwrite: bool = False) -> None:
+    def _update_attrs(self, attr_updates: dict = None, cp_updates: dict = None, overwrite: bool = False) -> None:
         """
         Updates object attributes from dict
         """
         
-        cprops_attr_updates = {}
-        if 'custom_properties' in attr_updates.keys():
-            cprops_attr_updates = attr_updates.pop('custom_properties')
+        if attr_updates is not None:
+            for attr, new_v in attr_updates.items():
+                v = getattr(self, attr)
+                if v is None or overwrite is True:
+                    setattr(self, attr, new_v)
+                    log.debug(f"updated self.{attr} = {new_v}")
+                else:
+                    log.debug(
+                        f"{attr} already has value '{v}' and overwrite is False, "
+                        f"leaving intact"
+                    )
         
-        # normal attributes
-        for attr, new_v in attr_updates.items():
-            v = getattr(self, attr)
-            if v is None or overwrite is True:
-                setattr(self, attr, new_v)
-                log.debug(f"updated self.{attr} = {new_v}")
-            else:
-                log.debug(
-                    f"{attr} already has value '{v}' and overwrite is False, "
-                    f"leaving intact"
-                )
-        # custom properties
-        cprops_sw_updates = self._get_cp_updates(overwrite=overwrite)
-        self.custom_properties = {**cprops_attr_updates, **cprops_sw_updates} or None
+        if cp_updates is not None:
+            self.custom_properties = cp_updates or None
 
 
     def _get_cp_updates(self, overwrite: bool = False) -> dict:
@@ -174,19 +179,14 @@ class Endpoint(object):
                             parent_value = getattr(self, parent_arg)
                             child_args[child_arg] = parent_value
 
-                    # initialize child object
-                    log.debug(f'initializing child object at {attr} with args {child_args}')
+                    log.debug(f'initializing child object at self.{attr} with args {child_args}')
                     setattr(self, attr, child_class(self.swis, **child_args))
-                    log.debug(f"initialized child object at {attr}")
                 else:
-                    log.debug("child object already initialized, doing nothing")
+                    log.debug(f"child object at self.{attr} already initialized, doing nothing")
         else:
             log.debug(f"no child objects found, doing nothing")
 
     def _update_child_objects(self):
-        """updates child attrs from parent attrs defined in _child_attrs
-        and builds child swargs
-        """
         if self._child_objects is not None:
             for attr, props in self._child_objects.items():
                 child = getattr(self, attr)
@@ -211,19 +211,21 @@ class Endpoint(object):
                 child = getattr(self, attr)
                 child.refresh()
 
-    def _update_object_from_children(self, overwrite=False):
+    def _update_attrs_from_children(self, overwrite=False):
         if self._child_objects is not None:
-            for child_class, child_props in self._child_objects.items():
-                child_object = getattr(self, child_props["child_attr"])
-                if child_object is not None:
-                    for local_attr, child_attr in child_props["attr_map"].items():
-                        child_value = getattr(child_object, child_attr)
+            for attr, props in self._child_objects.items():
+                child = getattr(self, attr)
+                if child is not None:
+                    attr_updates = {}
+                    for local_attr, child_attr in props["attr_map"].items():
+                        child_value = getattr(child, child_attr)
                         local_value = getattr(self, local_attr)
                         if local_value != child_value or overwrite is True:
-                            setattr(self, local_attr, child_value)
+                            attr_updates.update({local_attr: child_value})
                             log.debug(
-                                f"updated local attr {local_attr} = {child_value} from child attr {child_attr}"
+                                f"updated self.{local_attr} = {child_value} from child attr {child_attr}"
                             )
+                    self._update_attrs(attr_updates=attr_updates)
 
     def _build_swargs(self):
         swargs = {"properties": {}, "custom_properties": {}}
@@ -255,9 +257,6 @@ class Endpoint(object):
         # update _swargs
         if swargs["properties"] or swargs["custom_properties"]:
             self._swargs = swargs
-
-        # child objects
-        self._update_child_objects()
 
     def _get_extra_swargs(self):
         # overwrite in subcasses if they have extra swargs

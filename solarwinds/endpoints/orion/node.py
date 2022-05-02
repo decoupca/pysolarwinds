@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from typing import Union
 from orionsdk import SwisClient
 from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
@@ -76,6 +77,33 @@ class OrionNode(Endpoint):
             raise SWObjectPropertyError('Must provide either ip_address or caption')
         super().__init__()
 
+    @property
+    def ip(self) -> Union[str, None]:
+        return self.ip_address
+
+    @ip.setter
+    def ip(self, ip_address: str) -> None:
+        self.ip_address = ip_address
+
+    @property
+    def hostname(self) -> Union[str, None]:
+        return self.caption
+
+    @hostname.setter
+    def hostname(self, hostname: str) -> None:
+        self.caption = hostname
+
+    def _set_defaults(self) -> None:
+        if self.polling_method is None:
+            if self.community is not None or self.rw_community is not None:
+                self.polling_method = 'snmp'
+                self.snmp_version = 2
+            else:
+                self.polling_method = 'icmp'
+                self.snmp_version = 0
+        if self.pollers is None:
+            self.pollers = NODE_DEFAULT_POLLERS[self.polling_method]
+
     def _get_attr_updates(self) -> dict:
         """
         Get attribute updates from swdata
@@ -87,13 +115,23 @@ class OrionNode(Endpoint):
             'engine_id': swdata['EngineID'],
             'community': swdata['Community'],
             'rw_community': swdata['RWCommunity'],
-            'polling_method': swdata["ObjectSubType"].lower(),
+            'polling_method': self._get_polling_method(),
             'pollers': self.pollers or NODE_DEFAULT_POLLERS[swdata['ObjectSubType'].lower()],
             'snmp_version': swdata["SNMPVersion"],
         }
 
+    def _get_extra_swargs(self) -> None:
+        swdata = self._swdata['properties']
+        return {
+            "status": swdata.get('Status') or 1,
+            "objectsubtype": self._get_polling_method().upper(),
+        }
+    
+
     def _get_polling_method(self) -> str:
-        if self.community is not None or self.rw_community is not None:
+        swdata = self._swdata['properties']
+        if (swdata.get('Community') is not None
+            or swdata.get('RWCommunity') is not None):
             return 'snmp'
         else:
             return 'icmp'
@@ -107,11 +145,7 @@ class OrionNode(Endpoint):
         else:
             return 0
 
-    def _get_extra_swargs(self) -> None:
-        return {
-            "status": 1,
-            "objectsubtype": self.polling_method.upper(),
-        }
+
 
     def enable_pollers(self) -> bool:
         node_id = self.node_id or self._get_id()
