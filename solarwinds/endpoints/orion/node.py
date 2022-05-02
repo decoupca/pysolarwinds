@@ -32,8 +32,11 @@ class OrionNode(Endpoint):
     _child_objects = {
         "map_point": {
             "class": WorldMapPoint,
+            "init_args": {
+                'node_id': 'instance_id',
+            },
             "attr_map": {
-                "node_id": "instance_id",
+                'node_id': 'instance_id',
                 "latitude": "latitude",
                 "longitude": "longitude",
             },

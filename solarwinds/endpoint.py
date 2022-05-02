@@ -16,8 +16,8 @@ log.addHandler(NullHandler())
 class Endpoint(object):
     endpoint = None
     uri = None
-    exists = False
-    _id = None
+    id = None
+    _exists = False
     _id_attr = None
     _swid_key = None
     _swquery_attrs = None
@@ -32,13 +32,18 @@ class Endpoint(object):
 
 
     def __init__(self):
+        self.refresh()
+
+    def refresh(self) -> None:
+        self._init_child_objects()
         self.uri = self._get_uri()
-        self.exists = self._object_exists()
-        if self.exists:
+        if self.exists():
             self._get_swdata()
-            self._update_attrs()
-            #self._init_child_objects()
-            #self._update_object_from_children()
+            self._get_id()
+            self._update_attrs(self._get_attr_updates())
+            self._update_child_objects()
+            self._refresh_child_objects()
+            #self._update_attrs(self._get_child_attr_updates())
 
     def _get_uri(self, refresh: bool = False) -> Union[str, None]:
         """
@@ -68,17 +73,20 @@ class Endpoint(object):
                 return None
             else:
                 key_attrs = ", ".join(self._swquery_attrs)
-                raise SWObjectPropertyError(
-                    f"At least one of these attributes must be set: {key_attrs}"
+                log.warning(
+                    f"Can't get uri, one of these key attributes must be set: {key_attrs}"
                 )
+                return None
         else:
-            log.debug("self.uri is set and refresh is False, doing nothing")
+            log.debug("self.uri is set and refresh is False, returning cached value")
+            return self.uri
 
-    def _object_exists(self, refresh: bool = False) -> bool:
+    def exists(self, refresh: bool = False) -> bool:
         """
         Whether or not object exists
         """
-        return bool(self.uri)
+        self._exists = bool(self._get_uri(refresh=refresh))
+        return self._exists
 
     def _get_swdata(self, refresh: bool = False, data: str = "both") -> None:
         """Caches solarwinds data about an object"""
@@ -102,12 +110,10 @@ class Endpoint(object):
                 "_swdata is already set and refresh is False, doing nothing"
             )
 
-    def _update_attrs(self, attr_updates: dict = None, overwrite: bool = False) -> None:
+    def _update_attrs(self, attr_updates: dict, overwrite: bool = False) -> None:
         """
         Updates object attributes from dict
         """
-        if attr_updates is None:
-            attr_updates = self._get_attr_updates()
         
         cprops_attr_updates = {}
         if 'custom_properties' in attr_updates.keys():
@@ -148,40 +154,30 @@ class Endpoint(object):
                     )
         return cprops
 
-    def _get_sw_attr_values(self):
+    def _get_attr_updates(self):
         return None
 
     def _init_child_objects(self):
         if self._child_objects is not None:
             log.debug("initializing child objects...")
-            for child_class, child_props in self._child_objects.items():
-
-                # initialize child object attribute
-                child_attr = child_props["child_attr"]
-                if not hasattr(self, child_attr):
-                    setattr(self, child_attr, None)
-                child_object = getattr(self, child_attr)
+            for attr, props in self._child_objects.items():
+                if not hasattr(self, attr):
+                    setattr(self, attr, None)
+                child_object = getattr(self, attr)
 
                 if child_object is None:
+                    child_class = props['class']
                     child_args = {}
 
-                    # some child classes might need args to init.
-                    # most should be able to init without any args, but just in case,
-                    # here we provide the option.
-                    if child_props.get("init_args") is not None:
-                        for child_arg, parent_arg in child_props["init_args"].items():
+                    if props.get("init_args") is not None:
+                        for parent_arg, child_arg in props["init_args"].items():
                             parent_value = getattr(self, parent_arg)
-                            if parent_value is None:
-                                raise SWObjectPropertyError(
-                                    f"Can't init child object {child_class}, "
-                                    f"parent arg {parent_arg} is None"
-                                )
-                            else:
-                                child_args[child_arg] = parent_value
+                            child_args[child_arg] = parent_value
 
                     # initialize child object
-                    setattr(self, child_attr, child_class(self.swis, **child_args))
-                    log.debug(f"initialized child object at {child_attr}")
+                    log.debug(f'initializing child object at {attr} with args {child_args}')
+                    setattr(self, attr, child_class(self.swis, **child_args))
+                    log.debug(f"initialized child object at {attr}")
                 else:
                     log.debug("child object already initialized, doing nothing")
         else:
@@ -192,42 +188,29 @@ class Endpoint(object):
         and builds child swargs
         """
         if self._child_objects is not None:
-            for child_class, child_props in self._child_objects.items():
-                child_object = getattr(self, child_props["child_attr"])
-                if child_object is not None:
-                    for local_attr, child_attr in child_props["attr_map"].items():
+            for attr, props in self._child_objects.items():
+                child = getattr(self, attr)
+                if child is not None:
+                    for local_attr, child_attr in props["attr_map"].items():
+                        child_value = getattr(child, child_attr)
                         local_value = getattr(self, local_attr)
-                        setattr(child_object, child_attr, local_value)
-                        log.debug(
-                            f'updated child attribute {child_props["child_attr"]} to "{local_value}" '
-                            f"from local attribute {local_attr}"
-                        )
-                    child_object._build_swargs()
+                        if local_value != child_value:
+                            setattr(child, child_attr, local_value)
+                            log.debug(
+                                f'updated child attribute {child_attr} to "{local_value}" '
+                                f"from local attribute {local_attr}"
+                            )
                 else:
                     log.warning(
-                        f'child object at {child_props["child_attr"]} is None, cannot update'
+                        f'child object at {props["child_attr"]} is None, cannot update'
                     )
-        else:
-            log.warning("self._child_objects is None, nothing to update")
-
-    def _build_attr_map(self):
-        """builds a map of local attributes to solarwinds properties"""
-        if self._attr_map is None:
-            log.debug("building attribute map...")
-            attr_map = {}
-            for sw_k, sw_v in self._swdata["properties"].items():
-                local_attr = camel_to_snake(sw_k)
-                if hasattr(self, local_attr):
-                    attr_map[local_attr] = sw_k
-                    log.debug(f"added {local_attr} to attribute map")
-            if attr_map:
-                self._attr_map = attr_map
-            else:
-                log.warning("found no attributes to map")
-        else:
-            log.debug("attributes already mapped, doing nothing")
-
  
+    def _refresh_child_objects(self) ->  None:
+        if self._child_objects is not None:
+            for attr, props in self._child_objects.items():
+                child = getattr(self, attr)
+                child.refresh()
+
     def _update_object_from_children(self, overwrite=False):
         if self._child_objects is not None:
             for child_class, child_props in self._child_objects.items():
@@ -351,12 +334,12 @@ class Endpoint(object):
         else:
             log.debug("no changes found")
 
-    def _get_id(self):
+    def _get_id(self) -> None:
         if self._swdata is not None:
-            object_id = self._swdata["properties"].get(self._swid_key)
-            if object_id is not None:
-                self.id = object_id
-                setattr(self, self._id_attr, object_id)
+            sw_id = self._swdata["properties"].get(self._swid_key)
+            if sw_id is not None:
+                self.id = sw_id
+                setattr(self, self._id_attr, sw_id)
                 log.debug(f"got solarwinds object id {self.id}")
             else:
                 raise SWIDNotFound(
