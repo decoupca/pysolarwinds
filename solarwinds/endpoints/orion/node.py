@@ -1,18 +1,22 @@
 from datetime import datetime, timedelta
 
+from orionsdk import SwisClient
 from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 
 
 from solarwinds.defaults import NODE_DEFAULT_POLLERS
+from solarwinds.exceptions import SWObjectPropertyError
 
 
 class OrionNode(Endpoint):
     endpoint = "Orion.Nodes"
     _id_attr = "node_id"
     _swid_key = "NodeID"
-    _required_attrs = ["ip_address", "engine_id"]
-    _swquery_attrs = ["ip_address", "caption"]
+    _swquery_attrs = [
+        'ip_address',
+        'caption'
+    ]
     _swargs_attrs = [
         "caption",
         "community",
@@ -21,12 +25,13 @@ class OrionNode(Endpoint):
         "rw_community",
         "snmp_version",
     ]
+    _required_swargs_attrs = [
+        "ip_address",
+        "engine_id"
+    ]
     _child_objects = {
-        # child object class
-        WorldMapPoint: {
-            # which attribute in this object to store child object
-            "child_attr": "map_point",
-            # which attrs of parents to map to child attrs
+        "map_point": {
+            "class": WorldMapPoint,
             "attr_map": {
                 "node_id": "instance_id",
                 "latitude": "latitude",
@@ -37,48 +42,55 @@ class OrionNode(Endpoint):
 
     def __init__(
         self,
-        swis,
-        caption=None,
-        community=None,
-        custom_properties=None,
-        engine_id=1,
-        ip_address=None,
-        latitude=None,
-        longitude=None,
-        node_id=None,
-        pollers=None,
-        polling_method=None,
-        rw_community=None,
-        snmp_version=0,
+        swis: SwisClient,
+        caption: str = None,
+        community: str = None,
+        custom_properties: dict = None,
+        engine_id: int = 1,
+        ip_address: str = None,
+        latitude: float = None,
+        longitude: float = None,
+        node_id: int = None,
+        pollers: list = None,
+        polling_method: str = None,
+        rw_community: str = None,
+        snmp_version: int = None,
     ):
         self.swis = swis
         self.caption = caption
         self.community = community
-        self.custom_properties = custom_properties
+        self.rw_community = rw_community
+        self.custom_properties = {} if custom_properties is None else custom_properties
         self.engine_id = engine_id
         self.ip_address = ip_address
         self.latitude = latitude
         self.longitude = longitude
         self.node_id = node_id
-        self.pollers = pollers
-        self.polling_method = polling_method
-        self.rw_community = rw_community
-        self.snmp_version = snmp_version
-        if self.polling_method is None:
-            if self.community is not None or self.rw_community is not None:
-                self.polling_method = "snmp"
-                self.snmp_version = 2
-            else:
-                self.polling_method = "icmp"
-        if self.pollers is None:
-            self.pollers = NODE_DEFAULT_POLLERS[self.polling_method]
-        super().__init__()
-
-    def _get_extra_swargs(self):
-        return {
+        self.polling_method = polling_method or self._get_polling_method()
+        self.pollers = pollers or self._get_pollers()
+        self.snmp_version = snmp_version or self._get_snmp_version()
+        self._extra_swargs = {
             "status": 1,
             "objectsubtype": self.polling_method.upper(),
         }
+        if self.ip_address is None and self.caption is None:
+            raise SWObjectPropertyError('Must provide either ip_address or caption')
+        super().__init__()
+
+    def _get_polling_method(self) -> str:
+        if self.community is not None or self.rw_community is not None:
+            return 'snmp'
+        else:
+            return 'icmp'
+
+    def _get_pollers(self) -> list:
+        return NODE_DEFAULT_POLLERS[self.polling_method]
+
+    def _get_snmp_version(self) -> int:
+        if self.community is not None or self.rw_community is not None:
+            return 2
+        else:
+            return 0
 
     def _update_object(self, overwrite=False):
         super()._update_object(overwrite=overwrite)
@@ -90,7 +102,7 @@ class OrionNode(Endpoint):
             self.snmp_version = snmp_version
             self.log.debug(f"snmp_version = {snmp_version}")
 
-    def enable_pollers(self):
+    def enable_pollers(self) -> bool:
         node_id = self.node_id or self._get_id()
         for poller_type in self.pollers:
             poller = {
