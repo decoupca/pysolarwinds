@@ -1,14 +1,12 @@
-from logging import NullHandler, getLogger
-
 from solarwinds.endpoint import Endpoint
-from solarwinds.exceptions import SWObjectPropertyError
 
 
 class WorldMapPoint(Endpoint):
-    name = "Point"
+    name = "WorldMapPoint"
     endpoint = "Orion.WorldMap.Point"
     _id_attr = "point_id"
     _sw_id_key = "PointId"
+    _required_attrs = "instance_id"
     _swquery_attrs = ["point_id", "instance_id"]
     _swargs_attrs = [
         "instance_id",

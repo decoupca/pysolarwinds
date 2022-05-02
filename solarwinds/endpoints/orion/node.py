@@ -1,33 +1,16 @@
 from datetime import datetime, timedelta
-from logging import NullHandler, getLogger
 
 from solarwinds.endpoint import Endpoint
-from solarwinds.exceptions import SWObjectPropertyError
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 
 
-DEFAULT_POLLERS = {
-    "icmp": [
-        "N.Status.ICMP.Native",
-        "N.ResponseTime.ICMP.Native",
-    ],
-    "snmp": [
-        "N.AssetInventory.Snmp.Generic",
-        "N.Cpu.SNMP.HrProcessorLoad",
-        "N.Details.SNMP.Generic",
-        "N.Memory.SNMP.NetSnmpReal",
-        "N.ResponseTime.SNMP.Native",
-        "N.Routing.SNMP.Ipv4CidrRoutingTable",
-        "N.Topology_Layer3.SNMP.ipNetToMedia",
-        "N.Uptime.SNMP.Generic",
-    ],
-}
+from solarwinds.defaults import NODE_DEFAULT_POLLERS
 
 
 class OrionNode(Endpoint):
     endpoint = "Orion.Nodes"
     _id_attr = "node_id"
-    _sw_id_key = "NodeID"
+    _swid_key = "NodeID"
     _required_attrs = ["ip_address", "engine_id"]
     _swquery_attrs = ["ip_address", "caption"]
     _swargs_attrs = [
@@ -88,7 +71,7 @@ class OrionNode(Endpoint):
             else:
                 self.polling_method = "icmp"
         if self.pollers is None:
-            self.pollers = DEFAULT_POLLERS[self.polling_method]
+            self.pollers = NODE_DEFAULT_POLLERS[self.polling_method]
         super().__init__()
 
     def _get_extra_swargs(self):

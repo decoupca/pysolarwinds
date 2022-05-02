@@ -1,15 +1,18 @@
-from solarwinds.api import API
 from solarwinds.models.orion import Orion
+
+import requests
+from orionsdk import SwisClient
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 
 class api(object):
-    def __init__(self, host, username, password, validate_cert=False):
+    def __init__(self, host, username, password, validate_certs=False):
+        if validate_certs is False:
+            requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
         self.host = host
         self.username = username
         self.password = password
-        self.api = API(
-            host=host, username=username, password=password, validate_cert=validate_cert
-        )
-        self.swis = self.api.swis
-
+        self.swis = SwisClient(host, username, password)
         self.orion = Orion(self.swis)
+
+__all__ = [api]
