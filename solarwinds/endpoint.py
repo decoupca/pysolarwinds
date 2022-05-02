@@ -15,8 +15,8 @@ log.addHandler(NullHandler())
 
 class Endpoint(object):
     endpoint = None
-    _uri = None
-    _exists = False
+    uri = None
+    exists = False
     _id = None
     _id_attr = None
     _swid_key = None
@@ -32,12 +32,13 @@ class Endpoint(object):
 
 
     def __init__(self):
-        self._uri = self._get_uri()
-        self._exists = self._object_exists()
-
-    @property
-    def exists(self) -> bool:
-        return self._exists
+        self.uri = self._get_uri()
+        self.exists = self._object_exists()
+        if self.exists:
+            self._get_swdata()
+            self._update_attrs()
+            #self._init_child_objects()
+            #self._update_object_from_children()
 
     def _get_uri(self, refresh: bool = False) -> Union[str, None]:
         """
@@ -45,7 +46,7 @@ class Endpoint(object):
         """
         if self._swquery_attrs is None:
             raise SWObjectPropertyError('Missing required property: _swquery_attrs')
-        if self._uri is None or refresh is True:
+        if self.uri is None or refresh is True:
             log.debug("uri is not set or refresh is True, updating...")
             queries = []
             for attr in self._swquery_attrs:
@@ -71,20 +72,19 @@ class Endpoint(object):
                     f"At least one of these attributes must be set: {key_attrs}"
                 )
         else:
-            log.debug("self.uri is set or refresh is False, doing nothing")
+            log.debug("self.uri is set and refresh is False, doing nothing")
 
     def _object_exists(self, refresh: bool = False) -> bool:
         """
         Whether or not object exists
         """
-        self.uri = self._get_uri(refresh=refresh)
-        return bool(self._uri)
+        return bool(self.uri)
 
-    def _get_swdata(self, refresh=False, data="both"):
+    def _get_swdata(self, refresh: bool = False, data: str = "both") -> None:
         """Caches solarwinds data about an object"""
         if self._swdata is None or refresh is True:
-            log.debug("getting object data from solarwinds...")
             swdata = {"properties": None, "custom_properties": None}
+            log.debug("getting object data from solarwinds...")
             if data == "both" or data == "properties":
                 swdata["properties"] = sanitize_swdata(self.swis.read(self.uri))
             if data == "both" or data == "custom_properties":
@@ -97,12 +97,59 @@ class Endpoint(object):
                 or swdata.get("custom_properties") is not None
             ):
                 self._swdata = swdata
-                self._build_attr_map()
-                self._get_id()
         else:
             log.debug(
-                "self._swdata is already set and refresh is False, doing nothing"
+                "_swdata is already set and refresh is False, doing nothing"
             )
+
+    def _update_attrs(self, attr_updates: dict = None, overwrite: bool = False) -> None:
+        """
+        Updates object attributes from dict
+        """
+        if attr_updates is None:
+            attr_updates = self._get_attr_updates()
+        
+        cprops_attr_updates = {}
+        if 'custom_properties' in attr_updates.keys():
+            cprops_attr_updates = attr_updates.pop('custom_properties')
+        
+        # normal attributes
+        for attr, new_v in attr_updates.items():
+            v = getattr(self, attr)
+            if v is None or overwrite is True:
+                setattr(self, attr, new_v)
+                log.debug(f"updated self.{attr} = {new_v}")
+            else:
+                log.debug(
+                    f"{attr} already has value '{v}' and overwrite is False, "
+                    f"leaving intact"
+                )
+        # custom properties
+        cprops_sw_updates = self._get_cp_updates(overwrite=overwrite)
+        self.custom_properties = {**cprops_attr_updates, **cprops_sw_updates} or None
+
+
+    def _get_cp_updates(self, overwrite: bool = False) -> dict:
+        cprops = {}
+        if self._swdata is not None:
+            if self._swdata.get("custom_properties") is not None:
+                if hasattr(self, "custom_properties"):
+                    for k, sw_v in self._swdata["custom_properties"].items():
+                        if k not in self._exclude_custom_props:
+                            v = None if self.custom_properties is None else self.custom_properties.get(k)
+                            if v is None or overwrite is True:
+                                cprops[k] = sw_v
+                                log.debug(f'custom_properties["{k}"] = {sw_v}')
+                else:
+                    log.warning(
+                        f"Object does not have custom_properties attribute, "
+                        "but self._swdata has custom properties. Doing nothing, but "
+                        "consider revising module to include custom_properties attribute"
+                    )
+        return cprops
+
+    def _get_sw_attr_values(self):
+        return None
 
     def _init_child_objects(self):
         if self._child_objects is not None:
@@ -180,60 +227,7 @@ class Endpoint(object):
         else:
             log.debug("attributes already mapped, doing nothing")
 
-    def _update_object(self, overwrite=False):
-        """changes local python object's attrs with properties read from solarwinds
-        if overwrite=False, will not update any attributes that are already set
-        """
-        if self._swdata is not None:
-            log.debug(f"updating object attributes from solarwinds data...")
-            for local_attr, sw_attr in self._attr_map.items():
-                local_value = getattr(self, local_attr)
-                if local_value is None or overwrite is True:
-                    sw_value = self._swdata["properties"][sw_attr]
-                    setattr(self, local_attr, sw_value)
-                    log.debug(f"updated attribute: {local_attr} = {sw_value}")
-                else:
-                    log.debug(
-                        f"attribute {local_attr} already has value and overwrite is False, "
-                        f"leaving local value {local_value} intact"
-                    )
-            # custom properties
-            if self._swdata.get("custom_properties") is not None:
-                if hasattr(self, "custom_properties"):
-                    if self.custom_properties is not None:
-                        log.debug("updating custom properties...")
-                        cprops = {}
-                        for k, v in self._swdata["custom_properties"].items():
-                            if k not in self._exclude_custom_props:
-                                local_value = self.custom_properties.get(k)
-                                if local_value is None or overwrite is True:
-                                    cprops[k] = v
-                                    log.debug(f"custom property {k} = {v}")
-
-                        if cprops:
-                            self.custom_properties.update(cprops)
-                            log.debug(
-                                f"updated self.custom_properties with {cprops}"
-                            )
-                        else:
-                            log.debug(
-                                f"no custom properties to update, doing nothing"
-                            )
-                    else:
-                        self.custom_properties = {}
-                        for k, v in self._swdata["custom_properties"].items():
-                            if k not in self._exclude_custom_props:
-                                self.custom_properties[k] = v
-                                log.debug(f"custom property {k} = {v}")
-                else:
-                    log.debug(
-                        f"{self.name} object does not have custom_properties attribute, "
-                        "not updating custom properties"
-                    )
-
-        else:
-            log.warning("self._swdata is None, can't update object")
-
+ 
     def _update_object_from_children(self, overwrite=False):
         if self._child_objects is not None:
             for child_class, child_props in self._child_objects.items():
