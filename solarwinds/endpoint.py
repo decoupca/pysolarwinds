@@ -1,7 +1,7 @@
 from logging import NullHandler, getLogger
 from typing import Any, Union
 
-from solarwinds.config import EXCLUDE_CUSTOM_PROPS
+from solarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from solarwinds.exceptions import SWIDNotFound, SWObjectPropertyError
 from solarwinds.utils import parse_response, sanitize_swdata
 
