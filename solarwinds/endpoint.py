@@ -414,7 +414,7 @@ class Endpoint(object):
             self._exists = False
             return True
         else:
-            log.warning("object doesn't exist")
+            log.warning("object doesn't exist, doing nothing")
             return False
 
     def _query(self, query) -> dict:
