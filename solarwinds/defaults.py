@@ -14,3 +14,10 @@ NODE_DEFAULT_POLLERS = {
         "N.Uptime.SNMP.Generic",
     ],
 }
+EXCLUDE_CUSTOM_PROPS = [
+    "DisplayName",
+    "NodeID",
+    "InstanceType",
+    "Uri",
+    "InstanceSiteId",
+]
