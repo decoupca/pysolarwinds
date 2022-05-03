@@ -1,7 +1,6 @@
 import requests
 from orionsdk import SwisClient
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-
 from solarwinds.models.orion import Orion
 
 

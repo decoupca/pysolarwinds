@@ -1,11 +1,9 @@
-import inspect
 from logging import NullHandler, getLogger
-from typing import Union
+from typing import Any, Union
 
 from solarwinds.config import EXCLUDE_CUSTOM_PROPS
-from solarwinds.exceptions import (SWIDNotFound, SWObjectPropertyError,
-                                   SWUriNotFound)
-from solarwinds.utils import camel_to_snake, parse_response, sanitize_swdata
+from solarwinds.exceptions import (SWIDNotFound, SWObjectPropertyError)
+from solarwinds.utils import parse_response, sanitize_swdata
 
 log = getLogger(__name__)
 log.addHandler(NullHandler())
@@ -148,35 +146,24 @@ class Endpoint(object):
         """
         Get updates to custom_properties
         """
+
         cprops = {}
         if self._swdata is not None:
-            if self._swdata.get("custom_properties") is not None:
-                if hasattr(self, "custom_properties"):
-                    for k, sw_v in self._swdata["custom_properties"].items():
-                        if k not in self._exclude_custom_props:
-                            v = (
-                                None
-                                if self.custom_properties is None
-                                else self.custom_properties.get(k)
-                            )
-                            if v is None or overwrite is True:
-                                cprops[k] = sw_v
-                                log.debug(f'custom_properties["{k}"] = {sw_v}')
-                else:
-                    log.warning(
-                        f"Object does not have custom_properties attribute, "
-                        "but self._swdata has custom properties. Doing nothing, but "
-                        "consider revising module to include custom_properties attribute"
-                    )
+            sw_cprops = self._swdata.get('custom_properties')
+            if sw_cprops is not None:
+                sw_cprops = {k.lower(): v for k, v in sw_cprops.items() if k not in self._exclude_custom_props}
+                if self.custom_properties is not None:
+                    sw_cprops.update(self.custom_properties)
+                    cprops = sw_cprops
         return cprops
 
-    def _get_attr_updates(self):
+    def _get_attr_updates(self) -> dict:
         """
         Get attribute updates from self._swdata. Overridden in subclasses.
         """
-        return None
+        return {}
 
-    def _init_child_objects(self):
+    def _init_child_objects(self) -> None:
         """
         Initialize child objects
         """
@@ -207,7 +194,7 @@ class Endpoint(object):
         else:
             log.debug(f"no child objects found, doing nothing")
 
-    def _update_child_attrs(self):
+    def _update_child_attrs(self) -> None:
         """
         Update child attributes with self (parent) attributes, as mapped in self._child_objects
         """
@@ -238,7 +225,7 @@ class Endpoint(object):
                 child = getattr(self, attr)
                 child.refresh()
 
-    def _update_attrs_from_children(self, overwrite=False):
+    def _update_attrs_from_children(self, overwrite: bool = False) -> None:
         """
         Update self (parent) attributes from child attributes, as mapped in self._child_objects
         """
@@ -257,42 +244,45 @@ class Endpoint(object):
                             )
                     self._update_attrs(attr_updates=attr_updates)
 
-    def _build_swargs(self):
-        swargs = {"properties": {}, "custom_properties": {}}
-        log.debug("building swargs...")
-
-        # properties
-        args = inspect.getfullargspec(self.__init__)[0]
-        for arg in args:
-            if arg in self._swargs_attrs:
-                value = getattr(self, arg)
+    def _build_swargs(self) -> None:
+        swargs = {"properties": None, "custom_properties": None}
+        properties = {}
+        custom_properties = {}
+        for attr in self._swargs_attrs:
+            value = getattr(self, attr)
+            if value is not None:
                 # store args without underscores so they match
                 # solarwinds argument names
-                arg = arg.replace("_", "")
-                swargs["properties"][arg] = value
-                log.debug(f'_swargs["properties"]["{arg}"] = {value}')
+                attr = attr.replace("_", "")
+                properties[attr] = value
+                log.debug(f'_swargs["properties"]["{attr}"] = {value}')
 
-        # extra swargs
         extra_swargs = self._get_extra_swargs()
         if extra_swargs:
             for k, v in extra_swargs.items():
-                swargs["properties"][k] = v
+                properties[k] = v
                 log.debug(f'_swargs["properties"]["{k}"] = {v}')
 
-        # custom properties
         if hasattr(self, "custom_properties"):
-            swargs["custom_properties"] = self.custom_properties
+            custom_properties = self.custom_properties
             log.debug(f'_swargs["custom_properties"] = {self.custom_properties}')
 
-        # update _swargs
-        if swargs["properties"] or swargs["custom_properties"]:
+        swargs['properties'] = properties if properties else None
+        swargs['custom_properties'] = custom_properties if custom_properties else None
+        if swargs.get("properties") is not None or swargs.get("custom_properties") is not None:
             self._swargs = swargs
 
-    def _get_extra_swargs(self):
+    def _get_swdata_value(self, key: str, data: str = 'properties') -> Any:
+        if self._swdata is not None:
+            data = self._swdata.get(data)
+            if data is not None:
+                return data.get(key)
+
+    def _get_extra_swargs(self) -> dict:
         # overwrite in subcasses if they have extra swargs
         return {}
 
-    def _diff_properties(self):
+    def _diff_properties(self) -> Union[dict, None]:
         changes = {}
         log.debug("diff'ing properties...")
         for k, sw_v in self._swdata["properties"].items():
@@ -308,16 +298,18 @@ class Endpoint(object):
             log.debug("no changes to properties found")
             return None
 
-    def _diff_custom_properties(self):
+    def _diff_custom_properties(self) -> Union[dict, None]:
         changes = {}
         log.debug("diff'ing custom properties...")
-        if self._swargs["custom_properties"] is not None:
-            for k, local_v in self._swargs["custom_properties"].items():
-                sw_v = self._swdata["custom_properties"].get(k)
-                if sw_v != local_v:
-                    changes[k] = local_v
+        cp_args = self._swargs.get('custom_properties')
+        cp_data = self._swargs.get('custom_properties')
+        if cp_args is not None and cp_data is not None:
+            for k, v in cp_args.items():
+                sw_v = cp_data.get(k)
+                if sw_v != v:
+                    changes[k] = v
                     log.debug(
-                        f'custom property {k} has changed from "{sw_v}" to "{local_v}"'
+                        f'custom property {k} has changed from "{sw_v}" to "{v}"'
                     )
         if changes:
             return changes
@@ -325,11 +317,11 @@ class Endpoint(object):
             log.debug("no changes to custom_properties found")
             return None
 
-    def _diff_child_objects(self):
+    def _diff_child_objects(self) -> Union[dict, None]:
         changes = {}
         log.debug("diff'ing child objects...")
         if self._child_objects is not None:
-            for attr, propsprops in self._child_objects.items():
+            for attr in self._child_objects.keys():
                 child = getattr(self, attr)
                 child._diff()
                 if child._changes is not None:
@@ -392,11 +384,9 @@ class Endpoint(object):
             self._build_swargs()
             if self._swargs is None:
                 raise SWObjectPropertyError("Can't create object without properties.")
-            for attr in self._required_attrs:
+            for attr in self._required_swargs_attrs:
                 if getattr(self, attr) is None:
-                    raise SWObjectPropertyError(
-                        f"Missing required attribute: {attr}"
-                    )
+                    raise SWObjectPropertyError(f"Missing required attribute: {attr}")
 
             self.uri = self.swis.create(self.endpoint, **self._swargs["properties"])
             log.debug("created object")
@@ -426,13 +416,13 @@ class Endpoint(object):
         log.debug(f"executing SWIS query: {query}")
         return parse_response(self.swis.query(query))
 
-    def update(self):
+    def update(self) -> bool:
         """Update object in solarwinds with local object's properties"""
         self._build_swargs()
         if self.exists():
             if self._changes is None:
-                log.debug("found no changes, running diff()...")
-                self.diff()
+                log.debug("found no changes, running _diff()...")
+                self._diff()
             if self._changes is not None:
                 if self._changes.get("properties") is not None:
                     self.swis.update(self.uri, **self._changes["properties"])
@@ -447,15 +437,14 @@ class Endpoint(object):
                     self._get_swdata(refresh=True, data="custom_properties")
                 if self._changes.get("child_objects") is not None:
                     log.debug("found changes to child objects")
-                    for child_object, changes in self._changes["child_objects"].items():
-                        child_props = self._child_objects[child_object.__class__]
-                        child_object = getattr(self, child_props["child_attr"])
-                        child_object.update()
+                    for attr in self._changes["child_objects"].keys():
+                        child = getattr(self, attr)
+                        child.update()
                     log.info(f"updated child objects")
                 self._changes = None
                 return True
             else:
-                log.warning("found no changes to update, doing nothing")
+                log.warning("found no changes, doing nothing")
                 return False
         else:
             log.debug("object does not exist, creating...")

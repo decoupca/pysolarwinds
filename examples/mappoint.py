@@ -2,9 +2,9 @@ import logging
 from pprint import pprint
 
 import ipdb
-from config import snmpv2c, sw_args
-
 import solarwinds
+
+from config import snmpv2c, sw_args
 
 logging.basicConfig(level=logging.DEBUG)
 

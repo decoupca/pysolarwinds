@@ -6,7 +6,7 @@ class WorldMapPoint(Endpoint):
     endpoint = "Orion.WorldMap.Point"
     _id_attr = "point_id"
     _swid_key = "PointId"
-    # _required_attrs = "instance_id"
+    _required_swargs_attrs = ["instance_id"]
     _swquery_attrs = ["point_id", "instance_id"]
     _swargs_attrs = [
         "instance_id",
@@ -44,14 +44,13 @@ class WorldMapPoint(Endpoint):
         super().__init__()
 
     def _get_attr_updates(self) -> dict:
-        swdata = self._swdata["properties"]
+        swdata = self._swdata['properties']
         return {
-            "latitude": swdata["Latitude"],
-            "longitude": swdata["Longitude"],
-            "auto_added": swdata["AutoAdded"],
-            "street_address": swdata["StreetAddress"],
+            'latitude': swdata['Latitude'],
+            'longitude': swdata['Longitude'],
+            'auto_added': swdata['AutoAdded'],
+            'street_address': swdata['StreetAddress']
         }
-
 
 class WorldMapPointLabel(Endpoint):
     pass
