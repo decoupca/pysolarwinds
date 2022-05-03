@@ -413,6 +413,7 @@ class Endpoint(object):
                 )
                 log.debug("added custom properties")
             self._init_child_objects()
+            self._update_child_attrs()
             self._create_child_objects()
             self.refresh()
             return True
