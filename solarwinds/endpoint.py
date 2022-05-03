@@ -306,14 +306,13 @@ class Endpoint(object):
             return changes
         else:
             log.debug("no changes to properties found")
+            return None
 
     def _diff_custom_properties(self):
         changes = {}
         log.debug("diff'ing custom properties...")
         if self._swargs["custom_properties"] is not None:
             for k, local_v in self._swargs["custom_properties"].items():
-                if k not in self._swdata["custom_properties"].keys():
-                    changes[k] = local_v
                 sw_v = self._swdata["custom_properties"].get(k)
                 if sw_v != local_v:
                     changes[k] = local_v
@@ -324,24 +323,31 @@ class Endpoint(object):
             return changes
         else:
             log.debug("no changes to custom_properties found")
+            return None
 
     def _diff_child_objects(self):
         changes = {}
         log.debug("diff'ing child objects...")
         if self._child_objects is not None:
-            for child_class, child_props in self._child_objects.items():
-                child_object = getattr(self, child_props["child_attr"])
-                child_object.diff()
-                if child_object._changes is not None:
-                    changes[child_object] = child_object._changes
+            for attr, propsprops in self._child_objects.items():
+                child = getattr(self, attr)
+                child._diff()
+                if child._changes is not None:
+                    changes[child] = child._changes
         if changes:
             return changes
+        else:
+            log.debug("no changes to child objects found")
+            return None
 
-    def diff(self):
-        changes = {}
+    def _diff(self) -> None:
+        self._get_swdata()
         self._build_swargs()
+        if self._swdata is None or self._swargs is None:
+            log.warning("Can't diff, self._swdata or self._swargs is None")
+            return None
+        changes = {}
         if self.exists():
-            self._get_swdata()
             changes = {
                 "properties": self._diff_properties(),
                 "custom_properties": self._diff_custom_properties(),
@@ -354,9 +360,9 @@ class Endpoint(object):
                 "child_objects": self._diff_child_objects(),
             }
         if (
-            changes["properties"] is not None
-            or changes["custom_properties"] is not None
-            or changes["child_objects"] is not None
+            changes.get("properties") is not None
+            or changes.get("custom_properties") is not None
+            or changes.get("child_objects") is not None
         ):
             self._changes = changes
             log.debug(f"found changes: {changes}")
