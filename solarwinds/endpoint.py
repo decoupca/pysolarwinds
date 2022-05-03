@@ -74,7 +74,7 @@ class Endpoint(object):
                 query_lines = "\n".join(queries)
                 log.debug(f"built SWQL queries:\n{query_lines}")
                 for query in queries:
-                    result = self.query(query)
+                    result = self._query(query)
                     if result:
                         uri = result["uri"]
                         log.debug(f"found uri: {uri}")
@@ -383,72 +383,46 @@ class Endpoint(object):
         else:
             log.debug("_swdata is None, can't get id")
 
-    def create(self):
+    def create(self) -> bool:
         """Create object"""
         if self.exists():
             log.warning("object exists, can't create")
             return False
         else:
-            if self._required_attrs is not None:
-                for attr in self._required_attrs:
-                    if getattr(self, attr) is None:
-                        raise SWObjectPropertyError(
-                            f"Missing required attribute: {attr}"
-                        )
             self._build_swargs()
             if self._swargs is None:
                 raise SWObjectPropertyError("Can't create object without properties.")
-            else:
-                self.uri = self.swis.create(self.endpoint, **self._swargs["properties"])
-                log.debug("created object")
-                if self._swargs["custom_properties"]:
-                    self.swis.update(
-                        f"{self.uri}/CustomProperties",
-                        **self._swargs["custom_properties"],
+            for attr in self._required_attrs:
+                if getattr(self, attr) is None:
+                    raise SWObjectPropertyError(
+                        f"Missing required attribute: {attr}"
                     )
-                    log.debug("added custom properties")
-                self._get_swdata()
-                self._get_id()
-                self._update_object()
-                if self._child_objects is not None:
-                    # child objects usually (always?) rely on IDs from parent objects
-                    # that we don't have until we create the parent object
-                    self._update_child_objects()
-                    for child_class, child_props in self._child_objects.items():
-                        child_object = getattr(self, child_props["child_attr"])
-                        # though unlikely, a child object may exist when a parent
-                        # object doesn't
-                        if child_object.exists():
-                            child_object.update()
-                        else:
-                            child_object.create()
-                return True
 
-    def delete(self):
+            self.uri = self.swis.create(self.endpoint, **self._swargs["properties"])
+            log.debug("created object")
+            if self._swargs.get("custom_properties") is not None:
+                self.swis.update(
+                    f"{self.uri}/CustomProperties",
+                    **self._swargs["custom_properties"],
+                )
+                log.debug("added custom properties")
+            self._init_child_objects()
+            self.refresh()
+            return True
+
+    def delete(self) -> bool:
         """Delete object"""
         if self.exists():
             self.swis.delete(self.uri)
             log.debug("deleted object")
             self.uri = None
+            self._exists = False
             return True
         else:
             log.warning("object doesn't exist")
             return False
 
-    def get(self, refresh=False, overwrite=False):
-        """Gets object data from solarwinds and updates local object attributes"""
-        if self.exists(refresh=refresh):
-            log.debug("getting object details...")
-            self._get_swdata(refresh=refresh)
-            self._get_id()
-            self._update_object(overwrite=overwrite)
-            self._update_child_objects()
-            self._update_object_from_children(overwrite=overwrite)
-            self._build_swargs()
-        else:
-            log.warning("object doesn't exist, nothing to get")
-
-    def query(self, query):
+    def _query(self, query) -> dict:
         log.debug(f"executing SWIS query: {query}")
         return parse_response(self.swis.query(query))
 
