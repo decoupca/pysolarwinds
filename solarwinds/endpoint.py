@@ -318,7 +318,9 @@ class Endpoint(object):
         changes = {}
         log.debug("diff'ing custom properties...")
         cp_args = self._swargs.get("custom_properties")
-        cp_data = self._swargs.get("custom_properties")
+        cp_data = self._swdata.get("custom_properties")
+        if cp_data is None and cp_args is not None:
+            changes = cp_args
         if cp_args is not None and cp_data is not None:
             for k, v in cp_args.items():
                 sw_v = cp_data.get(k)
@@ -347,13 +349,13 @@ class Endpoint(object):
             return None
 
     def _diff(self) -> None:
-        self._get_swdata()
-        self._build_swargs()
         if self._swdata is None or self._swargs is None:
             log.warning("Can't diff, self._swdata or self._swargs is None")
             return None
         changes = {}
         if self.exists():
+            self._get_swdata()
+            self._build_swargs()
             changes = {
                 "properties": self._diff_properties(),
                 "custom_properties": self._diff_custom_properties(),
