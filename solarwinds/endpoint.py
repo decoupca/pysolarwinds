@@ -225,9 +225,18 @@ class Endpoint(object):
         Call refresh() on all children
         """
         if self._child_objects is not None:
-            for attr, props in self._child_objects.items():
+            for attr in self._child_objects.keys():
                 child = getattr(self, attr)
                 child.refresh()
+
+    def _create_child_objects(self) -> None:
+        """
+        Call create() on all children
+        """
+        if self._child_objects is not None:
+            for attr in self._child_objects.keys():
+                child = getattr(self, attr)
+                child.create()
 
     def _update_attrs_from_children(self, overwrite: bool = False) -> None:
         """
@@ -402,6 +411,7 @@ class Endpoint(object):
                 )
                 log.debug("added custom properties")
             self._init_child_objects()
+            self._create_child_objects()
             self.refresh()
             return True
 
