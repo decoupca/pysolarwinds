@@ -349,9 +349,8 @@ class Endpoint(object):
             return None
 
     def _diff(self) -> None:
-        if self._swdata is None or self._swargs is None:
-            log.warning("Can't diff, self._swdata or self._swargs is None")
-            return None
+        self._get_swdata()
+        self._build_swargs()
         changes = {}
         if self.exists():
             self._get_swdata()
