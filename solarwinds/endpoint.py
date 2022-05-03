@@ -341,7 +341,7 @@ class Endpoint(object):
                 child = getattr(self, attr)
                 child._diff()
                 if child._changes is not None:
-                    changes[child] = child._changes
+                    changes[attr] = child._changes
         if changes:
             return changes
         else:
@@ -351,6 +351,7 @@ class Endpoint(object):
     def _diff(self) -> None:
         self._get_swdata()
         self._build_swargs()
+        self._update_child_attrs()
         changes = {}
         if self.exists():
             self._get_swdata()
