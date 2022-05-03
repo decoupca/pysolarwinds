@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from logging import NullHandler, getLogger
 from typing import Union
 
 from orionsdk import SwisClient
@@ -7,9 +8,9 @@ from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 from solarwinds.exceptions import SWObjectPropertyError
 
-from logging import getLogger, NullHandler
 log = getLogger(__name__)
 log.addHandler(NullHandler())
+
 
 class OrionNode(Endpoint):
     endpoint = "Orion.Nodes"
@@ -123,8 +124,8 @@ class OrionNode(Endpoint):
         }
 
     def _get_polling_method(self) -> str:
-        community = self._get_swdata_value('Community') or self.community
-        rw_community = self._get_swdata_value('RWCommunity') or self.rw_community
+        community = self._get_swdata_value("Community") or self.community
+        rw_community = self._get_swdata_value("RWCommunity") or self.rw_community
         if community is not None or rw_community is not None:
             return "snmp"
         else:

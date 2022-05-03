@@ -2,7 +2,7 @@ from logging import NullHandler, getLogger
 from typing import Any, Union
 
 from solarwinds.config import EXCLUDE_CUSTOM_PROPS
-from solarwinds.exceptions import (SWIDNotFound, SWObjectPropertyError)
+from solarwinds.exceptions import SWIDNotFound, SWObjectPropertyError
 from solarwinds.utils import parse_response, sanitize_swdata
 
 log = getLogger(__name__)
@@ -149,9 +149,13 @@ class Endpoint(object):
 
         cprops = {}
         if self._swdata is not None:
-            sw_cprops = self._swdata.get('custom_properties')
+            sw_cprops = self._swdata.get("custom_properties")
             if sw_cprops is not None:
-                sw_cprops = {k.lower(): v for k, v in sw_cprops.items() if k not in self._exclude_custom_props}
+                sw_cprops = {
+                    k.lower(): v
+                    for k, v in sw_cprops.items()
+                    if k not in self._exclude_custom_props
+                }
                 if self.custom_properties is not None:
                     sw_cprops.update(self.custom_properties)
                     cprops = sw_cprops
@@ -267,12 +271,15 @@ class Endpoint(object):
             custom_properties = self.custom_properties
             log.debug(f'_swargs["custom_properties"] = {self.custom_properties}')
 
-        swargs['properties'] = properties if properties else None
-        swargs['custom_properties'] = custom_properties if custom_properties else None
-        if swargs.get("properties") is not None or swargs.get("custom_properties") is not None:
+        swargs["properties"] = properties if properties else None
+        swargs["custom_properties"] = custom_properties if custom_properties else None
+        if (
+            swargs.get("properties") is not None
+            or swargs.get("custom_properties") is not None
+        ):
             self._swargs = swargs
 
-    def _get_swdata_value(self, key: str, data: str = 'properties') -> Any:
+    def _get_swdata_value(self, key: str, data: str = "properties") -> Any:
         if self._swdata is not None:
             data = self._swdata.get(data)
             if data is not None:
@@ -301,16 +308,14 @@ class Endpoint(object):
     def _diff_custom_properties(self) -> Union[dict, None]:
         changes = {}
         log.debug("diff'ing custom properties...")
-        cp_args = self._swargs.get('custom_properties')
-        cp_data = self._swargs.get('custom_properties')
+        cp_args = self._swargs.get("custom_properties")
+        cp_data = self._swargs.get("custom_properties")
         if cp_args is not None and cp_data is not None:
             for k, v in cp_args.items():
                 sw_v = cp_data.get(k)
                 if sw_v != v:
                     changes[k] = v
-                    log.debug(
-                        f'custom property {k} has changed from "{sw_v}" to "{v}"'
-                    )
+                    log.debug(f'custom property {k} has changed from "{sw_v}" to "{v}"')
         if changes:
             return changes
         else:
