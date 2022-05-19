@@ -20,5 +20,5 @@ EXCLUDE_CUSTOM_PROPS = [
     "InstanceType",
     "Uri",
     "InstanceSiteId",
-    'Description',
+    'Description',  
 ]
