@@ -349,7 +349,6 @@ class Endpoint(object):
             return None
 
     def _diff(self) -> None:
-        self._get_swdata()
         self._build_swargs()
         self._update_child_attrs()
         changes = {}

@@ -9,6 +9,9 @@ class api(object):
         if validate_certs is False:
             requests.packages.urllib3.disable_warnings()
             session.verify = False
+        adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
         self.hostname = hostname
         self.username = username
         self.password = password
