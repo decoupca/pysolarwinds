@@ -5,7 +5,8 @@ from typing import Union
 from orionsdk import SwisClient
 from solarwinds.defaults import NODE_DEFAULT_POLLERS
 from solarwinds.endpoint import Endpoint
-from solarwinds.endpoints.orion.interface import OrionInterface, OrionInterfaceList
+from solarwinds.endpoints.orion.interface import (OrionInterface,
+                                                  OrionInterfaceList)
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 from solarwinds.exceptions import SWObjectPropertyError
 
@@ -76,6 +77,10 @@ class OrionNode(Endpoint):
         super().__init__()
 
     @property
+    def name(self) -> str:
+        return self.caption
+
+    @property
     def ip(self) -> Union[str, None]:
         return self.ip_address
 
@@ -132,9 +137,11 @@ class OrionNode(Endpoint):
         }
 
     def _get_interfaces(self):
-        log.info(f'{self.hostname}: discovering interfaces...')
-        result = self.swis.invoke('Orion.NPM.Interfaces', 'DiscoverInterfacesOnNode', self.id)
-        self._interfaces = result['DiscoveredInterfaces']
+        log.info(f"{self.hostname}: discovering interfaces...")
+        result = self.swis.invoke(
+            "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.id
+        )
+        self._interfaces = result["DiscoveredInterfaces"]
 
     def _get_polling_method(self) -> str:
         community = self._get_swdata_value("Community") or self.community

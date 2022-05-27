@@ -23,5 +23,5 @@ sw = solarwinds.api(**sw_args)
 # point2 = sw.orion.worldmap.point()
 # point2.instance_id = 800
 # point2.get()
-node = sw.orion.node(caption='RWTC19CR01')
-node.interfaces
+node = sw.orion.node(caption="SWTC16AC01")
+ipdb.set_trace()

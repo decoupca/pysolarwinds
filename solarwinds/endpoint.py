@@ -3,7 +3,7 @@ from typing import Any, Union
 
 from solarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from solarwinds.exceptions import SWIDNotFound, SWObjectPropertyError
-from solarwinds.utils import parse_response, sanitize_swdata
+from solarwinds.utils import parse_response, print_dict, sanitize_swdata
 
 log = getLogger(__name__)
 log.addHandler(NullHandler())
@@ -38,7 +38,8 @@ class Endpoint(object):
             self._get_swdata()
             self._get_id()
             self._update_attrs(
-                attr_updates=self._get_attr_updates(), cp_updates=self._get_cp_updates()
+                attr_updates=self._get_attr_updates(),
+                cp_updates=self._get_cp_updates() or self._get_sw_cprops(),
             )
             self._update_child_attrs()
             self._refresh_child_objects()
@@ -81,7 +82,7 @@ class Endpoint(object):
                 return None
             else:
                 key_attrs = ", ".join(self._swquery_attrs)
-                log.warning(
+                log.debug(
                     f"Can't get uri, one of these key attributes must be set: {key_attrs}"
                 )
                 return None
@@ -152,7 +153,7 @@ class Endpoint(object):
             sw_cprops = self._swdata.get("custom_properties")
             if sw_cprops is not None:
                 sw_cprops = {
-                    k.lower(): v
+                    k: v
                     for k, v in sw_cprops.items()
                     if k not in self._exclude_custom_props
                 }
@@ -160,6 +161,19 @@ class Endpoint(object):
                     sw_cprops.update(self.custom_properties)
                     cprops = sw_cprops
         return cprops
+
+    def _get_sw_cprops(self) -> dict:
+        """
+        Get customp properties from swdata
+        """
+        if self._swdata is not None:
+            sw_cprops = self._swdata.get("custom_properties")
+            if sw_cprops is not None:
+                return {
+                    k: v
+                    for k, v in sw_cprops.items()
+                    if k not in self._exclude_custom_props
+                }
 
     def _get_attr_updates(self) -> dict:
         """
@@ -445,26 +459,30 @@ class Endpoint(object):
             if self._changes is not None:
                 if self._changes.get("properties") is not None:
                     self.swis.update(self.uri, **self._changes["properties"])
-                    log.info(f"updated properties")
+                    log.info(
+                        f"{self.name}: updated properties: {print_dict(self._changes['properties'])}"
+                    )
                     self._get_swdata(refresh=True, data="properties")
                 if self._changes.get("custom_properties") is not None:
                     self.swis.update(
                         f"{self.uri}/CustomProperties",
                         **self._changes["custom_properties"],
                     )
-                    log.info(f"updated custom properties")
+                    log.info(
+                        f"{self.name}: updated custom properties: {print_dict(self._changes['custom_properties'])}"
+                    )
                     self._get_swdata(refresh=True, data="custom_properties")
                 if self._changes.get("child_objects") is not None:
                     log.debug("found changes to child objects")
                     for attr in self._changes["child_objects"].keys():
                         child = getattr(self, attr)
                         child.update()
-                    log.info(f"updated child objects")
+                    log.info(f"{self.name}: updated child objects")
                 self._changes = None
                 return True
             else:
-                log.warning("found no changes, doing nothing")
+                log.info(f"{self.name}: found no changes, doing nothing")
                 return False
         else:
-            log.debug("object does not exist, creating...")
+            log.debug(f"{self.name}: object does not exist, creating...")
             return self.create()
