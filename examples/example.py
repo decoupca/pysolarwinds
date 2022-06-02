@@ -1,8 +1,8 @@
 import logging
-from pprint import pprint
 
 import ipdb
 import solarwinds
+from rich import print
 
 from config import snmpv2c, sw_args
 
@@ -23,5 +23,6 @@ sw = solarwinds.api(**sw_args)
 # point2 = sw.orion.worldmap.point()
 # point2.instance_id = 800
 # point2.get()
-node = sw.orion.node(caption="SWTC16AC01")
+node = sw.orion.node(caption="RBCF17CR01-U1")
+print(node.interfaces)
 ipdb.set_trace()

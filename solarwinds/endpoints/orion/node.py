@@ -5,8 +5,7 @@ from typing import Union
 from orionsdk import SwisClient
 from solarwinds.defaults import NODE_DEFAULT_POLLERS
 from solarwinds.endpoint import Endpoint
-from solarwinds.endpoints.orion.interface import (OrionInterface,
-                                                  OrionInterfaceList)
+from solarwinds.endpoints.orion.interface import OrionInterfaces
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 from solarwinds.exceptions import SWObjectPropertyError
 
@@ -16,7 +15,6 @@ log.addHandler(NullHandler())
 
 class OrionNode(Endpoint):
     endpoint = "Orion.Nodes"
-    _interfaces = None
     _id_attr = "node_id"
     _swid_key = "NodeID"
     _swquery_attrs = ["ip_address", "caption"]
@@ -72,6 +70,7 @@ class OrionNode(Endpoint):
         self.polling_method = polling_method
         self.pollers = pollers
         self.snmp_version = snmp_version
+        self.interfaces = OrionInterfaces(self)
         if self.ip_address is None and self.caption is None:
             raise SWObjectPropertyError("Must provide either ip_address or caption")
         super().__init__()
@@ -87,12 +86,6 @@ class OrionNode(Endpoint):
     @ip.setter
     def ip(self, ip_address: str) -> None:
         self.ip_address = ip_address
-
-    @property
-    def interfaces(self):
-        if self._interfaces is None:
-            self._get_interfaces()
-        return self._interfaces
 
     @property
     def hostname(self) -> Union[str, None]:
@@ -135,13 +128,6 @@ class OrionNode(Endpoint):
             "status": self._get_swdata_value("Status") or 1,
             "objectsubtype": self._get_polling_method().upper(),
         }
-
-    def _get_interfaces(self):
-        log.info(f"{self.hostname}: discovering interfaces...")
-        result = self.swis.invoke(
-            "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.id
-        )
-        self._interfaces = result["DiscoveredInterfaces"]
 
     def _get_polling_method(self) -> str:
         community = self._get_swdata_value("Community") or self.community

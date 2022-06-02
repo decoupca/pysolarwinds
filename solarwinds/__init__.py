@@ -20,5 +20,10 @@ class api(object):
         )
         self.orion = Orion(self.swis)
 
+    def query(self, query):
+        result = self.swis.query(query)
+        if result:
+            return result["results"]
+
 
 __all__ = [api]
