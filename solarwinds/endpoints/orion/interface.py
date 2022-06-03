@@ -140,9 +140,14 @@ class OrionInterfaces(object):
         result = self.swis.invoke(
             "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.device.id
         )
-        result = result["DiscoveredInterfaces"]
-        log.info(f"{self.device.name}: discovered {len(result)} interfaces on node")
-        self._discovered = result
+        if result["Result"] == 0:
+            result = result["DiscoveredInterfaces"]
+            log.info(f"{self.device.name}: discovered {len(result)} interfaces on node")
+            self._discovered = result
+        else:
+            log.error(
+                f"{self.device.name}: SNMP discovery failed, verify SNMP is accessible and creds are valid"
+            )
 
     def monitor(self, interfaces=None) -> None:
         if self._existing is None:
