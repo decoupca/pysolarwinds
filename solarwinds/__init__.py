@@ -1,5 +1,5 @@
-from solarwinds.models.orion import Orion
 from solarwinds.client import SwisClient
+from solarwinds.models.orion import Orion
 
 
 class api(object):
@@ -13,7 +13,7 @@ class api(object):
             username=username,
             password=password,
             verify=verify,
-            timeout=timeout
+            timeout=timeout,
         )
         self.orion = Orion(self.swis)
 

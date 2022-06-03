@@ -1,22 +1,7 @@
-import json
 import re
 from typing import Union
 from solarwinds.endpoint import Endpoint
 from solarwinds.logging import log
-
-
-
-
-def invoke(self, entity, verb, *args):
-    url = f"{c.SW_API_URL}/Invoke/{entity}/{verb}"
-    response = self.http_client.post(url, data=json.dumps(args))
-    if 400 <= response.status_code < 600:
-        try:
-            log.debug(json.loads(response.text)["Message"])
-        except:
-            pass
-    response.raise_for_status()
-    return response.json()
 
 
 class OrionInterface(Endpoint):
@@ -111,7 +96,7 @@ class OrionInterfaces(object):
             raise IndexError
 
     def add(self, interfaces):
-        return invoke(
+        return self.swis.invoke(
             "Orion.NPM.Interfaces",
             "AddInterfacesOnNode",
             self.device.id,
