@@ -80,6 +80,22 @@ class OrionNode(Endpoint):
         return self.caption
 
     @property
+    def int(self):
+        return self.interfaces
+
+    @property
+    def ints(self):
+        return self.interfaces
+
+    @property
+    def intf(self):
+        return self.interfaces
+
+    @property
+    def intfs(self):
+        return self.interfaces
+
+    @property
     def ip(self) -> Union[str, None]:
         return self.ip_address
 

@@ -4,7 +4,6 @@ from solarwinds.models.orion import Orion
 
 class api(object):
     def __init__(self, hostname, username, password, verify=False, timeout=60):
-
         self.hostname = hostname
         self.username = username
         self.password = password
@@ -16,11 +15,5 @@ class api(object):
             timeout=timeout,
         )
         self.orion = Orion(self.swis)
-
-    def query(self, query):
-        result = self.swis.query(query)
-        if result:
-            return result["results"]
-
 
 __all__ = [api]

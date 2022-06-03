@@ -24,5 +24,5 @@ sw = solarwinds.api(**SW_ARGS)
 # point2.instance_id = 800
 # point2.get()
 node = sw.orion.node(caption="RBCF17CR01-U1")
-print(node.interfaces)
+node.intfs.discover()
 ipdb.set_trace()

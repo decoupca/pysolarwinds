@@ -1,5 +1,6 @@
 import re
 from typing import Union
+
 from solarwinds.endpoint import Endpoint
 from solarwinds.logging import log
 
@@ -71,8 +72,8 @@ class OrionInterfaces(object):
     def __init__(self, device) -> None:
         self.device = device
         self.swis = device.swis
-        self._existing_interfaces = None
-        self._discovered_interfaces = None
+        self._existing = None
+        self._discovered = None
 
     def _get_iface_by_abbr(self, abbr):
         abbr = abbr.lower()
@@ -83,7 +84,7 @@ class OrionInterfaces(object):
             end = match.group(2)
             full_pattern = re.compile(f"^{begin}[a-z\-]+{end}$", re.I)
             matches = []
-            for iface in self._existing_interfaces:
+            for iface in self._existing:
                 if re.match(full_pattern, iface.name):
                     matches.append(iface)
             if len(matches) == 0:
@@ -127,34 +128,35 @@ class OrionInterfaces(object):
                 N.NodeID = '{self.device.id}'
         """
         result = self.swis.query(query)["results"]
-        self._existing_interfaces = [
+        self._existing = [
             OrionInterface(self.device, data=data) for data in result
         ]
         log.info(
-            f"{self.device.name}: found {len(self._existing_interfaces)} existing interfaces"
+            f"{self.device.name}: found {len(self._existing)} existing interfaces"
         )
 
     def discover(self) -> None:
         """
-        Runs SNMP discovery of all available interfaces
-        This can take a long time
+        Runs SNMP discovery of all available interfaces. This can take a while
+        depending on network conditions and number of interfaces on node
         """
         log.info(f"{self.device.name}: discovering interfaces via SNMP...")
         result = self.swis.invoke(
             "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.device.id
         )
+        result = result['DiscoveredInterfaces']
         log.info(
-            f"{self.device.name}: discovered {len(self._discovered_interfaces)} interfaces"
+            f"{self.device.name}: discovered {len(result)} interfaces"
         )
-        self._discovered_interfaces = result["DiscoveredInterfaces"]
+        self._discovered = result
 
     def monitor(self, interfaces=None) -> None:
-        if self._existing_interfaces is None:
+        if self._existing is None:
             self.get()
         if interfaces is None:
-            interfaces = self._existing_interfaces
+            interfaces = self._existing
 
-        existing = [x.name for x in self._existing_interfaces]
+        existing = [x.name for x in self._existing]
         missing = [x for x in interfaces if x not in existing]
 
         # if there are any interfaces we want to monitor that don't already exist,
@@ -164,7 +166,7 @@ class OrionInterfaces(object):
             self.discover()
             add = [
                 x
-                for x in self._discovered_interfaces
+                for x in self._discovered
                 if x["Caption"].split(" ")[0] in missing
             ]
             log.info(f"{self.device.name}: found {len(add)} interfaces to monitor")
@@ -172,17 +174,18 @@ class OrionInterfaces(object):
                 self.add(add)
         else:
             log.info(
-                f"{self.device.name}: all interfaces already monitored, doing nothing"
+                f"{self.device.name}: all {len(interfaces)} provided interfaces "
+                "already monitored, doing nothing"
             )
 
     def __getitem__(self, item: Union[str, int]) -> OrionInterface:
         if isinstance(item, int):
-            return self._existing_interfaces[item]
+            return self._existing[item]
         else:
             try:
                 result = [
                     x
-                    for x in self._existing_interfaces
+                    for x in self._existing
                     if x.name.lower() == item.lower()
                 ][0]
             except IndexError:
@@ -190,6 +193,6 @@ class OrionInterfaces(object):
             return result
 
     def __repr__(self) -> str:
-        if self._existing_interfaces is None:
+        if self._existing is None:
             self.get()
-        return str(self._existing_interfaces)
+        return str(self._existing)
