@@ -128,12 +128,8 @@ class OrionInterfaces(object):
                 N.NodeID = '{self.device.id}'
         """
         result = self.swis.query(query)["results"]
-        self._existing = [
-            OrionInterface(self.device, data=data) for data in result
-        ]
-        log.info(
-            f"{self.device.name}: found {len(self._existing)} existing interfaces"
-        )
+        self._existing = [OrionInterface(self.device, data=data) for data in result]
+        log.info(f"{self.device.name}: found {len(self._existing)} existing interfaces")
 
     def discover(self) -> None:
         """
@@ -144,10 +140,8 @@ class OrionInterfaces(object):
         result = self.swis.invoke(
             "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.device.id
         )
-        result = result['DiscoveredInterfaces']
-        log.info(
-            f"{self.device.name}: discovered {len(result)} interfaces"
-        )
+        result = result["DiscoveredInterfaces"]
+        log.info(f"{self.device.name}: discovered {len(result)} interfaces on node")
         self._discovered = result
 
     def monitor(self, interfaces=None) -> None:
@@ -163,12 +157,9 @@ class OrionInterfaces(object):
         # we need to run a full snmp discovery
         needs_discovery = bool(missing)
         if needs_discovery is True:
+            log.info(f"{self.device.name}: found {len(missing)} missing interfaces")
             self.discover()
-            add = [
-                x
-                for x in self._discovered
-                if x["Caption"].split(" ")[0] in missing
-            ]
+            add = [x for x in self._discovered if x["Caption"].split(" ")[0] in missing]
             log.info(f"{self.device.name}: found {len(add)} interfaces to monitor")
             if add:
                 self.add(add)
@@ -183,11 +174,9 @@ class OrionInterfaces(object):
             return self._existing[item]
         else:
             try:
-                result = [
-                    x
-                    for x in self._existing
-                    if x.name.lower() == item.lower()
-                ][0]
+                result = [x for x in self._existing if x.name.lower() == item.lower()][
+                    0
+                ]
             except IndexError:
                 result = self._get_iface_by_abbr(item)
             return result
