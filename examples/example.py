@@ -4,11 +4,11 @@ import ipdb
 import solarwinds
 from rich import print
 
-from config import snmpv2c, sw_args
+from config import SNMPV2C, SW_ARGS
 
 logging.basicConfig(level=logging.DEBUG)
 
-sw = solarwinds.api(**sw_args)
+sw = solarwinds.api(**SW_ARGS)
 
 # node = sw.node(
 #    ip="172.16.1.1",

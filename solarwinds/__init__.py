@@ -1,22 +1,19 @@
-import requests
-from orionsdk import SwisClient
 from solarwinds.models.orion import Orion
+from solarwinds.client import SwisClient
 
 
 class api(object):
-    def __init__(self, hostname, username, password, validate_certs=False):
-        session = requests.Session()
-        if validate_certs is False:
-            requests.packages.urllib3.disable_warnings()
-            session.verify = False
-        adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
+    def __init__(self, hostname, username, password, verify=False, timeout=60):
+
         self.hostname = hostname
         self.username = username
         self.password = password
         self.swis = SwisClient(
-            hostname=hostname, username=username, password=password, session=session
+            hostname=hostname,
+            username=username,
+            password=password,
+            verify=verify,
+            timeout=timeout
         )
         self.orion = Orion(self.swis)
 

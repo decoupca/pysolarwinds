@@ -1,8 +1,22 @@
+import json
 import re
 from typing import Union
-
 from solarwinds.endpoint import Endpoint
 from solarwinds.logging import log
+
+
+
+
+def invoke(self, entity, verb, *args):
+    url = f"{c.SW_API_URL}/Invoke/{entity}/{verb}"
+    response = self.http_client.post(url, data=json.dumps(args))
+    if 400 <= response.status_code < 600:
+        try:
+            log.debug(json.loads(response.text)["Message"])
+        except:
+            pass
+    response.raise_for_status()
+    return response.json()
 
 
 class OrionInterface(Endpoint):
@@ -10,6 +24,7 @@ class OrionInterface(Endpoint):
 
     def __init__(self, device, data: dict):
         self.device = device
+        self.data = data
         self._id = None
         self._name = None
         self._mtu = None
@@ -95,6 +110,15 @@ class OrionInterfaces(object):
         else:
             raise IndexError
 
+    def add(self, interfaces):
+        return invoke(
+            "Orion.NPM.Interfaces",
+            "AddInterfacesOnNode",
+            self.device.id,
+            interfaces,
+            "AddDefaultPollers",
+        )
+
     def get(self) -> None:
         """
         Queries for interfaces that have already been discovered and assigned
@@ -134,10 +158,37 @@ class OrionInterfaces(object):
         result = self.swis.invoke(
             "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.device.id
         )
-        self._discovered_interfaces = result["DiscoveredInterfaces"]
         log.info(
             f"{self.device.name}: discovered {len(self._discovered_interfaces)} interfaces"
         )
+        self._discovered_interfaces = result["DiscoveredInterfaces"]
+
+    def monitor(self, interfaces=None) -> None:
+        if self._existing_interfaces is None:
+            self.get()
+        if interfaces is None:
+            interfaces = self._existing_interfaces
+
+        existing = [x.name for x in self._existing_interfaces]
+        missing = [x for x in interfaces if x not in existing]
+
+        # if there are any interfaces we want to monitor that don't already exist,
+        # we need to run a full snmp discovery
+        needs_discovery = bool(missing)
+        if needs_discovery is True:
+            self.discover()
+            add = [
+                x
+                for x in self._discovered_interfaces
+                if x["Caption"].split(" ")[0] in missing
+            ]
+            log.info(f"{self.device.name}: found {len(add)} interfaces to monitor")
+            if add:
+                self.add(add)
+        else:
+            log.info(
+                f"{self.device.name}: all interfaces already monitored, doing nothing"
+            )
 
     def __getitem__(self, item: Union[str, int]) -> OrionInterface:
         if isinstance(item, int):
