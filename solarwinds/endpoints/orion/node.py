@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from logging import NullHandler, getLogger
 from typing import Union
 
-from orionsdk import SwisClient
+from solarwinds.client import SwisClient
 from solarwinds.defaults import NODE_DEFAULT_POLLERS
 from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.interface import OrionInterfaces
