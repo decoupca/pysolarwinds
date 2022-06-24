@@ -111,6 +111,10 @@ class OrionNode(Endpoint):
     def hostname(self, hostname: str) -> None:
         self.caption = hostname
 
+    @property
+    def status(self):
+        return self._get_swdata_value('Status')
+
     def _set_defaults(self) -> None:
         if self.polling_method is None:
             if self.community is not None or self.rw_community is not None:
