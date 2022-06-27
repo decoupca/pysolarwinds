@@ -23,6 +23,6 @@ sw = solarwinds.api(**SW_ARGS)
 # point2 = sw.orion.worldmap.point()
 # point2.instance_id = 800
 # point2.get()
-node = sw.orion.node(caption="RDXB02CR01")
+node = sw.orion.node(caption="RAPC00ED11")
 #node.intfs.discover()
 ipdb.set_trace()
