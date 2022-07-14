@@ -10,7 +10,9 @@ class OrionInterface(Endpoint):
 
     def __init__(self, device, data: dict):
         self.device = device
+        self.swis = device.swis
         self.data = data
+        self.uri = data.get('uri')
         self._id = None
         self._name = None
         self._mtu = None
@@ -97,6 +99,7 @@ class OrionInterfaces(object):
             raise IndexError
 
     def add(self, interfaces):
+        log.info(f"{self.device.name}: monitoring {len(interfaces)} interfaces...")
         return self.swis.invoke(
             "Orion.NPM.Interfaces",
             "AddInterfacesOnNode",
@@ -113,6 +116,7 @@ class OrionInterfaces(object):
         log.info(f"{self.device.name}: getting existing interfaces...")
         query = f"""
             SELECT
+                I.Uri AS uri,
                 I.AdminStatus AS admin_status,
                 I.InterfaceID AS id,
                 I.InterfaceName AS name,
@@ -152,27 +156,33 @@ class OrionInterfaces(object):
     def monitor(self, interfaces=None) -> None:
         if self._existing is None:
             self.get()
+        
         if interfaces is None:
-            interfaces = self._existing
-
-        existing = [x.name for x in self._existing]
-        missing = [x for x in interfaces if x not in existing]
-
-        # if there are any interfaces we want to monitor that don't already exist,
-        # we need to run a full snmp discovery
-        needs_discovery = bool(missing)
-        if needs_discovery is True:
-            log.info(f"{self.device.name}: found {len(missing)} missing interfaces")
             self.discover()
-            add = [x for x in self._discovered if x["Caption"].split(" ")[0] in missing]
-            log.info(f"{self.device.name}: found {len(add)} interfaces to monitor")
-            if add:
-                self.add(add)
+            self.add(self._discovered)
         else:
-            log.info(
-                f"{self.device.name}: all {len(interfaces)} provided interfaces "
-                "already monitored, doing nothing"
-            )
+            existing = [x.name for x in self._existing]
+            missing = [x for x in interfaces if x not in existing]
+            extraneous = [x for x in self._existing if x.name not in interfaces]
+
+            if missing:
+                log.info(f'{self.device.name}: found {len(missing)} missing interfaces')
+                self.discover()
+                to_add = [x for x in self._discovered if x['Caption'].split(' ')[0] in interfaces]
+                if to_add:
+                    self.add(to_add)
+
+            if extraneous:
+                log.info(f'{self.device.name}: found {len(extraneous)} interfaces to delete')
+                for intf in extraneous:
+                    intf.delete()
+
+            if not missing and not extraneous:
+                log.info(
+                    f"{self.device.name}: all {len(interfaces)} provided interfaces "
+                    "already monitored, doing nothing"
+                )
+
 
     def __getitem__(self, item: Union[str, int]) -> OrionInterface:
         if isinstance(item, int):

@@ -57,9 +57,9 @@ class Endpoint(object):
         """
         Get object's SWIS URI
         """
-        if self._swquery_attrs is None:
-            raise SWObjectPropertyError("Missing required property: _swquery_attrs")
         if self.uri is None or refresh is True:
+            if self._swquery_attrs is None:
+                raise SWObjectPropertyError("Missing required property: _swquery_attrs")
             log.debug("uri is not set or refresh is True, updating...")
             queries = []
             for attr in self._swquery_attrs:
