@@ -9,4 +9,3 @@ class Orion(object):
 
     def node(self, **kwargs):
         return OrionNode(self.swis, **kwargs)
-        

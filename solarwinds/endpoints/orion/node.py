@@ -113,7 +113,7 @@ class OrionNode(Endpoint):
 
     @property
     def status(self):
-        return self._get_swdata_value('Status')
+        return self._get_swdata_value("Status")
 
     def _set_defaults(self) -> None:
         if self.polling_method is None:

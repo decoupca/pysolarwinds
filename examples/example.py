@@ -1,10 +1,10 @@
 import logging
 
 import ipdb
-import solarwinds
+from config import SNMPV2C, SW_ARGS
 from rich import print
 
-from config import SNMPV2C, SW_ARGS
+import solarwinds
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -24,5 +24,5 @@ sw = solarwinds.api(**SW_ARGS)
 # point2.instance_id = 800
 # point2.get()
 node = sw.orion.node(caption="RAPC00ED11")
-#node.intfs.discover()
+# node.intfs.discover()
 ipdb.set_trace()
