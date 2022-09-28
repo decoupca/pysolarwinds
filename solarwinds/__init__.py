@@ -1,3 +1,4 @@
+from typing import Dict
 from solarwinds.client import SwisClient
 from solarwinds.models.orion import Orion
 
@@ -16,5 +17,10 @@ class api(object):
         )
         self.orion = Orion(self.swis)
 
+    def query(self, query: str) -> Dict:
+        results = self.swis.query(query)
+        if results:
+            return results["results"]
 
-__all__ = [api]
+
+__all__ = ["api"]
