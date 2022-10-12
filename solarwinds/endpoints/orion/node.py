@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from logging import NullHandler, getLogger
 from typing import Dict, Union
 
+import solarwinds.defaults as d
 from solarwinds.client import SwisClient
-from solarwinds.defaults import NODE_DEFAULT_POLLERS
 from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.credential import OrionCredential
 from solarwinds.endpoints.orion.interface import OrionInterfaces
@@ -151,7 +151,7 @@ class OrionNode(Endpoint):
                 self.polling_method = "icmp"
                 self.snmp_version = 0
         if self.pollers is None:
-            self.pollers = NODE_DEFAULT_POLLERS[self.polling_method]
+            self.pollers = d.NODE_DEFAULT_POLLERS[self.polling_method]
 
     def _get_attr_updates(self) -> dict:
         """
@@ -166,7 +166,7 @@ class OrionNode(Endpoint):
             "rw_community": swdata["RWCommunity"],
             "polling_method": self._get_polling_method(),
             "pollers": self.pollers
-            or NODE_DEFAULT_POLLERS[swdata["ObjectSubType"].lower()],
+            or d.NODE_DEFAULT_POLLERS[swdata["ObjectSubType"].lower()],
             "snmp_version": swdata["SNMPVersion"],
         }
 
@@ -185,7 +185,7 @@ class OrionNode(Endpoint):
             return "icmp"
 
     def _get_pollers(self) -> list:
-        return NODE_DEFAULT_POLLERS[self.polling_method]
+        return d.NODE_DEFAULT_POLLERS[self.polling_method]
 
     def _get_snmp_version(self) -> int:
         if self.community is not None or self.rw_community is not None:
@@ -222,8 +222,36 @@ class OrionNode(Endpoint):
             self.enable_pollers()
         return created
 
-    def discover(self):
-        pass
+    def discover(self, retries=None):
+        if retries is None:
+            retries = d.DISCOVERY_SNMP_RETRIES
+        core_plugin_context = {
+            "BulkList": [{"Address": self.ip_address}],
+            "Credentials": [{"CredentialID": self.snmpv3_cred_id, "Order": 1}],
+            "WmiRetriesCount": 0,
+            "WmiRetryIntervalMiliseconds": 1000,
+        }
+        core_plugin_config = self.swis.invoke(
+            "Orion.Discovery", "CreateCorePluginConfiguration", core_plugin_context
+        )
+        discovery_profile = {
+            "Name": f"Discover {self.name}",
+            "EngineID": self.engine_id,
+            "JobTimeoutSeconds": d.NODE_DISCOVERY_JOB_TIMEOUT_SECONDS,
+            "SearchTimeoutMiliseconds": d.NODE_DISCOVERY_SEARCH_TIMEOUT_MILLISECONDS,
+            "SnmpTimeoutMiliseconds": d.NODE_DISCOVERY_SNMP_TIMEOUT_MILLISECONDS,
+            "SnmpRetries": retries,
+            "RepeatIntervalMiliseconds": d.NODE_DISCOVERY_REPEAT_INTERVAL_MILLISECONDS,
+            "SnmpPort": d.NODE_DISCOVERY_SNMP_PORT,
+            "HopCount": d.NODE_DISCOVERY_HOP_COUNT,
+            "PreferredSnmpVersion": d.NODE_DISCOVERY_PREFERRED_SNMP_VERSION,
+            "DisableIcmp": d.NODE_DISCOVERY_DISABLE_ICMP,
+            "AllowDuplicateNodes": d.NODE_DISCOVERY_ALLOW_DUPLICATE_NODES,
+            "IsAutoImport": d.NODE_DISCOVERY_IS_AUTO_IMPORT,
+            "IsHidden": d.NODE_DISCOVERY_IS_HIDDEN,
+            "PluginConfigurations": [{"PluginConfigurationItem": core_plugin_config}],
+        }
+        return self.swis.invoke("Orion.Discovery", "StartDiscovery", discovery_profile)
 
     def remanage(self) -> bool:
         if self.exists():
