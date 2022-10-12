@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
 from logging import NullHandler, getLogger
-from typing import Union
+from typing import Dict, Union
 
 from solarwinds.client import SwisClient
 from solarwinds.defaults import NODE_DEFAULT_POLLERS
 from solarwinds.endpoint import Endpoint
+from solarwinds.endpoints.orion.credential import OrionCredential
 from solarwinds.endpoints.orion.interface import OrionInterfaces
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 from solarwinds.exceptions import SWObjectPropertyError
@@ -38,7 +39,18 @@ class OrionNode(Endpoint):
                 "latitude": "latitude",
                 "longitude": "longitude",
             },
-        }
+        },
+        "snmpv3_creds": {
+            "class": OrionCredential,
+            "init_args": {
+                "snmpv3_cred_id": "id",
+                "snmpv3_cred_name": "name",
+            },
+            "attr_map": {
+                "snmpv3_cred_id": "id",
+                "snmpv3_cred_name": "name",
+            },
+        },
     }
 
     def __init__(
@@ -56,6 +68,8 @@ class OrionNode(Endpoint):
         pollers: list = None,
         polling_method: str = None,
         snmp_version: int = None,
+        snmpv3_cred_id: int = None,
+        snmpv3_cred_name: str = None,
     ):
         self.swis = swis
         self.caption = caption
@@ -70,9 +84,19 @@ class OrionNode(Endpoint):
         self.polling_method = polling_method
         self.pollers = pollers
         self.snmp_version = snmp_version
+        self.snmpv3_cred_id = snmpv3_cred_id
+        self.snmpv3_cred_name = snmpv3_cred_name
         self.interfaces = OrionInterfaces(self)
         if self.ip_address is None and self.caption is None:
             raise SWObjectPropertyError("Must provide either ip_address or caption")
+        if self.snmpv3_cred_id is not None and self.snmpv3_cred_name is not None:
+            raise ValueError(
+                "must provide either snmpv3_cred_id or snmpv3_cred_name, not both"
+            )
+        if snmp_version == 3 and snmpv3_cred_id is None and snmpv3_cred_name is None:
+            raise ValueError(
+                "must provide either snmpv3_cred_id or snmpv3_cred_name when snmp_version = 3"
+            )
         super().__init__()
 
     @property
@@ -120,6 +144,9 @@ class OrionNode(Endpoint):
             if self.community is not None or self.rw_community is not None:
                 self.polling_method = "snmp"
                 self.snmp_version = 2
+            elif self.snmpv3_creds is not None:
+                self.polling_method = "snmp"
+                self.snmp_version = 3
             else:
                 self.polling_method = "icmp"
                 self.snmp_version = 0
@@ -152,7 +179,7 @@ class OrionNode(Endpoint):
     def _get_polling_method(self) -> str:
         community = self._get_swdata_value("Community") or self.community
         rw_community = self._get_swdata_value("RWCommunity") or self.rw_community
-        if community is not None or rw_community is not None:
+        if community is not None or rw_community is not None or self.snmp_version:
             return "snmp"
         else:
             return "icmp"
@@ -163,6 +190,8 @@ class OrionNode(Endpoint):
     def _get_snmp_version(self) -> int:
         if self.community is not None or self.rw_community is not None:
             return 2
+        elif self.snmpv3_creds is not None:
+            return 3
         else:
             return 0
 
@@ -181,10 +210,20 @@ class OrionNode(Endpoint):
         return True
 
     def create(self):
-        created = super().create()
+        if self.snmpv3_cred_id is not None or self.snmpv3_cred_name is not None:
+            # creating nodes with a saved credential set requires discovery
+            # https://thwack.solarwinds.com/product-forums/the-orion-platform/f/orion-sdk/25327/using-orion-credential-set-for-snmpv3-when-adding-node-through-sdk/25220#25220
+            # TODO: it is possible to directly create an snmpv3 node using ad-hoc credentials
+            #       (i.e, not referencing a saved credential set), but this is not yet implemented.
+            created = self.discover()
+        else:
+            created = super().create()
         if created is True:
             self.enable_pollers()
         return created
+
+    def discover(self):
+        pass
 
     def remanage(self) -> bool:
         if self.exists():

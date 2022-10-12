@@ -1,4 +1,5 @@
 from typing import Dict
+
 from solarwinds.client import SwisClient
 from solarwinds.models.orion import Orion
 

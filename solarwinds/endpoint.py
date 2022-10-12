@@ -28,6 +28,7 @@ class Endpoint(object):
 
     def __init__(self):
         self._init_child_objects()
+        self._update_attrs_from_children()
         if self.exists():
             self.refresh()
         else:
