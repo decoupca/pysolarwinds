@@ -73,7 +73,7 @@ class OrionNode(Endpoint):
     ):
         self.swis = swis
         self.caption = caption
-        self.engine_id = engine_id
+        self.engine_id = engine_id or 1
         self.community = community
         self.rw_community = rw_community
         self.custom_properties = custom_properties

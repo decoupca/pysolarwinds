@@ -201,11 +201,20 @@ class Endpoint(object):
                         for parent_arg, child_arg in props["init_args"].items():
                             parent_value = getattr(self, parent_arg)
                             child_args[child_arg] = parent_value
-
-                    log.debug(
-                        f"initializing child object at self.{attr} with args {child_args}"
-                    )
-                    setattr(self, attr, child_class(self.swis, **child_args))
+                    # if all child args evaulate to none, don't initialize
+                    all_child_args_unset = True
+                    for v in child_args.values():
+                        if v is not None:
+                            all_child_args_unset = False
+                    if all_child_args_unset is True:
+                        log.debug(
+                            f"all props for child object {attr} unset, not initializing child"
+                        )
+                    else:
+                        log.debug(
+                            f"initializing child object at self.{attr} with args {child_args}"
+                        )
+                        setattr(self, attr, child_class(self.swis, **child_args))
                 else:
                     log.debug(
                         f"child object at self.{attr} already initialized, doing nothing"
@@ -231,9 +240,7 @@ class Endpoint(object):
                                 f"from local attribute {local_attr}"
                             )
                 else:
-                    log.warning(
-                        f'child object at {props["child_attr"]} is None, cannot update'
-                    )
+                    log.debug(f"child object at {attr} is None, nothing to do")
 
     def _refresh_child_objects(self) -> None:
         """
@@ -242,7 +249,8 @@ class Endpoint(object):
         if self._child_objects is not None:
             for attr in self._child_objects.keys():
                 child = getattr(self, attr)
-                child.refresh()
+                if child is not None:
+                    child.refresh()
 
     def _create_child_objects(self) -> None:
         """
