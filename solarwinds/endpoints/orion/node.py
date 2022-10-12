@@ -103,6 +103,7 @@ class OrionNode(Endpoint):
 
         self._discovery_profile_id = None
         self._discovery_profile_status = None
+        self._discovered_entities = None
 
         if self.ip_address is None and self.caption is None:
             raise SWObjectPropertyError("Must provide either ip_address or caption")
@@ -245,7 +246,7 @@ class OrionNode(Endpoint):
             self.enable_pollers()
         return created
 
-    def discover(self, retries=None, timeout=None):
+    def discover(self, retries=None, timeout=None) -> bool:
         if retries is None:
             retries = d.NODE_DISCOVERY_SNMP_RETRIES
         if timeout is None:
@@ -307,8 +308,12 @@ class OrionNode(Endpoint):
         if result_code == 2:
             log.debug(f"node discovery job finished, getting discovered items...")
             batch_id = result["BatchID"]
-            discovered_query = f"SELECT EntityType, DisplayName, NetObjectID FROM Orion.DiscoveryLogItems WHERE BatchID = {batch_id}"
-            return self.swis.query(discovered_query)
+            discovered_query = f"SELECT EntityType, DisplayName, NetObjectID FROM Orion.DiscoveryLogItems WHERE BatchID = '{batch_id}'"
+            self._discovered_entities = self.swis.query(discovered_query)
+            if self._discovered_entities is not None:
+                return True
+            else:
+                return False
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
             error_message = result["ErrorMessage"]
