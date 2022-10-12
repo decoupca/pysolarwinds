@@ -240,6 +240,10 @@ class OrionNode(Endpoint):
             # TODO: it is possible to directly create an snmpv3 node using ad-hoc credentials
             #       (i.e, not referencing a saved credential set), but this is not yet implemented.
             created = self.discover()
+            if created is True:
+                # discovery will not apply any extra params passed to node object,
+                # such as custom properties
+                self.update()
         else:
             created = super().create()
         if created is True:
