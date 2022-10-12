@@ -11,5 +11,6 @@ logging.basicConfig(level=logging.DEBUG)
 sw = solarwinds.api(**SW_ARGS)
 
 
-node = sw.orion.node(ip_address="172.25.46.14")
+node = sw.orion.node(ip_address="172.25.46.14", snmpv3_cred_name="NETSEC")
+node.discover()
 ipdb.set_trace()

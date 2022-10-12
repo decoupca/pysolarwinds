@@ -1,6 +1,6 @@
-# these defaults obtained from:
+# defaults based on:
 # https://github.com/solarwinds/orionsdk-python/blob/master/samples/discover_one_node.py
-NODE_DISCOVERY_JOB_TIMEOUT_SECONDS = 3600
+NODE_DISCOVERY_JOB_TIMEOUT_SECONDS = 30
 NODE_DISCOVERY_SEARCH_TIMEOUT_MILLISECONDS = 5000
 NODE_DISCOVERY_SNMP_TIMEOUT_MILLISECONDS = 5000
 NODE_DISCOVERY_SNMP_RETRIES = 2

@@ -1,3 +1,7 @@
+class SWNodeDiscoveryError(Exception):
+    pass
+
+
 class SWIDNotFound(Exception):
     pass
 

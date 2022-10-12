@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from logging import NullHandler, getLogger
+from time import sleep
 from typing import Dict, Union
 
 import solarwinds.defaults as d
@@ -8,10 +9,22 @@ from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.credential import OrionCredential
 from solarwinds.endpoints.orion.interface import OrionInterfaces
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
-from solarwinds.exceptions import SWObjectPropertyError
+from solarwinds.exceptions import SWNodeDiscoveryError, SWObjectPropertyError
 
 log = getLogger(__name__)
 log.addHandler(NullHandler())
+
+NODE_DISCOVERY_STATUS_MAP = {
+    0: "unknown",
+    1: "in_progress",
+    2: "finished",
+    3: "error",
+    4: "not_scheduled",
+    5: "scheduled",
+    6: "not_completed",
+    7: "canceling",
+    8: "ready_for_import",
+}
 
 
 class OrionNode(Endpoint):
@@ -222,9 +235,11 @@ class OrionNode(Endpoint):
             self.enable_pollers()
         return created
 
-    def discover(self, retries=None):
+    def discover(self, retries=None, timeout=None):
         if retries is None:
-            retries = d.DISCOVERY_SNMP_RETRIES
+            retries = d.NODE_DISCOVERY_SNMP_RETRIES
+        if timeout is None:
+            timeout = d.NODE_DISCOVERY_JOB_TIMEOUT_SECONDS
         core_plugin_context = {
             "BulkList": [{"Address": self.ip_address}],
             "Credentials": [{"CredentialID": self.snmpv3_cred_id, "Order": 1}],
@@ -251,7 +266,39 @@ class OrionNode(Endpoint):
             "IsHidden": d.NODE_DISCOVERY_IS_HIDDEN,
             "PluginConfigurations": [{"PluginConfigurationItem": core_plugin_config}],
         }
-        return self.swis.invoke("Orion.Discovery", "StartDiscovery", discovery_profile)
+        discovery_profile_id = self.swis.invoke(
+            "Orion.Discovery", "StartDiscovery", discovery_profile
+        )
+        log.debug(f"node discovery: job id {discovery_profile_id}")
+        status = 1
+        waited_seconds = 0
+        while waited_seconds <= timeout and status == 1:
+            sleep(1)
+            waited_seconds += 1
+            status_query = f"SELECT Status FROM Orion.DiscoveryProfiles WHERE ProfileID = {discovery_profile_id}"
+            status = self.swis.query(status_query)["results"][0]["Status"]
+            log.debug(
+                f"discovering node: waited {waited_seconds}sec, timeout {timeout}sec"
+            )
+
+        result_query = f"SELECT Result, ResultDescription, ErrorMessage, BatchID FROM Orion.DiscoveryLogs WHERE ProfileID = {discovery_profile_id}"
+        result = self.swis.query(result_query)["results"][0]
+        result_code = result["Result"]
+        if result_code == 2:
+            log.debug(f"node discovery job finished, getting discovered items...")
+            batch_id = result["BatchID"]
+            discovered_query = f"SELECT EntityType, DisplayName, NetObjectID FROM Orion.DiscoveryLogItems WHERE BatchID = {batch_id}"
+            discovered = self.swis.query(discovered_query)["results"]
+            if discovered:
+                return discovered[0]
+            else:
+                return None
+        else:
+            error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
+            error_message = result["ErrorMessage"]
+            raise SWNodeDiscoveryError(
+                f"node discovery failed. status: {error_status}, error: {error_message}"
+            )
 
     def remanage(self) -> bool:
         if self.exists():
