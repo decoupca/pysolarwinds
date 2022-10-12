@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 
 import httpx
+from solarwinds.utils import parse_response
 
 
 def _json_serial(obj):
@@ -23,7 +24,9 @@ class SwisClient:
         )
 
     def query(self, query, **params):
-        return self._req("POST", "Query", {"query": query, "parameters": params}).json()
+        return parse_response(
+            self._req("POST", "Query", {"query": query, "parameters": params}).json()
+        )
 
     def invoke(self, entity, verb, *args):
         return self._req("POST", "Invoke/{}/{}".format(entity, verb), args).json()

@@ -19,9 +19,7 @@ class api(object):
         self.orion = Orion(self.swis)
 
     def query(self, query: str) -> Dict:
-        results = self.swis.query(query)
-        if results:
-            return results["results"]
+        return self.swis.query(query)
 
 
 __all__ = ["api"]
