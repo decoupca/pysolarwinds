@@ -362,9 +362,10 @@ class Endpoint(object):
         if self._child_objects is not None:
             for attr in self._child_objects.keys():
                 child = getattr(self, attr)
-                child._diff()
-                if child._changes is not None:
-                    changes[attr] = child._changes
+                if child is not None:
+                    child._diff()
+                    if child._changes is not None:
+                        changes[attr] = child._changes
         if changes:
             return changes
         else:

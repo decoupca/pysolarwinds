@@ -257,7 +257,7 @@ class OrionNode(Endpoint):
                 {
                     "CredentialID": self.snmpv3_cred_id,
                     "Order": 1,
-                },
+                }
             ],
             "WmiRetriesCount": 0,
             "WmiRetryIntervalMiliseconds": 1000,
@@ -289,14 +289,15 @@ class OrionNode(Endpoint):
         )
         log.debug(f"node discovery: job id: {self._discovery_profile_id}")
         self._get_discovery_status()
-        waited_seconds = 0
-        while waited_seconds < timeout and self._discovery_profile_status == 1:
+        seconds_waited = 0
+        while seconds_waited < timeout and self._discovery_profile_status == 1:
             sleep(1)
-            waited_seconds += 1
+            seconds_waited += 1
             self._get_discovery_status()
             log.debug(
-                f"discovering node: waited {waited_seconds}sec, timeout {timeout}sec, status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
+                f"discovering node: waited {seconds_waited}sec, timeout {timeout}sec, status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
             )
+
         if self._discovery_profile_status == 2:
             result_query = f"SELECT Result, ResultDescription, ErrorMessage, BatchID FROM Orion.DiscoveryLogs WHERE ProfileID = {self._discovery_profile_id}"
             result = self.swis.query(result_query)
@@ -305,6 +306,7 @@ class OrionNode(Endpoint):
             raise SWNodeDiscoveryError(
                 f"node discovery failed. last status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
             )
+
         if result_code == 2:
             log.debug(f"node discovery job finished, getting discovered items...")
             batch_id = result["BatchID"]

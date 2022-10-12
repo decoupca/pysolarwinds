@@ -7,6 +7,7 @@ class OrionCredential(Endpoint):
     _id_attr = "credential_id"
     _swid_key = "ID"
     _swquery_attrs = ["id", "name"]
+    _swargs_attrs = ["id", "name"]
 
     def __init__(
         self,
