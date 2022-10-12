@@ -132,7 +132,7 @@ class OrionInterfaces(object):
             WHERE
                 N.NodeID = '{self.device.id}'
         """
-        result = self.swis.query(query)["results"]
+        result = self.swis.query(query)
         self._existing = [OrionInterface(self.device, data=data) for data in result]
         log.info(f"{self.device.name}: found {len(self._existing)} existing interfaces")
 

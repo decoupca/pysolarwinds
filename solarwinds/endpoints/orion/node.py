@@ -251,17 +251,11 @@ class OrionNode(Endpoint):
         if timeout is None:
             timeout = d.NODE_DISCOVERY_JOB_TIMEOUT_SECONDS
         core_plugin_context = {
-            "BulkList": [
-                {
-                    "IpAddress": {"Address": self.ip_address},
-                },
-            ],
+            "BulkList": [{"Address": self.ip_address}],
             "Credentials": [
                 {
-                    "SharedCredentialInfo": {
-                        "CredentialID": self.snmpv3_cred_id,
-                        "Order": 1,
-                    }
+                    "CredentialID": self.snmpv3_cred_id,
+                    "Order": 1,
                 },
             ],
             "WmiRetriesCount": 0,
@@ -286,30 +280,30 @@ class OrionNode(Endpoint):
             "IsAutoImport": d.NODE_DISCOVERY_IS_AUTO_IMPORT,
             "IsHidden": d.NODE_DISCOVERY_IS_HIDDEN,
             "PluginConfigurations": [
-                {
-                    "PluginConfiguration": {
-                        "PluginConfigurationItem": core_plugin_config
-                    },
-                },
+                {"PluginConfigurationItem": core_plugin_config},
             ],
         }
-        self.discovery_profile_id = self.swis.invoke(
+        self._discovery_profile_id = self.swis.invoke(
             "Orion.Discovery", "StartDiscovery", discovery_profile
         )
-        log.debug(f"node discovery: job id {self.discovery_profile_id}")
+        log.debug(f"node discovery: job id: {self._discovery_profile_id}")
         self._get_discovery_status()
         waited_seconds = 0
-        while waited_seconds <= timeout and self._discovery_profile_status == 1:
+        while waited_seconds < timeout and self._discovery_profile_status == 1:
             sleep(1)
             waited_seconds += 1
             self._get_discovery_status()
             log.debug(
-                f"discovering node: waited {waited_seconds}sec, timeout {timeout}sec"
+                f"discovering node: waited {waited_seconds}sec, timeout {timeout}sec, status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
             )
-
-        result_query = f"SELECT Result, ResultDescription, ErrorMessage, BatchID FROM Orion.DiscoveryLogs WHERE ProfileID = {discovery_profile_id}"
-        result = self.swis.query(result_query)
-        result_code = result["Result"]
+        if self._discovery_profile_status == 2:
+            result_query = f"SELECT Result, ResultDescription, ErrorMessage, BatchID FROM Orion.DiscoveryLogs WHERE ProfileID = {self._discovery_profile_id}"
+            result = self.swis.query(result_query)
+            result_code = result["Result"]
+        else:
+            raise SWNodeDiscoveryError(
+                f"node discovery failed. last status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
+            )
         if result_code == 2:
             log.debug(f"node discovery job finished, getting discovered items...")
             batch_id = result["BatchID"]

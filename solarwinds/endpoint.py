@@ -3,7 +3,7 @@ from typing import Any, Union
 
 from solarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from solarwinds.exceptions import SWIDNotFound, SWObjectPropertyError
-from solarwinds.utils import parse_response, print_dict, sanitize_swdata
+from solarwinds.utils import print_dict, sanitize_swdata
 
 log = getLogger(__name__)
 log.addHandler(NullHandler())
@@ -456,7 +456,7 @@ class Endpoint(object):
 
     def _query(self, query) -> dict:
         log.debug(f"executing SWIS query: {query}")
-        return parse_response(self.swis.query(query))
+        return self.swis.query(query)
 
     def update(self) -> bool:
         """Update object in solarwinds with local object's properties"""
