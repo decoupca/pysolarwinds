@@ -391,11 +391,10 @@ class OrionNode(Endpoint):
             # a workaround which uses TSQL syntax, **NOT** the usual SWQL syntax
             # (notice the table refrence is "NodeSettings", not "Orion.NodeSettings")
             statement = f"INSERT INTO NodeSettings (NodeID, SettingName, SettingValue) VALUES ('{self.node_id}', 'ROSNMPCredentialID', '{self.snmpv3_cred_id}')"
-            success = self.swis.sql(statement)
-            if success is True:
-                log.debug(f"SNMPv3: assigned credential ID {self.snmpv3_cred_id}")
-                # at this point, all that's left to enable SNMPv3 is to set SNMPVersion = 3 on
-                # node properties, which super().update() will handle for us below
+            self.swis.sql(statement)
+            log.debug(f"SNMPv3: assigned credential ID {self.snmpv3_cred_id}")
+            # at this point, all that's left to enable SNMPv3 is to set SNMPVersion = 3 on
+            # node properties, which super().update() will handle for us below
 
         # clear stale credential association(s) if switching from v3 to v2
         if (
@@ -403,8 +402,7 @@ class OrionNode(Endpoint):
             and self._swdata["properties"].get("SNMPVersion") == 3
         ):
             statement = f"DELETE FROM NodeSettings WHERE NodeID = '{self.node_id}' AND SettingName = 'ROSNMPCredentialID'"
-            success = self.swis.sql(statement)
-            if success is True:
-                log.debug(f"SNMPv3: deleted all associated credential sets")
+            self.swis.sql(statement)
+            log.debug(f"SNMPv3: deleted all associated credential sets")
 
         super().update()
