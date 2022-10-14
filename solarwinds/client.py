@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 
 import httpx
+
 from solarwinds.utils import parse_response
 
 
@@ -48,6 +49,13 @@ class SwisClient:
 
     def bulkdelete(self, uris):
         self._req("POST", "BulkDelete", {"uris": uris})
+
+    def sql(self, statement: str) -> bool:
+        """
+        Workaround API to execute arbitrary SQL against Solarwinds DB
+        **NOTE**: This method takes raw TSQL syntax, *NOT* SWQL syntax
+        """
+        return self.invoke("Orion.Reporting", "ExecuteSQL", statement)
 
     def _req(self, method, frag, data=None):
         resp = self.client.request(

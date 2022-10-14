@@ -362,3 +362,49 @@ class OrionNode(Endpoint):
         else:
             log.warning(f"node does not exist, can't unmanage")
             return False
+
+    def update(self):
+        # changing a node from snmpv2c to snmpv3 takes some special handholding
+        if (
+            self.snmp_version == 3
+            and self._swdata["properties"].get("SNMPVersion") == 2
+        ):
+            if self.snmpv3_cred_id is None:
+                if self.snmpv3_cred_name is None:
+                    raise ValueError(
+                        "must provide either snmpv3_cred_id or "
+                        "snmpv3_cred_name when setting snmp_version to 3"
+                    )
+                else:
+                    # if we provided snmpv3_cred_name after node init, we need to
+                    # init child objects again to resolve snmpv3_cred_id
+                    self._init_child_objects()
+                    self._update_attrs_from_children()
+                    if self.snmpv3_cred_id is None:
+                        raise ValueError(
+                            "unable to resolve snmpv3_cred_id from "
+                            f'snmpv3_cred_name "{self.snmpv3_cred_name}"'
+                        )
+
+            # create association between node and SNMPv3 credential set
+            # NOTE: this approach was advised by a Solarwinds senior engineer and uses
+            # a workaround which uses TSQL syntax, **NOT** the usual SWQL syntax
+            # (notice the table refrence is "NodeSettings", not "Orion.NodeSettings")
+            statement = f"INSERT INTO NodeSettings (NodeID, SettingName, SettingValue) VALUES ('{self.node_id}', 'ROSNMPCredentialID', '{self.snmpv3_cred_id}')"
+            success = self.swis.sql(statement)
+            if success is True:
+                log.debug(f"SNMPv3: assigned credential ID {self.snmpv3_cred_id}")
+                # at this point, all that's left to enable SNMPv3 is to set SNMPVersion = 3 on
+                # node properties, which super().update() will handle for us below
+
+        # clear stale credential association(s) if switching from v3 to v2
+        if (
+            self.snmp_version == 2
+            and self._swdata["properties"].get("SNMPVersion") == 3
+        ):
+            statement = f"DELETE FROM NodeSettings WHERE NodeID = '{self.node_id}' AND SettingName = 'ROSNMPCredentialID'"
+            success = self.swis.sql(statement)
+            if success is True:
+                log.debug(f"SNMPv3: deleted all associated credential sets")
+
+        super().update()

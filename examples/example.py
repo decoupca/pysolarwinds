@@ -1,10 +1,10 @@
 import logging
 
 import ipdb
-import solarwinds
+from config import SNMPV2C, SW_ARGS
 from rich import print
 
-from config import SNMPV2C, SW_ARGS
+import solarwinds
 
 logging.basicConfig(level=logging.DEBUG)
 
