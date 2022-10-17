@@ -102,7 +102,7 @@ class Endpoint(object):
         """
         Caches solarwinds data
         """
-        if self._swdata is None or refresh is True:
+        if not self._swdata or refresh is True:
             swdata = {"properties": None, "custom_properties": None}
             log.debug("getting object data from solarwinds...")
             if data == "both" or data == "properties":

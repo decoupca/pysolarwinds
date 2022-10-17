@@ -34,10 +34,8 @@ class OrionNode(Endpoint):
     _swquery_attrs = ["ip_address", "caption"]
     _swargs_attrs = [
         "caption",
-        "community",
         "engine_id",
         "ip_address",
-        "rw_community",
         "snmp_version",
     ]
     _required_swargs_attrs = ["ip_address", "engine_id"]
@@ -206,7 +204,7 @@ class OrionNode(Endpoint):
         if self.pollers is None:
             self.pollers = d.NODE_DEFAULT_POLLERS[self.polling_method]
 
-    def _get_attr_updates(self) -> dict:
+    def _get_attr_updates(self) -> Dict:
         """
         Get attribute updates from swdata
         """
