@@ -1,5 +1,5 @@
 from logging import NullHandler, getLogger
-from typing import Any, Union
+from typing import Any, Dict, Union
 
 from solarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from solarwinds.exceptions import SWIDNotFound, SWObjectPropertyError
@@ -16,7 +16,7 @@ class Endpoint(object):
     _exists = False
     _id_attr = None
     _swid_key = None
-    _swquery_attrs = None
+    _swquery_attrs = []
     _swargs_attrs = None
     _required_swargs_attrs = None
     _swargs = None
@@ -59,7 +59,7 @@ class Endpoint(object):
         Get object's SWIS URI
         """
         if self.uri is None or refresh is True:
-            if self._swquery_attrs is None:
+            if not self._swquery_attrs:
                 raise SWObjectPropertyError("Missing required property: _swquery_attrs")
             log.debug("uri is not set or refresh is True, updating...")
             queries = []
@@ -122,8 +122,8 @@ class Endpoint(object):
 
     def _update_attrs(
         self,
-        attr_updates: dict = None,
-        cp_updates: dict = None,
+        attr_updates: Union[Dict, None] = None,
+        cp_updates: Union[Dict, None] = None,
         overwrite: bool = False,
     ) -> None:
         """

@@ -1,10 +1,10 @@
 import logging
 
 import ipdb
-from config import SNMPV2C, SW_ARGS
+import solarwinds
 from rich import print
 
-import solarwinds
+from config import SNMPV2C, SW_ARGS
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -17,10 +17,9 @@ sw = solarwinds.api(**SW_ARGS)
 #     custom_properties={"Site": "PTC - Plano, TX, US", "Region": "AMER"},
 # )
 # node.update()
-host = "FTC-OBLBNADM901"
+host = "FAMC00FW01"
 node = sw.orion.node(caption=host)
-node.snmp_version = 3
-node.snmpv3_cred_name = "NETSEC"
+
 # node.update()
 
 ipdb.set_trace()

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from logging import NullHandler, getLogger
 from time import sleep
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 import solarwinds.defaults as d
 from solarwinds.client import SwisClient
@@ -53,15 +53,22 @@ class OrionNode(Endpoint):
                 "longitude": "longitude",
             },
         },
-        "snmpv3_creds": {
+        "snmpv3_ro_creds": {
             "class": OrionCredential,
             "init_args": {
-                "snmpv3_cred_id": "id",
-                "snmpv3_cred_name": "name",
+                "snmpv3_ro_cred_name": "name",
             },
             "attr_map": {
-                "snmpv3_cred_id": "id",
-                "snmpv3_cred_name": "name",
+                "snmpv3_ro_cred_id": "id",
+            },
+        },
+        "snmpv3_rw_creds": {
+            "class": OrionCredential,
+            "init_args": {
+                "snmpv3_rw_cred_name": "name",
+            },
+            "attr_map": {
+                "snmpv3_rw_cred_id": "id",
             },
         },
     }
@@ -69,26 +76,24 @@ class OrionNode(Endpoint):
     def __init__(
         self,
         swis: SwisClient,
-        ip_address: str = None,
-        caption: str = None,
-        community: str = None,
-        rw_community: str = None,
-        custom_properties: dict = None,
-        engine_id: int = None,
-        latitude: float = None,
-        longitude: float = None,
-        node_id: int = None,
-        pollers: list = None,
-        polling_method: str = None,
-        snmp_version: int = None,
-        snmpv3_cred_id: int = None,
-        snmpv3_cred_name: str = None,
+        ip_address: Union[str, None] = None,
+        caption: Union[str, None] = None,
+        custom_properties: Union[Dict, None] = None,
+        engine_id: Union[int, None] = None,
+        latitude: Union[float, None] = None,
+        longitude: Union[float, None] = None,
+        node_id: Union[int, None] = None,
+        pollers: Union[List, None] = None,
+        polling_method: Union[str, None] = None,
+        snmp_version: Union[int, None] = None,
+        snmpv2c_ro_community: Union[str, None] = None,
+        snmpv2c_rw_community: Union[str, None] = None,
+        snmpv3_ro_cred_name: Union[str, None] = None,
+        snmpv3_rw_cred_name: Union[str, None] = None,
     ):
         self.swis = swis
         self.caption = caption
         self.engine_id = engine_id or 1
-        self.community = community
-        self.rw_community = rw_community
         self.custom_properties = custom_properties
         self.ip_address = ip_address
         self.latitude = latitude
@@ -97,28 +102,37 @@ class OrionNode(Endpoint):
         self.polling_method = polling_method
         self.pollers = pollers
         self.snmp_version = snmp_version
-        self.snmpv3_cred_id = snmpv3_cred_id
-        self.snmpv3_cred_name = snmpv3_cred_name
+        self.snmpv2c_ro_community = snmpv2c_ro_community
+        self.snmpv2c_rw_community = snmpv2c_rw_community
+        self.snmpv3_ro_cred_name = snmpv3_ro_cred_name
+        self.snmpv3_rw_cred_name = snmpv3_rw_cred_name
+
+        self.snmpv3_ro_cred_id = None
+        self.snmpv3_rw_cred_id = None
+
         self.interfaces = OrionInterfaces(self)
 
         self._discovery_profile_id = None
-        self._discovery_profile_status = None
+        self._discovery_profile_status = 0
         self._discovered_entities = None
+
+        self._swdata = {}
 
         if self.ip_address is None and self.caption is None:
             raise SWObjectPropertyError("Must provide either ip_address or caption")
-        if self.snmpv3_cred_id is not None and self.snmpv3_cred_name is not None:
+
+        if (
+            snmp_version == 3
+            and snmpv3_ro_cred_name is None
+            and snmpv3_rw_cred_name is None
+        ):
             raise ValueError(
-                "must provide either snmpv3_cred_id or snmpv3_cred_name, not both"
-            )
-        if snmp_version == 3 and snmpv3_cred_id is None and snmpv3_cred_name is None:
-            raise ValueError(
-                "must provide either snmpv3_cred_id or snmpv3_cred_name when snmp_version = 3"
+                "must provide either `snmpv3_ro_cred_name` or `snmpv3_rw_cred_name` when `snmp_version` = 3"
             )
         super().__init__()
 
     @property
-    def name(self) -> str:
+    def name(self) -> Union[str, None]:
         return self.caption
 
     @property
@@ -157,12 +171,33 @@ class OrionNode(Endpoint):
     def status(self):
         return self._get_swdata_value("Status")
 
+    def _associate_credential_set(self, cred_type: str, cred_id: int) -> bool:  # type: ignore
+        """
+        Create association between node and SNMPv3 credential set
+        NOTE: this approach was advised by a Solarwinds senior engineer and uses
+        a workaround which uses TSQL syntax, **NOT** the usual SWQL syntax
+        (notice the table refrence is "NodeSettings", not "Orion.NodeSettings")
+        """
+        statement = (
+            "INSERT INTO NodeSettings (NodeID, SettingName, SettingValue) VALUES "
+            f"('{self.node_id}', '{cred_type}', '{cred_id}')"
+        )
+        self.swis.sql(statement)
+        log.debug(f"SNMPv3: assigned credential type {cred_type} with ID {cred_id}")
+        return True
+
     def _set_defaults(self) -> None:
         if self.polling_method is None:
-            if self.community is not None or self.rw_community is not None:
+            if (
+                self.snmpv2c_ro_community is not None
+                or self.snmpv2c_rw_community is not None
+            ):
                 self.polling_method = "snmp"
                 self.snmp_version = 2
-            elif self.snmpv3_creds is not None:
+            elif (
+                self.snmpv3_ro_cred_name is not None
+                or self.snmpv3_rw_cred_name is not None
+            ):
                 self.polling_method = "snmp"
                 self.snmp_version = 3
             else:
@@ -180,8 +215,8 @@ class OrionNode(Endpoint):
             "caption": swdata["Caption"],
             "ip_address": swdata["IPAddress"],
             "engine_id": swdata["EngineID"],
-            "community": swdata["Community"],
-            "rw_community": swdata["RWCommunity"],
+            "snmpv2c_ro_community": swdata["Community"],
+            "snmpv2c_rw_community": swdata["RWCommunity"],
             "polling_method": self._get_polling_method(),
             "pollers": self.pollers
             or d.NODE_DEFAULT_POLLERS[swdata["ObjectSubType"].lower()],
@@ -194,47 +229,65 @@ class OrionNode(Endpoint):
         status_query = f"SELECT Status FROM Orion.DiscoveryProfiles WHERE ProfileID = {self._discovery_profile_id}"
         self._discovery_profile_status = self.swis.query(status_query)["Status"]
 
-    def _get_extra_swargs(self) -> None:
+    def _get_extra_swargs(self) -> Dict:
         return {
             "status": self._get_swdata_value("Status") or 1,
             "objectsubtype": self._get_polling_method().upper(),
         }
 
     def _get_polling_method(self) -> str:
-        community = self._get_swdata_value("Community") or self.community
-        rw_community = self._get_swdata_value("RWCommunity") or self.rw_community
-        if community is not None or rw_community is not None or self.snmp_version:
+        ro_community = self._get_swdata_value("Community") or self.snmpv2c_ro_community
+        rw_community = (
+            self._get_swdata_value("RWCommunity") or self.snmpv2c_rw_community
+        )
+        if ro_community is not None or rw_community is not None or self.snmp_version:
             return "snmp"
         else:
             return "icmp"
 
-    def _get_pollers(self) -> list:
-        return d.NODE_DEFAULT_POLLERS[self.polling_method]
+    def _get_pollers(self) -> Union[List, None]:
+        if self.polling_method is not None:
+            return d.NODE_DEFAULT_POLLERS[self.polling_method]
+        else:
+            return None
 
-    def _get_snmp_version(self) -> int:
-        if self.community is not None or self.rw_community is not None:
+    def _get_snmp_version(self):
+        if (
+            self.snmpv2c_ro_community is not None
+            or self.snmpv2c_rw_community is not None
+        ):
             return 2
-        elif self.snmpv3_creds is not None:
+        elif (
+            self.snmpv3_ro_cred_name is not None or self.snmpv3_rw_cred_name is not None
+        ):
             return 3
         else:
             return 0
 
     def enable_pollers(self) -> bool:
         node_id = self.node_id or self._get_id()
-        for poller_type in self.pollers:
-            poller = {
-                "PollerType": poller_type,
-                "NetObject": f"N:{node_id}",
-                "NetObjectType": "N",
-                "NetObjectID": node_id,
-                "Enabled": True,
-            }
-            self.swis.create("Orion.Pollers", **poller)
-            log.info(f"enabled poller {poller_type}")
-        return True
+        if self.pollers is None:
+            log.warning(f"no pollers to enable, doing nothing")
+            return False
+        else:
+            for poller_type in self.pollers:
+                poller = {
+                    "PollerType": poller_type,
+                    "NetObject": f"N:{node_id}",
+                    "NetObjectType": "N",
+                    "NetObjectID": node_id,
+                    "Enabled": True,
+                }
+                self.swis.create("Orion.Pollers", **poller)
+                log.info(f"enabled poller {poller_type}")
+            return True
 
-    def create(self):
-        if self.snmpv3_cred_id is not None or self.snmpv3_cred_name is not None:
+    def create(self) -> bool:
+        if self.snmp_version == 3:
+            if self.snmpv3_ro_cred_name is None and self.snmpv3_rw_cred_name is None:
+                raise ValueError(
+                    "must provide `snmpv3_ro_cred_name` or `snmpv3_rw_cred_name` when `snmp_version` = 3"
+                )
             # creating nodes with a saved credential set requires discovery
             # https://thwack.solarwinds.com/product-forums/the-orion-platform/f/orion-sdk/25327/using-orion-credential-set-for-snmpv3-when-adding-node-through-sdk/25220#25220
             # TODO: it is possible to directly create an snmpv3 node using ad-hoc credentials
@@ -255,14 +308,28 @@ class OrionNode(Endpoint):
             retries = d.NODE_DISCOVERY_SNMP_RETRIES
         if timeout is None:
             timeout = d.NODE_DISCOVERY_JOB_TIMEOUT_SECONDS
+
+        credentials = []
+        order = 1
+        if self.snmpv3_ro_cred_id is not None:
+            credentials.append(
+                {
+                    "CredentialID": self.snmpv3_ro_cred_id,
+                    "Order": order,
+                }
+            )
+            order += 1
+        if self.snmpv3_rw_cred_id is not None:
+            credentials.append(
+                {
+                    "CredentialID": self.snmpv3_rw_cred_id,
+                    "Order": order,
+                }
+            )
+
         core_plugin_context = {
             "BulkList": [{"Address": self.ip_address}],
-            "Credentials": [
-                {
-                    "CredentialID": self.snmpv3_cred_id,
-                    "Order": 1,
-                }
-            ],
+            "Credentials": credentials,
             "WmiRetriesCount": 0,
             "WmiRetryIntervalMiliseconds": 1000,
         }
@@ -341,10 +408,12 @@ class OrionNode(Endpoint):
             log.warning(f"node does not exist, can't remanage")
             return False
 
-    def unmanage(self, start: datetime = None, end: datetime = None) -> bool:
+    def unmanage(
+        self, start: Union[datetime, None] = None, end: Union[datetime, None] = None
+    ) -> bool:
         if self.exists():
+            now = datetime.utcnow()
             if start is None:
-                now = datetime.utcnow()
                 # accounts for variance in clock synchronization
                 start = now - timedelta(minutes=10)
             if end is None:
@@ -369,84 +438,45 @@ class OrionNode(Endpoint):
             self.snmp_version == 3
             and self._swdata["properties"].get("SNMPVersion") == 2
         ):
-            if self.snmpv3_cred_id is None:
-                if self.snmpv3_cred_name is None:
-                    raise ValueError(
-                        "must provide either snmpv3_cred_id or "
-                        "snmpv3_cred_name when setting snmp_version to 3"
-                    )
-                else:
-                    # if we provided snmpv3_cred_name after node init, we need to
-                    # init child objects again to resolve snmpv3_cred_id
+            if self.snmpv3_ro_cred_name is None and self.snmpv3_rw_cred_name is None:
+                raise ValueError(
+                    "must provide either `snmpv3_ro_cred_name` or "
+                    "`snmpv3_rw_cred_name` when `snmp_version` = 3"
+                )
+
+            if self.snmpv3_ro_cred_name is not None:
+                if self.snmpv3_ro_cred_id is None:
                     self._init_child_objects()
                     self._update_attrs_from_children()
-                    if self.snmpv3_cred_id is None:
-                        raise ValueError(
-                            "unable to resolve snmpv3_cred_id from "
-                            f'snmpv3_cred_name "{self.snmpv3_cred_name}"'
-                        )
+                self._associate_credential_set(
+                    "ROSNMPCredentialID", self.snmpv3_ro_cred_id
+                )
 
-            # create association between node and SNMPv3 credential set
-            # NOTE: this approach was advised by a Solarwinds senior engineer and uses
-            # a workaround which uses TSQL syntax, **NOT** the usual SWQL syntax
-            # (notice the table refrence is "NodeSettings", not "Orion.NodeSettings")
-            statement = f"INSERT INTO NodeSettings (NodeID, SettingName, SettingValue) VALUES ('{self.node_id}', 'ROSNMPCredentialID', '{self.snmpv3_cred_id}')"
-            self.swis.sql(statement)
-            log.debug(f"SNMPv3: assigned credential ID {self.snmpv3_cred_id}")
-            # at this point, all that's left to enable SNMPv3 is to set SNMPVersion = 3 on
-            # node properties, which super().update() will handle for us below
+            if self.snmpv3_rw_cred_name is not None:
+                if self.snmpv3_rw_cred_id is None:
+                    self._init_child_objects()
+                    self._update_attrs_from_children()
+                self._associate_credential_set(
+                    "RWSNMPCredentialID", self.snmpv3_rw_cred_id
+                )
 
         # clear stale credential association(s) if switching from v3 to v2
         if (
             self.snmp_version == 2
             and self._swdata["properties"].get("SNMPVersion") == 3
         ):
-            statement = f"DELETE FROM NodeSettings WHERE NodeID = '{self.node_id}' AND SettingName = 'ROSNMPCredentialID'"
+            statement = f"DELETE FROM NodeSettings WHERE NodeID = '{self.node_id}' AND (SettingName = 'ROSNMPCredentialID' OR SettingName = 'RWSNMPCredentialID')"
             self.swis.sql(statement)
             log.debug(f"SNMPv3: deleted all associated credential sets")
 
         super().update()
 
     def __repr__(self) -> str:
-        return self.name or self.ip_address
+        return self.name or self.ip_address  # type: ignore
 
     def __str__(self) -> str:
-        return self.name or self.ip_address
+        return self.name or self.ip_address  # type: ignore
 
 
 class OrionNodes(object):
-    def __init__(
-        self,
-        swis: SwisClient,
-        ip_address: str = None,
-        caption: str = None,
-        community: str = None,
-        rw_community: str = None,
-        custom_properties: dict = None,
-        engine_id: int = None,
-        latitude: float = None,
-        longitude: float = None,
-        node_id: int = None,
-        pollers: list = None,
-        polling_method: str = None,
-        snmp_version: int = None,
-        snmpv3_cred_id: int = None,
-        snmpv3_cred_name: str = None,
-    ):
-        self.swis = swis
-        self.caption = caption
-        self.engine_id = engine_id
-        self.community = community
-        self.rw_community = rw_community
-        self.custom_properties = custom_properties
-        self.ip_address = ip_address
-        self.latitude = latitude
-        self.longitude = longitude
-        self.node_id = node_id
-        self.polling_method = polling_method
-        self.pollers = pollers
-        self.snmp_version = snmp_version
-        self.snmpv3_cred_id = snmpv3_cred_id
-        self.snmpv3_cred_name = snmpv3_cred_name
-
-        self.nodes = []
+    pass
