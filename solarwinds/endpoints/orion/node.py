@@ -366,7 +366,8 @@ class OrionNode(Endpoint):
             seconds_waited += 1
             self._get_discovery_status()
             log.debug(
-                f"discovering node: waited {seconds_waited}sec, timeout {timeout}sec, status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
+                f"discovering node: waited {seconds_waited}sec, timeout {timeout}sec, "
+                f"status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
             )
 
         if self._discovery_profile_status == 2:
@@ -467,7 +468,7 @@ class OrionNode(Endpoint):
         ):
             statement = f"DELETE FROM NodeSettings WHERE NodeID = '{self.node_id}' AND (SettingName = 'ROSNMPCredentialID' OR SettingName = 'RWSNMPCredentialID')"
             self.swis.sql(statement)
-            log.debug(f"SNMPv3: deleted all associated credential sets")
+            log.debug(f"SNMPv3: deleted all associated SNMPv3 credential sets")
 
         super().update()
 
