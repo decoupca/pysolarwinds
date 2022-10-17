@@ -406,3 +406,47 @@ class OrionNode(Endpoint):
             log.debug(f"SNMPv3: deleted all associated credential sets")
 
         super().update()
+
+    def __repr__(self) -> str:
+        return self.name or self.ip_address
+
+    def __str__(self) -> str:
+        return self.name or self.ip_address
+
+
+class OrionNodes(object):
+    def __init__(
+        self,
+        swis: SwisClient,
+        ip_address: str = None,
+        caption: str = None,
+        community: str = None,
+        rw_community: str = None,
+        custom_properties: dict = None,
+        engine_id: int = None,
+        latitude: float = None,
+        longitude: float = None,
+        node_id: int = None,
+        pollers: list = None,
+        polling_method: str = None,
+        snmp_version: int = None,
+        snmpv3_cred_id: int = None,
+        snmpv3_cred_name: str = None,
+    ):
+        self.swis = swis
+        self.caption = caption
+        self.engine_id = engine_id
+        self.community = community
+        self.rw_community = rw_community
+        self.custom_properties = custom_properties
+        self.ip_address = ip_address
+        self.latitude = latitude
+        self.longitude = longitude
+        self.node_id = node_id
+        self.polling_method = polling_method
+        self.pollers = pollers
+        self.snmp_version = snmp_version
+        self.snmpv3_cred_id = snmpv3_cred_id
+        self.snmpv3_cred_name = snmpv3_cred_name
+
+        self.nodes = []

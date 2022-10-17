@@ -136,7 +136,7 @@ class OrionInterfaces(object):
         self._existing = [OrionInterface(self.device, data=data) for data in result]
         log.info(f"{self.device.name}: found {len(self._existing)} existing interfaces")
 
-    def discover(self) -> None:
+    def discover(self) -> bool:
         """
         Runs SNMP discovery of all available interfaces. This can take a while
         depending on network conditions and number of interfaces on node
@@ -150,10 +150,12 @@ class OrionInterfaces(object):
             results = result["DiscoveredInterfaces"]
             log.info(f"{self.device.name}: discovered {len(results)} interfaces")
             self._discovered = results
+            return True
         else:
             log.error(
                 f"{self.device.name}: discovery failed. SNMP may be inaccessible, creds invalid, etc."
             )
+            return False
 
     def monitor(self, interfaces=None) -> None:
         if self._existing is None:
