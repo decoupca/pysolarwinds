@@ -51,24 +51,6 @@ class OrionNode(Endpoint):
                 "longitude": "longitude",
             },
         },
-        "snmpv3_ro_creds": {
-            "class": OrionCredential,
-            "init_args": {
-                "snmpv3_ro_cred_name": "name",
-            },
-            "attr_map": {
-                "snmpv3_ro_cred_id": "id",
-            },
-        },
-        "snmpv3_rw_creds": {
-            "class": OrionCredential,
-            "init_args": {
-                "snmpv3_rw_cred_name": "name",
-            },
-            "attr_map": {
-                "snmpv3_rw_cred_id": "id",
-            },
-        },
     }
 
     def __init__(
@@ -106,8 +88,6 @@ class OrionNode(Endpoint):
         self.snmpv3_rw_cred_name = snmpv3_rw_cred_name
 
         self.map_point = None
-        self.snmpv3_ro_creds = None
-        self.snmpv3_rw_creds = None
         self.snmpv3_ro_cred_id = None
         self.snmpv3_rw_cred_id = None
 
@@ -131,6 +111,7 @@ class OrionNode(Endpoint):
                 "must provide either `snmpv3_ro_cred_name` or "
                 "`snmpv3_rw_cred_name` when `snmp_version` = 3"
             )
+
         super().__init__()
 
     @property
@@ -187,6 +168,32 @@ class OrionNode(Endpoint):
         self.swis.sql(statement)
         log.debug(f"SNMPv3: assigned credential type {cred_type} with ID {cred_id}")
         return True
+
+    def _init_snmpv3_creds(self) -> None:
+        for cred_type in ["ro", "rw"]:
+            snmpv3_attr = getattr(self, f"snmpv3_{cred_type}_cred_name")
+            if snmpv3_attr is None:
+                query = (
+                    "SELECT C.ID, C.Name, C.Description "
+                    "FROM Orion.Credential C "
+                    "INNER JOIN Orion.NodeSettings NS ON NS.SettingValue = C.ID "
+                    f"WHERE NS.NodeID = '{self.node_id}' "
+                    f"AND NS.SettingName = '{cred_type.upper()}SNMPCredentialID' "
+                    "AND C.CredentialType = 'SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3'"
+                )
+                result = self.swis.query(query)
+                if result is None:
+                    log.debug(
+                        f"found no SNMPv3 {cred_type.upper()} creds associated with this node"
+                    )
+                else:
+                    id = result["ID"]
+                    name = result["Name"]
+                    log.debug(
+                        f'found SNMPv3 {cred_type.upper()} cred "{name}" (ID: {id})'
+                    )
+                    setattr(self, f"snmpv3_{cred_type}_cred_id", id)
+                    setattr(self, f"snmpv3_{cred_type}_cred_name", name)
 
     def _set_defaults(self) -> None:
         if self.polling_method is None:

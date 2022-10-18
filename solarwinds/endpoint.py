@@ -31,8 +31,13 @@ class Endpoint(object):
             self.refresh()
         else:
             self._set_defaults()
-        self._init_child_objects()
+        self._call_init_methods()
         self._update_attrs_from_children()
+
+    def _call_init_methods(self):
+        init_methods = [getattr(self, x) for x in dir(self) if x.startswith("_init")]
+        for method in init_methods:
+            method()
 
     def refresh(self) -> None:
         if self.exists():

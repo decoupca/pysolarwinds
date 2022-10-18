@@ -17,7 +17,7 @@ sw = solarwinds.api(**SW_ARGS)
 #     custom_properties={"Site": "PTC - Plano, TX, US", "Region": "AMER"},
 # )
 # node.update()
-host = "RBDP03CR01"
+host = "FAPC00FW21"
 node = sw.orion.node(caption=host)
 
 # node.update()
