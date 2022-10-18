@@ -7,9 +7,9 @@ import solarwinds.defaults as d
 from solarwinds.client import SwisClient
 from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.interface import OrionInterfaces
-from solarwinds.endpoints.orion.node_settings import OrionNodeSettings
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 from solarwinds.exceptions import SWNodeDiscoveryError, SWObjectPropertyError
+from solarwinds.models.orion.node_settings import OrionNodeSettings
 
 log = getLogger(__name__)
 log.addHandler(NullHandler())
