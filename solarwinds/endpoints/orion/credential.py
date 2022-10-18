@@ -29,3 +29,14 @@ class OrionCredential(Endpoint):
         if id is None and name is None:
             raise ValueError("must provide either credential ID or name")
         super().__init__()
+
+    def _get_attr_updates(self) -> dict:
+        swdata = self._swdata["properties"]
+        return {
+            "credential_type": swdata.get("CredentialType"),
+            "id": swdata.get("ID"),
+            "name": swdata.get("Name"),
+        }
+
+    def __repr__(self):
+        return f"<OrionCredential: {self.name}>"

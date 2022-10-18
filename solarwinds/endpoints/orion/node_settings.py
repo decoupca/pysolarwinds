@@ -1,34 +1,63 @@
-from typing import Union
+from typing import Dict
 
-from solarwinds.client import SwisClient
 from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.credential import OrionCredential
 
 
-class OrionNodeSettings(Endpoint):
+class OrionNodeSetting(Endpoint):
     endpoint = "Orion.NodeSettings"
-    _id_attr = "node_setting_id"
-    _swid_key = "NodeSettingID"
-    _swquery_attrs = ["node_setting_id"]
-    _swargs_attrs = ["node_setting_id"]
 
-    def __init__(
-        self,
-        swis: SwisClient,
-        node_id: int,
-        node_setting_id: Union[int, None] = None,
-        name: Union[str, None] = None,
-        description: Union[str, None] = None,
-    ):
-        self.swis = swis
-        self.node_id = node_id
-        self.node_setting_id = node_setting_id
-        self.name = name
-        self.description = description
+    def __init__(self, node, setting: Dict):
+        self.node = node
+        self.swis = node.swis
+        self._dict = setting
+        self.id = setting.get("NodeSettingID")
+        self.name = setting["SettingName"]
+        self.value = setting["SettingValue"]
 
-        self.snmpv3_ro_creds = None
-        self.snmpv3_rw_creds = None
+        if self.name in ["ROSNMPCredentialID", "RWSNMPCredentialID"]:
+            self.setting = OrionCredential(
+                swis=self.swis, node_id=self.node.id, id=self.value
+            )
 
-        if node_id is None:
-            raise ValueError("must provide `node_id`")
-        super().__init__()
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+
+class OrionNodeSettings(object):
+    def __init__(self, node):
+        self.node = node
+        self.swis = node.swis
+        self._settings = []
+
+        query = f"SELECT SettingName, SettingValue, NodeSettingID FROM Orion.NodeSettings WHERE NodeID = '{self.node.id}'"
+        settings = self.swis.query(query)
+        if settings is not None:
+            for setting in settings:
+                name = setting["SettingName"]
+                value = setting["SettingValue"]
+
+                if name in ["ROSNMPCredentialID", "RWSNMPCredentialID"]:
+                    cred = OrionCredential(
+                        swis=self.swis, node_id=self.node.id, id=value
+                    )
+                    self._settings.append(cred)
+                    if name == "ROSNMPCredentialID" and cred.credential_type.endswith(
+                        "SnmpCredentialsV3"
+                    ):
+                        self.node.snmpv3_ro_cred_name = cred.name
+                        self.node.snmpv3_ro_cred_id = cred.id
+                    if name == "RWSNMPCredentialID" and cred.credential_type.endswith(
+                        "SnmpCredentialsV3"
+                    ):
+                        self.node.snmpv3_rw_cred_name = cred.name
+                        self.node.snmpv3_rw_cred_id = cred.id
+
+    def __getitem__(self, item):
+        return self._settings[item]
+
+    def __repr__(self):
+        return str(self._settings)

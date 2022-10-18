@@ -27,6 +27,7 @@ class Endpoint(object):
     _child_objects = None
 
     def __init__(self):
+        self._swdata = {}
         if self.exists():
             self.refresh()
         else:
@@ -406,18 +407,17 @@ class Endpoint(object):
             log.debug("no changes found")
 
     def _get_id(self) -> None:
-        if self._swdata is not None:
-            sw_id = self._swdata["properties"].get(self._swid_key)
-            if sw_id is not None:
-                self.id = sw_id
-                setattr(self, self._id_attr, sw_id)
-                log.debug(f"got solarwinds object id {self.id}")
-            else:
-                raise SWIDNotFound(
-                    f'Could not find id value in _swdata["{self._swid_key}"]'
-                )
+        if self._swdata is None:
+            self._get_swdata()
+        sw_id = self._swdata["properties"].get(self._swid_key)
+        if sw_id is not None:
+            self.id = sw_id
+            setattr(self, self._id_attr, sw_id)
+            log.debug(f"got solarwinds object id {self.id}")
         else:
-            log.debug("_swdata is None, can't get id")
+            raise SWIDNotFound(
+                f'Could not find id value in _swdata["{self._swid_key}"]'
+            )
 
     def create(self) -> bool:
         """Create object"""
