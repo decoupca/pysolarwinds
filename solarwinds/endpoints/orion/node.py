@@ -105,6 +105,9 @@ class OrionNode(Endpoint):
         self.snmpv3_ro_cred_name = snmpv3_ro_cred_name
         self.snmpv3_rw_cred_name = snmpv3_rw_cred_name
 
+        self.map_point = None
+        self.snmpv3_ro_creds = None
+        self.snmpv3_rw_creds = None
         self.snmpv3_ro_cred_id = None
         self.snmpv3_rw_cred_id = None
 
@@ -125,7 +128,8 @@ class OrionNode(Endpoint):
             and snmpv3_rw_cred_name is None
         ):
             raise ValueError(
-                "must provide either `snmpv3_ro_cred_name` or `snmpv3_rw_cred_name` when `snmp_version` = 3"
+                "must provide either `snmpv3_ro_cred_name` or "
+                "`snmpv3_rw_cred_name` when `snmp_version` = 3"
             )
         super().__init__()
 

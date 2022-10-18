@@ -27,12 +27,12 @@ class Endpoint(object):
     _child_objects = None
 
     def __init__(self):
-        self._init_child_objects()
-        self._update_attrs_from_children()
         if self.exists():
             self.refresh()
         else:
             self._set_defaults()
+        self._init_child_objects()
+        self._update_attrs_from_children()
 
     def refresh(self) -> None:
         if self.exists():

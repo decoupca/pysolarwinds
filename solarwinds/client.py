@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from typing import Dict
 
 import httpx
 from solarwinds.utils import parse_response
@@ -23,7 +24,7 @@ class SwisClient:
             verify=verify,
         )
 
-    def query(self, query, **params):
+    def query(self, query, **params) -> Dict:
         return parse_response(
             self._req("POST", "Query", {"query": query, "parameters": params}).json()
         )
