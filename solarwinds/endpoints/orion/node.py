@@ -116,6 +116,7 @@ class OrionNode(Endpoint):
 
         if self.exists():
             self.settings = OrionNodeSettings(self)
+            self.settings.get()
 
     @property
     def name(self) -> Union[str, None]:
