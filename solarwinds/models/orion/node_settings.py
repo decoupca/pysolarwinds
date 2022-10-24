@@ -1,6 +1,7 @@
 from typing import Union
 
 from solarwinds.endpoints.orion.credential import OrionCredential
+from solarwinds.exceptions import SWObjectNotFound
 
 
 class OrionNodeSetting(object):
@@ -17,19 +18,16 @@ class OrionNodeSetting(object):
             cred = OrionCredential(swis=self.swis, id=value)
             if name == "ROSNMPCredentialID":
                 if cred.credential_type.endswith("SnmpCredentialsV3"):
-                    if self.node.snmpv3_ro_cred_name is None:
-                        self.node.snmpv3_ro_cred_name = cred.name
-                        self.node.snmpv3_ro_cred_id = cred.id
                     self.node.settings.snmpv3_ro_cred = cred
             if name == "RWSNMPCredentialID":
                 if cred.credential_type.endswith("SnmpCredentialsV3"):
-                    if self.node.snmpv3_rw_cred_name is None:
-                        self.node.snmpv3_rw_cred_name = cred.name
-                        self.node.snmpv3_rw_cred_id = cred.id
                     self.node.settings.snmpv3_rw_cred = cred
 
     def delete(self) -> bool:
         return self.node.settings.delete(self)
+
+    def __repr__(self) -> str:
+        return f'<OrionNodeSetting "{self.name}={self.value}"'
 
 
 class OrionNodeSettings(object):
@@ -88,6 +86,29 @@ class OrionNodeSettings(object):
             self.delete(old_setting)
             return True
         return False
+
+    def save(self) -> bool:
+        if self.snmpv3_ro_cred is None:
+            old_setting = self.get(name="ROSNMPCredentialID")
+            if old_setting:
+                self.delete(old_setting)
+
+        if self.snmpv3_ro_cred is not None:
+            if self.snmpv3_ro_cred.exists():
+                new_setting = OrionNodeSetting(
+                    node=self.node,
+                    name="ROSNMPCredentialID",
+                    value=self.snmpv3_ro_cred.id,
+                )
+                old_setting = self.get(name="ROSNMPCredentialID")
+                if old_setting:
+                    self.update(old_setting, new_setting)
+                else:
+                    self.add(new_setting)
+            else:
+                raise SWObjectNotFound(
+                    f'Credential "{self.snmpv3_ro_cred.name}" does not exist'
+                )
 
     def __getitem__(self, item):
         return self._settings[item]

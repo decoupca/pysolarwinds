@@ -60,8 +60,6 @@ class OrionNode(Endpoint):
         snmp_version: Union[int, None] = None,
         snmpv2c_ro_community: Union[str, None] = None,
         snmpv2c_rw_community: Union[str, None] = None,
-        snmpv3_ro_cred_name: Union[str, None] = None,
-        snmpv3_rw_cred_name: Union[str, None] = None,
     ):
         self.swis = swis
         self.caption = caption
@@ -76,8 +74,6 @@ class OrionNode(Endpoint):
         self.snmp_version = snmp_version
         self.snmpv2c_ro_community = snmpv2c_ro_community
         self.snmpv2c_rw_community = snmpv2c_rw_community
-        self.snmpv3_ro_cred_name = snmpv3_ro_cred_name
-        self.snmpv3_rw_cred_name = snmpv3_rw_cred_name
 
         self.map_point = None
 
@@ -92,16 +88,6 @@ class OrionNode(Endpoint):
 
         if self.ip_address is None and self.caption is None:
             raise SWObjectPropertyError("Must provide either ip_address or caption")
-
-        if (
-            snmp_version == 3
-            and snmpv3_ro_cred_name is None
-            and snmpv3_rw_cred_name is None
-        ):
-            raise ValueError(
-                "must provide either `snmpv3_ro_cred_name` or "
-                "`snmpv3_rw_cred_name` when `snmp_version` = 3"
-            )
 
         super().__init__()
 
@@ -397,43 +383,15 @@ class OrionNode(Endpoint):
 
     def update(self):
         if self.snmp_version == 3:
-            if self.snmpv3_ro_cred_name is None and self.snmpv3_rw_cred_name is None:
+            if (
+                self.settings.snmpv3_ro_cred is None
+                and self.settings.snmpv3_rw_cred is None
+            ):
                 raise ValueError(
-                    "must provide either `snmpv3_ro_cred_name` or "
-                    "`snmpv3_rw_cred_name` when `snmp_version` = 3"
+                    "must provide either settings.snmpv3_ro_cred or "
+                    "settings.snmpv3_rw_cred_name when snmp_version = 3"
                 )
-
-            if self.settings.snmpv3_ro_cred is None:
-                cred = OrionCredential(self.swis, name=self.snmpv3_ro_cred_name)
-                if cred.exists():
-                    setting = OrionNodeSetting(
-                        node=self, name="ROSNMPCredentialID", value=cred.id
-                    )
-                    self.settings.add(setting)
-                else:
-                    raise ValueError(
-                        f'Credential with name "{self.snmpv3_ro_cred_name}" does not exist'
-                    )
-
-            if self.settings.snmpv3_ro_cred.name != self.snmpv3_ro_cred_name:
-                old_cred = self.settings.snmpv3_ro_ced
-                if old_cred:
-                    old_setting = self.settings.get(name="ROSNMPCredentialID")
-
-                new_cred = OrionCredential(self.swis, name=self.snmpv3_ro_cred_name)
-                if new_cred.exists():
-                    new_setting = OrionNodeSetting(
-                        node=self, name="ROSNMPCredentialID", value=new_cred.id
-                    )
-                    if old_cred:
-                        self.settings.update(old_setting, new_setting)
-                    else:
-                        self.settings.add(new_setting)
-                else:
-                    raise SWObjectNotFound(
-                        f'Credential with name "{self.snmpv3_ro_cred_name}" does not exist'
-                    )
-
+        self.settings.save()
         super().update()
 
     def __repr__(self) -> str:
