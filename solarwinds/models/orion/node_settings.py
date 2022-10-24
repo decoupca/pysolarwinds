@@ -4,7 +4,9 @@ from solarwinds.endpoints.orion.credential import OrionCredential
 
 
 class OrionNodeSetting(object):
-    def __init__(self, node, node_setting_id: int, name: str, value: Union[str, int]):
+    def __init__(
+        self, node, name: str, value: Union[str, int], node_setting_id: int = None
+    ):
         self.node = node
         self.swis = node.swis
         self.node_setting_id = node_setting_id
@@ -12,17 +14,22 @@ class OrionNodeSetting(object):
         self.value = value
 
         if name in ["ROSNMPCredentialID", "RWSNMPCredentialID"]:
-            cred = OrionCredential(swis=self.swis, node_id=self.node.id, id=value)
+            cred = OrionCredential(swis=self.swis, id=value)
             if name == "ROSNMPCredentialID":
                 if cred.credential_type.endswith("SnmpCredentialsV3"):
+                    if self.node.snmpv3_ro_cred_name is None:
+                        self.node.snmpv3_ro_cred_name = cred.name
+                        self.node.snmpv3_ro_cred_id = cred.id
                     self.node.settings.snmpv3_ro_cred = cred
-                    self.node.snmpv3_ro_cred_name = cred.name
-                    self.node.snmpv3_ro_cred_id = cred.id
             if name == "RWSNMPCredentialID":
                 if cred.credential_type.endswith("SnmpCredentialsV3"):
+                    if self.node.snmpv3_rw_cred_name is None:
+                        self.node.snmpv3_rw_cred_name = cred.name
+                        self.node.snmpv3_rw_cred_id = cred.id
                     self.node.settings.snmpv3_rw_cred = cred
-                    self.node.snmpv3_rw_cred_name = cred.name
-                    self.node.snmpv3_rw_cred_id = cred.id
+
+    def delete(self) -> bool:
+        return self.node.settings.delete(self)
 
 
 class OrionNodeSettings(object):
@@ -34,7 +41,7 @@ class OrionNodeSettings(object):
         self.snmpv3_ro_cred = None
         self.snmpv3_rw_cred = None
 
-    def get(self):
+    def fetch(self):
         query = (
             "SELECT SettingName, SettingValue, NodeSettingID "
             f"FROM Orion.NodeSettings WHERE NodeID = '{self.node.id}'"
@@ -46,8 +53,18 @@ class OrionNodeSettings(object):
                 value = setting["SettingValue"]
                 node_setting_id = setting["NodeSettingID"]
                 self._settings.append(
-                    OrionNodeSetting(self.node, node_setting_id, name, value)
+                    OrionNodeSetting(self.node, name, value, node_setting_id)
                 )
+
+    def get(
+        self, name: str = None, node_setting_id: int = None
+    ) -> Union[OrionNodeSetting, None]:
+        if name is None and node_setting_id is None:
+            raise ValueError("must provide either setting `name` or `node_setting_id`")
+        if self._settings:
+            for setting in self._settings:
+                if name == setting.name or node_setting_id == setting.node_setting_id:
+                    return setting
 
     def add(self, setting: OrionNodeSetting) -> bool:
         statement = (
@@ -63,6 +80,14 @@ class OrionNodeSettings(object):
         self.swis.sql(statement)
         self._settings.remove(setting)
         return True
+
+    def update(
+        self, old_setting: OrionNodeSetting, new_setting: OrionNodeSetting
+    ) -> bool:
+        if self.add(new_setting):
+            self.delete(old_setting)
+            return True
+        return False
 
     def __getitem__(self, item):
         return self._settings[item]

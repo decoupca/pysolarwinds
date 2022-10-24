@@ -19,7 +19,6 @@ sw = solarwinds.api(**SW_ARGS)
 # node.update()
 host = "FAPC00FW21"
 node = sw.orion.node(caption=host)
-
-# node.update()
-
+node.snmpv3_ro_cred_name = "NETSEC"
+node.update()
 ipdb.set_trace()

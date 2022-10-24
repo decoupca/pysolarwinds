@@ -6,25 +6,17 @@ from typing import Dict, List, Union
 import solarwinds.defaults as d
 from solarwinds.client import SwisClient
 from solarwinds.endpoint import Endpoint
+from solarwinds.endpoints.orion.credential import OrionCredential
 from solarwinds.endpoints.orion.interface import OrionInterfaces
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
-from solarwinds.exceptions import SWNodeDiscoveryError, SWObjectPropertyError
-from solarwinds.models.orion.node_settings import OrionNodeSettings
+from solarwinds.exceptions import (SWNodeDiscoveryError, SWObjectNotFound,
+                                   SWObjectPropertyError)
+from solarwinds.maps import NODE_DISCOVERY_STATUS_MAP
+from solarwinds.models.orion.node_settings import (OrionNodeSetting,
+                                                   OrionNodeSettings)
 
 log = getLogger(__name__)
 log.addHandler(NullHandler())
-
-NODE_DISCOVERY_STATUS_MAP = {
-    0: "unknown",
-    1: "in_progress",
-    2: "finished",
-    3: "error",
-    4: "not_scheduled",
-    5: "scheduled",
-    6: "not_completed",
-    7: "canceling",
-    8: "ready_for_import",
-}
 
 
 class OrionNode(Endpoint):
@@ -88,9 +80,8 @@ class OrionNode(Endpoint):
         self.snmpv3_rw_cred_name = snmpv3_rw_cred_name
 
         self.map_point = None
-        self.snmpv3_ro_cred_id = None
-        self.snmpv3_rw_cred_id = None
 
+        self.settings = OrionNodeSettings(self)
         self.interfaces = OrionInterfaces(self)
 
         self._discovery_profile_id = None
@@ -115,8 +106,7 @@ class OrionNode(Endpoint):
         super().__init__()
 
         if self.exists():
-            self.settings = OrionNodeSettings(self)
-            self.settings.get()
+            self.settings.fetch()
 
     @property
     def name(self) -> Union[str, None]:
@@ -157,47 +147,6 @@ class OrionNode(Endpoint):
     @property
     def status(self):
         return self._get_swdata_value("Status")
-
-    def _associate_credential_set(self, cred_type: str, cred_id: int) -> bool:  # type: ignore
-        """
-        Create association between node and SNMPv3 credential set
-        NOTE: this approach was advised by a Solarwinds senior engineer and uses
-        a workaround which uses TSQL syntax, **NOT** the usual SWQL syntax
-        (notice the table refrence is "NodeSettings", not "Orion.NodeSettings")
-        """
-        statement = (
-            "INSERT INTO NodeSettings (NodeID, SettingName, SettingValue) VALUES "
-            f"('{self.node_id}', '{cred_type}', '{cred_id}')"
-        )
-        self.swis.sql(statement)
-        log.debug(f"SNMPv3: assigned credential type {cred_type} with ID {cred_id}")
-        return True
-
-    # def _init_snmpv3_creds(self) -> None:
-    #     for cred_type in ["ro", "rw"]:
-    #         snmpv3_attr = getattr(self, f"snmpv3_{cred_type}_cred_name")
-    #         if snmpv3_attr is None:
-    #             query = (
-    #                 "SELECT C.ID, C.Name, C.Description "
-    #                 "FROM Orion.Credential C "
-    #                 "INNER JOIN Orion.NodeSettings NS ON NS.SettingValue = C.ID "
-    #                 f"WHERE NS.NodeID = '{self.node_id}' "
-    #                 f"AND NS.SettingName = '{cred_type.upper()}SNMPCredentialID' "
-    #                 "AND C.CredentialType = 'SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3'"
-    #             )
-    #             result = self.swis.query(query)
-    #             if result is None:
-    #                 log.debug(
-    #                     f"found no SNMPv3 {cred_type.upper()} creds associated with this node"
-    #                 )
-    #             else:
-    #                 id = result["ID"]
-    #                 name = result["Name"]
-    #                 log.debug(
-    #                     f'found SNMPv3 {cred_type.upper()} cred "{name}" (ID: {id})'
-    #                 )
-    #                 setattr(self, f"snmpv3_{cred_type}_cred_id", id)
-    #                 setattr(self, f"snmpv3_{cred_type}_cred_name", name)
 
     def _set_defaults(self) -> None:
         if self.polling_method is None:
@@ -447,41 +396,43 @@ class OrionNode(Endpoint):
             return False
 
     def update(self):
-        # changing a node from snmpv2c to snmpv3 takes some special handholding
-        if (
-            self.snmp_version == 3
-            and self._swdata["properties"].get("SNMPVersion") == 2
-        ):
+        if self.snmp_version == 3:
             if self.snmpv3_ro_cred_name is None and self.snmpv3_rw_cred_name is None:
                 raise ValueError(
                     "must provide either `snmpv3_ro_cred_name` or "
                     "`snmpv3_rw_cred_name` when `snmp_version` = 3"
                 )
 
-            if self.snmpv3_ro_cred_name is not None:
-                if self.snmpv3_ro_cred_id is None:
-                    self._init_child_objects()
-                    self._update_attrs_from_children()
-                self._associate_credential_set(
-                    "ROSNMPCredentialID", self.snmpv3_ro_cred_id
-                )
+            if self.settings.snmpv3_ro_cred is None:
+                cred = OrionCredential(self.swis, name=self.snmpv3_ro_cred_name)
+                if cred.exists():
+                    setting = OrionNodeSetting(
+                        node=self, name="ROSNMPCredentialID", value=cred.id
+                    )
+                    self.settings.add(setting)
+                else:
+                    raise ValueError(
+                        f'Credential with name "{self.snmpv3_ro_cred_name}" does not exist'
+                    )
 
-            if self.snmpv3_rw_cred_name is not None:
-                if self.snmpv3_rw_cred_id is None:
-                    self._init_child_objects()
-                    self._update_attrs_from_children()
-                self._associate_credential_set(
-                    "RWSNMPCredentialID", self.snmpv3_rw_cred_id
-                )
+            if self.settings.snmpv3_ro_cred.name != self.snmpv3_ro_cred_name:
+                old_cred = self.settings.snmpv3_ro_ced
+                if old_cred:
+                    old_setting = self.settings.get(name="ROSNMPCredentialID")
 
-        # clear stale credential association(s) if switching from v3 to v2
-        if (
-            self.snmp_version == 2
-            and self._swdata["properties"].get("SNMPVersion") == 3
-        ):
-            statement = f"DELETE FROM NodeSettings WHERE NodeID = '{self.node_id}' AND (SettingName = 'ROSNMPCredentialID' OR SettingName = 'RWSNMPCredentialID')"
-            self.swis.sql(statement)
-            log.debug(f"SNMPv3: deleted all associated SNMPv3 credential sets")
+                new_cred = OrionCredential(self.swis, name=self.snmpv3_ro_cred_name)
+                if new_cred.exists():
+                    new_setting = OrionNodeSetting(
+                        node=self, name="ROSNMPCredentialID", value=new_cred.id
+                    )
+                    if old_cred:
+                        self.settings.update(old_setting, new_setting)
+                    else:
+                        self.settings.add(new_setting)
+                else:
+                    raise SWObjectNotFound(
+                        f'Credential with name "{self.snmpv3_ro_cred_name}" does not exist'
+                    )
 
         super().update()
 

@@ -14,7 +14,6 @@ class OrionCredential(Endpoint):
     def __init__(
         self,
         swis: SwisClient,
-        node_id: int,
         id: Union[int, None] = None,
         credential_type: Union[str, None] = None,
         name: Union[str, None] = None,
@@ -22,7 +21,6 @@ class OrionCredential(Endpoint):
     ):
         self.swis = swis
         self.id = id
-        self.node_id = node_id
         self.credential_type = credential_type
         self.name = name
         self.description = description
@@ -39,4 +37,4 @@ class OrionCredential(Endpoint):
         }
 
     def __repr__(self):
-        return f"<OrionCredential: {self.name}>"
+        return f"<OrionCredential: {self.name or self.id}>"
