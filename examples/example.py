@@ -18,11 +18,10 @@ sw = solarwinds.api(**SW_ARGS)
 # )
 # node.update()
 host = "FAPC00FW21"
-node = sw.orion.node(caption=host)
 cred = sw.orion.credential(name="blah")
+node = sw.orion.node(caption=host, snmpv3_ro_cred=cred)
 # node.snmp_version = 3
-# node.settings.snmpv3_ro_cred = cred
+# node.snmpv3_ro_cred = cred
 # node.update()
-# node.settings.snmpv3_ro_cred = cred
 
 ipdb.set_trace()

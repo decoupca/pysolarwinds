@@ -60,6 +60,8 @@ class OrionNode(Endpoint):
         snmp_version: Union[int, None] = None,
         snmpv2c_ro_community: Union[str, None] = None,
         snmpv2c_rw_community: Union[str, None] = None,
+        snmpv3_ro_cred: Union[OrionCredential, None] = None,
+        snmpv3_rw_cred: Union[OrionCredential, None] = None,
     ):
         self.swis = swis
         self.caption = caption
@@ -74,6 +76,8 @@ class OrionNode(Endpoint):
         self.snmp_version = snmp_version
         self.snmpv2c_ro_community = snmpv2c_ro_community
         self.snmpv2c_rw_community = snmpv2c_rw_community
+        self.snmpv3_ro_cred = snmpv3_ro_cred
+        self.snmpv3_rw_cred = snmpv3_rw_cred
 
         self.map_point = None
 
@@ -142,10 +146,7 @@ class OrionNode(Endpoint):
             ):
                 self.polling_method = "snmp"
                 self.snmp_version = 2
-            elif (
-                self.snmpv3_ro_cred_name is not None
-                or self.snmpv3_rw_cred_name is not None
-            ):
+            elif self.snmpv3_ro_cred is not None or self.snmpv3_rw_cred is not None:
                 self.polling_method = "snmp"
                 self.snmp_version = 3
             else:
@@ -383,13 +384,10 @@ class OrionNode(Endpoint):
 
     def update(self):
         if self.snmp_version == 3:
-            if (
-                self.settings.snmpv3_ro_cred is None
-                and self.settings.snmpv3_rw_cred is None
-            ):
+            if self.snmpv3_ro_cred is None and self.snmpv3_rw_cred is None:
                 raise ValueError(
-                    "must provide either settings.snmpv3_ro_cred or "
-                    "settings.snmpv3_rw_cred_name when snmp_version = 3"
+                    "must provide either snmpv3_ro_cred or "
+                    "snmpv3_rw_cred_name when snmp_version = 3"
                 )
         self.settings.save()
         super().update()

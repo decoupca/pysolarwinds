@@ -5,6 +5,10 @@ from solarwinds.exceptions import SWObjectNotFound
 
 
 class OrionNodeSetting(object):
+
+    node_attr = None
+    node_attr_value = None
+
     def __init__(
         self, node, name: str, value: Union[str, int], node_setting_id: int = None
     ):
@@ -13,31 +17,48 @@ class OrionNodeSetting(object):
         self.node_setting_id = node_setting_id
         self.name = name
         self.value = value
+        self.build()
+        if self.node_attr_value is not None:
+            setattr(self.node, self.node_attr, self.node_attr_value)
 
-        if name in ["ROSNMPCredentialID", "RWSNMPCredentialID"]:
-            cred = OrionCredential(swis=self.swis, id=value)
-            if name == "ROSNMPCredentialID":
-                if cred.credential_type.endswith("SnmpCredentialsV3"):
-                    self.node.settings.snmpv3_ro_cred = cred
-            if name == "RWSNMPCredentialID":
-                if cred.credential_type.endswith("SnmpCredentialsV3"):
-                    self.node.settings.snmpv3_rw_cred = cred
+    def build(self) -> None:
+        """overloaded in subclasses to further build/init setting object"""
+        pass
 
     def delete(self) -> bool:
         return self.node.settings.delete(self)
 
+    def exists(self) -> bool:
+        return bool(self.node_setting_id)
+
+    def save(self) -> bool:
+        # TODO
+        pass
+
     def __repr__(self) -> str:
-        return f'<OrionNodeSetting "{self.name}={self.value}"'
+        return f'<OrionNodeSetting "{self.name}": "{self.value}">'
+
+
+class SNMPCredentialSetting(OrionNodeSetting):
+    def build(self):
+        cred = OrionCredential(swis=self.swis, id=self.value)
+        mode = self.name[:2]
+        version = int(cred.credential_type[-1:])
+        self.node_attr = f"snmpv{version}_{mode}_cred"
+        self.node_attr_value = cred
 
 
 class OrionNodeSettings(object):
+
+    CLASS_MAP = {
+        "ROSNMPCredentialID": SNMPCredentialSetting,
+        "RWSNMPCredentialID": SNMPCredentialSetting,
+    }
+
     def __init__(self, node):
         self.node = node
         self.swis = node.swis
         self._settings = []
-
-        self.snmpv3_ro_cred = None
-        self.snmpv3_rw_cred = None
 
     def fetch(self):
         query = (
@@ -50,8 +71,9 @@ class OrionNodeSettings(object):
                 name = setting["SettingName"]
                 value = setting["SettingValue"]
                 node_setting_id = setting["NodeSettingID"]
+                setting_class = self.CLASS_MAP.get(name) or OrionNodeSetting
                 self._settings.append(
-                    OrionNodeSetting(self.node, name, value, node_setting_id)
+                    setting_class(self.node, name, value, node_setting_id)
                 )
 
     def get(
@@ -88,27 +110,7 @@ class OrionNodeSettings(object):
         return False
 
     def save(self) -> bool:
-        if self.snmpv3_ro_cred is None:
-            old_setting = self.get(name="ROSNMPCredentialID")
-            if old_setting:
-                self.delete(old_setting)
-
-        if self.snmpv3_ro_cred is not None:
-            if self.snmpv3_ro_cred.exists():
-                new_setting = OrionNodeSetting(
-                    node=self.node,
-                    name="ROSNMPCredentialID",
-                    value=self.snmpv3_ro_cred.id,
-                )
-                old_setting = self.get(name="ROSNMPCredentialID")
-                if old_setting:
-                    self.update(old_setting, new_setting)
-                else:
-                    self.add(new_setting)
-            else:
-                raise SWObjectNotFound(
-                    f'Credential "{self.snmpv3_ro_cred.name}" does not exist'
-                )
+        pass
 
     def __getitem__(self, item):
         return self._settings[item]
