@@ -159,18 +159,21 @@ class OrionNodeSettings(object):
                             f'{node_attr_value.endpoint} "{node_attr_value.name}" does not exist'
                         )
 
-                if old_setting.name == setting_name and str(old_setting.value) == str(
-                    setting_value
-                ):
-                    log.debug(
-                        f'setting "{setting_name}" with value "{setting_value}" already set'
-                    )
+                if old_setting:
+                    if old_setting.name == setting_name and str(
+                        old_setting.value
+                    ) == str(setting_value):
+                        log.debug(
+                            f'setting "{setting_name}" with value "{setting_value}" already set'
+                        )
+                    else:
+                        new_setting = self.create(
+                            name=setting_name, value=setting_value
+                        )
+                        self.update(old_setting, new_setting)
                 else:
                     new_setting = self.create(name=setting_name, value=setting_value)
-                    if old_setting:
-                        self.update(old_setting, new_setting)
-                    else:
-                        self.add(new_setting)
+                    self.add(new_setting)
 
     def __getitem__(self, item):
         return self._settings[item]
