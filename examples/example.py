@@ -19,7 +19,9 @@ sw = solarwinds.api(**SW_ARGS)
 # node.update()
 host = "FAPC00FW21"
 node = sw.orion.node(caption=host)
-node.update()
+cred = sw.orion.credential(name="blah")
+node.snmpv3_ro_cred = cred
+# node.update()
 # node.snmp_version = 3
 # node.snmpv3_ro_cred = cred
 # node.update()

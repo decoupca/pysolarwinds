@@ -36,17 +36,6 @@ class OrionNodeSetting(object):
     def exists(self) -> bool:
         return bool(self.node_setting_id)
 
-    def is_set(self) -> bool:
-        if self.node.settings._settings:
-            for setting in self.node.settings._settings:
-                if setting.name == self.name and str(setting.value) == str(self.value):
-                    return True
-        return False
-
-    def save(self) -> bool:
-        # TODO
-        pass
-
     def __repr__(self) -> str:
         return f'<OrionNodeSetting "{self.name}": "{self.value}">'
 
@@ -81,6 +70,7 @@ class OrionNodeSettings(object):
         self._settings = []
 
     def fetch(self):
+        self._settings = []
         query = (
             "SELECT SettingName, SettingValue, NodeSettingID "
             f"FROM Orion.NodeSettings WHERE NodeID = '{self.node.id}'"
@@ -169,12 +159,14 @@ class OrionNodeSettings(object):
                             f'{node_attr_value.endpoint} "{node_attr_value.name}" does not exist'
                         )
 
-                new_setting = self.create(name=setting_name, value=setting_value)
-                if new_setting.is_set():
+                if old_setting.name == setting_name and str(old_setting.value) == str(
+                    setting_value
+                ):
                     log.debug(
                         f'setting "{setting_name}" with value "{setting_value}" already set'
                     )
                 else:
+                    new_setting = self.create(name=setting_name, value=setting_value)
                     if old_setting:
                         self.update(old_setting, new_setting)
                     else:
