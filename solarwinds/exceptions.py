@@ -24,3 +24,7 @@ class SWObjectPropertyError(Exception):
 
 class SWNonUniqueResult(Exception):
     pass
+
+
+class SWObjectCreationError(Exception):
+    pass

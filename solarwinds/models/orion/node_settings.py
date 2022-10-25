@@ -1,7 +1,12 @@
+from logging import NullHandler, getLogger
 from typing import Union
 
+from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.credential import OrionCredential
-from solarwinds.exceptions import SWObjectNotFound
+from solarwinds.exceptions import SWObjectCreationError, SWObjectNotFound
+
+log = getLogger(__name__)
+log.addHandler(NullHandler())
 
 
 class OrionNodeSetting(object):
@@ -31,6 +36,13 @@ class OrionNodeSetting(object):
     def exists(self) -> bool:
         return bool(self.node_setting_id)
 
+    def is_set(self) -> bool:
+        if self.node.settings._settings:
+            for setting in self.node.settings._settings:
+                if setting.name == self.name and str(setting.value) == str(self.value):
+                    return True
+        return False
+
     def save(self) -> bool:
         # TODO
         pass
@@ -44,15 +56,23 @@ class SNMPCredentialSetting(OrionNodeSetting):
         cred = OrionCredential(swis=self.swis, id=self.value)
         mode = self.name[:2]
         version = int(cred.credential_type[-1:])
-        self.node_attr = f"snmpv{version}_{mode}_cred"
+        self.node_attr = f"snmpv{version}_{mode.lower()}_cred"
         self.node_attr_value = cred
 
 
 class OrionNodeSettings(object):
 
-    CLASS_MAP = {
-        "ROSNMPCredentialID": SNMPCredentialSetting,
-        "RWSNMPCredentialID": SNMPCredentialSetting,
+    SETTING_MAP = {
+        "ROSNMPCredentialID": {
+            "class": SNMPCredentialSetting,
+            "node_attr": "snmpv3_ro_cred",
+            "setting_value_attr": "id",
+        },
+        "RWSNMPCredentialID": {
+            "class": SNMPCredentialSetting,
+            "node_attr": "snmpv3_rw_cred",
+            "setting_value_attr": "id",
+        },
     }
 
     def __init__(self, node):
@@ -71,10 +91,15 @@ class OrionNodeSettings(object):
                 name = setting["SettingName"]
                 value = setting["SettingValue"]
                 node_setting_id = setting["NodeSettingID"]
-                setting_class = self.CLASS_MAP.get(name) or OrionNodeSetting
-                self._settings.append(
-                    setting_class(self.node, name, value, node_setting_id)
-                )
+                self._settings.append(self.create(name, value, node_setting_id))
+
+    def create(self, name: str, value, node_setting_id=None) -> OrionNodeSetting:
+        setting_props = self.SETTING_MAP.get(name)
+        if setting_props:
+            setting_class = setting_props["class"]
+        else:
+            setting_class = OrionNodeSetting
+        return setting_class(self.node, name, value, node_setting_id)
 
     def get(
         self, name: str = None, node_setting_id: int = None
@@ -83,7 +108,10 @@ class OrionNodeSettings(object):
             raise ValueError("must provide either setting `name` or `node_setting_id`")
         if self._settings:
             for setting in self._settings:
-                if name == setting.name or node_setting_id == setting.node_setting_id:
+                if node_setting_id is not None:
+                    if node_setting_id == setting.node_setting_id:
+                        return setting
+                if name == setting.name:
                     return setting
 
     def add(self, setting: OrionNodeSetting) -> bool:
@@ -92,6 +120,21 @@ class OrionNodeSettings(object):
             f"('{setting.node.id}', '{setting.name}', '{setting.value}')"
         )
         self.swis.sql(statement)
+        # raw SQL statements don't return anything, so we need to pull the
+        # node_setting_id from a separate query
+        query = (
+            "SELECT SettingName, SettingValue, NodeSettingID "
+            f"FROM Orion.NodeSettings WHERE NodeID = '{self.node.id}' "
+            f"AND SettingName = '{setting.name}'"
+        )
+        result = self.swis.query(query)
+        if result:
+            setting.node_setting_id = result["NodeSettingID"]
+        else:
+            raise SWObjectCreationError(
+                f'found no setting "{setting.name}" '
+                f"for NodeID {self.node.id} after attempting creation"
+            )
         self._settings.append(setting)
         return True
 
@@ -110,7 +153,32 @@ class OrionNodeSettings(object):
         return False
 
     def save(self) -> bool:
-        pass
+        for setting_name, setting_props in self.SETTING_MAP.items():
+            node_attr = setting_props["node_attr"]
+            setting_value_attr = setting_props["setting_value_attr"]
+            node_attr_value = getattr(self.node, node_attr)
+            old_setting = self.get(name=setting_name)
+            if node_attr_value is None:
+                if old_setting:
+                    old_setting.delete()
+            else:
+                setting_value = getattr(node_attr_value, setting_value_attr)
+                if isinstance(node_attr_value, Endpoint):
+                    if node_attr_value.exists() is False:
+                        raise SWObjectNotFound(
+                            f'{node_attr_value.endpoint} "{node_attr_value.name}" does not exist'
+                        )
+
+                new_setting = self.create(name=setting_name, value=setting_value)
+                if new_setting.is_set():
+                    log.debug(
+                        f'setting "{setting_name}" with value "{setting_value}" already set'
+                    )
+                else:
+                    if old_setting:
+                        self.update(old_setting, new_setting)
+                    else:
+                        self.add(new_setting)
 
     def __getitem__(self, item):
         return self._settings[item]

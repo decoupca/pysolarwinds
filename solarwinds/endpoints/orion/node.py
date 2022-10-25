@@ -387,7 +387,7 @@ class OrionNode(Endpoint):
             if self.snmpv3_ro_cred is None and self.snmpv3_rw_cred is None:
                 raise ValueError(
                     "must provide either snmpv3_ro_cred or "
-                    "snmpv3_rw_cred_name when snmp_version = 3"
+                    "snmpv3_rw_cred when snmp_version=3"
                 )
         self.settings.save()
         super().update()
