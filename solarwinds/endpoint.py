@@ -464,7 +464,7 @@ class Endpoint(object):
         log.debug(f"executing SWIS query: {query}")
         return self.swis.query(query)
 
-    def update(self) -> bool:
+    def save(self) -> bool:
         """Update object in solarwinds with local object's properties"""
         self._build_swargs()
         if self.exists():
@@ -491,7 +491,7 @@ class Endpoint(object):
                     log.debug("found changes to child objects")
                     for attr in self._changes["child_objects"].keys():
                         child = getattr(self, attr)
-                        child.update()
+                        child.save()
                     log.info(f"{self.name}: updated child objects")
                 self._changes = None
                 return True
