@@ -245,7 +245,7 @@ class OrionNode(Endpoint):
             if created is True:
                 # discovery will not apply any extra params passed to node object,
                 # such as custom properties
-                self.update()
+                self.save()
         else:
             created = super().create()
         if created is True:
@@ -382,7 +382,7 @@ class OrionNode(Endpoint):
             log.warning(f"node does not exist, can't unmanage")
             return False
 
-    def update(self):
+    def save(self):
         if self.snmp_version == 3:
             if self.snmpv3_ro_cred is None and self.snmpv3_rw_cred is None:
                 raise ValueError(
@@ -390,7 +390,7 @@ class OrionNode(Endpoint):
                     "snmpv3_rw_cred when snmp_version=3"
                 )
         self.settings.save()
-        super().update()
+        super().save()
 
     def __repr__(self) -> str:
         return self.name or self.ip_address  # type: ignore
