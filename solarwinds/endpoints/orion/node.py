@@ -206,9 +206,7 @@ class OrionNode(Endpoint):
             or self.snmpv2c_rw_community is not None
         ):
             return 2
-        elif (
-            self.snmpv3_ro_cred_name is not None or self.snmpv3_rw_cred_name is not None
-        ):
+        elif self.snmpv3_ro_cred is not None or self.snmpv3_rw_cred is not None:
             return 3
         else:
             return 0
@@ -233,9 +231,9 @@ class OrionNode(Endpoint):
 
     def create(self) -> bool:
         if self.snmp_version == 3:
-            if self.snmpv3_ro_cred_name is None and self.snmpv3_rw_cred_name is None:
+            if self.snmpv3_ro_cred is None and self.snmpv3_rw_cred is None:
                 raise ValueError(
-                    "must provide `snmpv3_ro_cred_name` or `snmpv3_rw_cred_name` when `snmp_version` = 3"
+                    "must provide snmpv3_ro_cred or snmpv3_rw_cred when snmp_version=3"
                 )
             # creating nodes with a saved credential set requires discovery
             # https://thwack.solarwinds.com/product-forums/the-orion-platform/f/orion-sdk/25327/using-orion-credential-set-for-snmpv3-when-adding-node-through-sdk/25220#25220
@@ -252,7 +250,9 @@ class OrionNode(Endpoint):
             self.enable_pollers()
         return created
 
-    def discover(self, retries=None, timeout=None) -> bool:
+    def discover(
+        self, retries: Union[int, None] = None, timeout: Union[int, None] = None
+    ) -> bool:
         if retries is None:
             retries = d.NODE_DISCOVERY_SNMP_RETRIES
         if timeout is None:
