@@ -251,7 +251,9 @@ class OrionNode(Endpoint):
         return created
 
     def discover(
-        self, retries: Union[int, None] = None, timeout: Union[int, None] = None
+        self,
+        retries,
+        timeout
     ) -> bool:
         if retries is None:
             retries = d.NODE_DISCOVERY_SNMP_RETRIES

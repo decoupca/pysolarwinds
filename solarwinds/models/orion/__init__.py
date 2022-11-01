@@ -1,5 +1,5 @@
 from solarwinds.endpoints.orion.credential import OrionCredential
-from solarwinds.endpoints.orion.node import OrionNode, OrionNodes
+from solarwinds.endpoints.orion.node import OrionNode
 from solarwinds.models.orion.worldmap import WorldMap
 
 
@@ -13,6 +13,3 @@ class Orion(object):
 
     def node(self, **kwargs):
         return OrionNode(self.swis, **kwargs)
-
-    def nodes(self, **kwargs):
-        return OrionNodes(self.swis, **kwargs)
