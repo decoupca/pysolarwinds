@@ -185,14 +185,23 @@ class OrionNode(Endpoint):
         }
 
     def _get_polling_method(self) -> str:
-        ro_community = self._get_swdata_value("Community") or self.snmpv2c_ro_community
-        rw_community = (
-            self._get_swdata_value("RWCommunity") or self.snmpv2c_rw_community
-        )
-        if ro_community is not None or rw_community is not None or self.snmp_version:
-            return "snmp"
+        if self.polling_method is None:
+            ro_community = (
+                self._get_swdata_value("Community") or self.snmpv2c_ro_community
+            )
+            rw_community = (
+                self._get_swdata_value("RWCommunity") or self.snmpv2c_rw_community
+            )
+            if (
+                ro_community is not None
+                or rw_community is not None
+                or self.snmp_version
+            ):
+                return "snmp"
+            else:
+                return "icmp"
         else:
-            return "icmp"
+            return self.polling_method
 
     def _get_pollers(self) -> Union[List, None]:
         if self.polling_method is not None:
@@ -250,11 +259,7 @@ class OrionNode(Endpoint):
             self.enable_pollers()
         return created
 
-    def discover(
-        self,
-        retries,
-        timeout
-    ) -> bool:
+    def discover(self, retries, timeout) -> bool:
         if retries is None:
             retries = d.NODE_DISCOVERY_SNMP_RETRIES
         if timeout is None:
