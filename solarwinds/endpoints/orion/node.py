@@ -200,7 +200,7 @@ class OrionNode(Endpoint):
         else:
             return None
 
-    def _get_snmp_version(self):
+    def _get_snmp_version(self) -> int:
         if (
             self.snmpv2c_ro_community is not None
             or self.snmpv2c_rw_community is not None
