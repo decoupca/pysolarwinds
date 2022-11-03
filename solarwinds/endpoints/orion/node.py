@@ -259,7 +259,7 @@ class OrionNode(Endpoint):
             self.enable_pollers()
         return created
 
-    def discover(self, retries=3, timeout=60) -> bool:
+    def discover(self, retries=None, timeout=None) -> bool:
         if retries is None:
             retries = d.NODE_DISCOVERY_SNMP_RETRIES
         if timeout is None:
