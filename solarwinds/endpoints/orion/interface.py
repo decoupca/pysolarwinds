@@ -1,16 +1,17 @@
 import re
-from typing import Union
+from typing import Dict, Union
 
 from solarwinds.endpoint import Endpoint
+from solarwinds.endpoints.orion.node import OrionNode
 from solarwinds.logging import log
 
 
 class OrionInterface(Endpoint):
     endpoint = "Orion.NPM.Interfaces"
 
-    def __init__(self, device, data: dict):
-        self.device = device
-        self.swis = device.swis
+    def __init__(self, node: OrionNode, data: Dict) -> None:
+        self.node = node
+        self.swis = node.swis
         self.data = data
         self.uri = data.get("uri")
         self._id = None
@@ -71,9 +72,9 @@ class OrionInterface(Endpoint):
 class OrionInterfaces(object):
     endpoint = "Orion.NPM.Interfaces"
 
-    def __init__(self, device) -> None:
-        self.device = device
-        self.swis = device.swis
+    def __init__(self, node) -> None:
+        self.node = node
+        self.swis = node.swis
         self._existing = None
         self._discovered = None
         self._discovery_response_code = None
@@ -100,11 +101,11 @@ class OrionInterfaces(object):
             raise IndexError
 
     def add(self, interfaces):
-        log.info(f"{self.device.name}: monitoring {len(interfaces)} interfaces...")
+        log.info(f"{self.node.name}: monitoring {len(interfaces)} interfaces...")
         return self.swis.invoke(
             "Orion.NPM.Interfaces",
             "AddInterfacesOnNode",
-            self.device.id,
+            self.node.id,
             interfaces,
             "AddDefaultPollers",
         )
@@ -112,9 +113,9 @@ class OrionInterfaces(object):
     def get(self) -> None:
         """
         Queries for interfaces that have already been discovered and assigned
-        to device
+        to node
         """
-        log.info(f"{self.device.name}: getting existing interfaces...")
+        log.info(f"{self.node.name}: getting existing interfaces...")
         query = f"""
             SELECT
                 I.Uri AS uri,
@@ -130,30 +131,30 @@ class OrionInterfaces(object):
             JOIN
                 Orion.NPM.Interfaces I ON N.NodeID = I.NodeID
             WHERE
-                N.NodeID = '{self.device.id}'
+                N.NodeID = '{self.node.id}'
         """
         result = self.swis.query(query)
-        self._existing = [OrionInterface(self.device, data=data) for data in result]
-        log.info(f"{self.device.name}: found {len(self._existing)} existing interfaces")
+        self._existing = [OrionInterface(self.node, data=data) for data in result]
+        log.info(f"{self.node.name}: found {len(self._existing)} existing interfaces")
 
     def discover(self) -> bool:
         """
         Runs SNMP discovery of all available interfaces. This can take a while
         depending on network conditions and number of interfaces on node
         """
-        log.info(f"{self.device.name}: discovering interfaces via SNMP...")
+        log.info(f"{self.node.name}: discovering interfaces via SNMP...")
         result = self.swis.invoke(
-            "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.device.id
+            "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.node.id
         )
         self._discovery_response_code = result["Result"]
         if self._discovery_response_code == 0:
             results = result["DiscoveredInterfaces"]
-            log.info(f"{self.device.name}: discovered {len(results)} interfaces")
+            log.info(f"{self.node.name}: discovered {len(results)} interfaces")
             self._discovered = results
             return True
         else:
             log.error(
-                f"{self.device.name}: discovery failed. SNMP may be inaccessible, creds invalid, etc."
+                f"{self.node.name}: discovery failed. SNMP may be inaccessible, creds invalid, etc."
             )
             return False
 
@@ -170,7 +171,7 @@ class OrionInterfaces(object):
             extraneous = [x for x in self._existing if x.name not in interfaces]
 
             if missing:
-                log.info(f"{self.device.name}: found {len(missing)} missing interfaces")
+                log.info(f"{self.node.name}: found {len(missing)} missing interfaces")
                 self.discover()
                 to_add = [
                     x
@@ -182,14 +183,14 @@ class OrionInterfaces(object):
 
             if extraneous:
                 log.info(
-                    f"{self.device.name}: found {len(extraneous)} interfaces to delete"
+                    f"{self.node.name}: found {len(extraneous)} interfaces to delete"
                 )
                 for intf in extraneous:
                     intf.delete()
 
             if not missing and not extraneous:
                 log.info(
-                    f"{self.device.name}: all {len(interfaces)} provided interfaces "
+                    f"{self.node.name}: all {len(interfaces)} provided interfaces "
                     "already monitored, doing nothing"
                 )
 

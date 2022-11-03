@@ -8,8 +8,8 @@ class Orion(object):
         self.swis = swis
         self.worldmap = WorldMap(swis)
 
-    def credential(self, **kwargs):
+    def credential(self, **kwargs) -> OrionCredential:
         return OrionCredential(self.swis, **kwargs)
 
-    def node(self, **kwargs):
+    def node(self, **kwargs) -> OrionNode:
         return OrionNode(self.swis, **kwargs)
