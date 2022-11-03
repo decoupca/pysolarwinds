@@ -30,13 +30,13 @@ class SwisClient:
             self._req("POST", "Query", {"query": query, "parameters": params}).json()
         )
 
-    def invoke(self, entity, verb, *args):
-        return self._req("POST", "Invoke/{}/{}".format(entity, verb), args).json()
+    def invoke(self, entity, verb, *args) -> Dict:
+        return self._req("POST", f"Invoke/{entity}/{verb}", args).json()
 
-    def create(self, entity, **properties):
+    def create(self, entity, **properties) -> Dict:
         return self._req("POST", "Create/" + entity, properties).json()
 
-    def read(self, uri):
+    def read(self, uri) -> Dict:
         return self._req("GET", uri).json()
 
     def update(self, uri, **properties):
@@ -55,8 +55,10 @@ class SwisClient:
         """
         Workaround API to execute arbitrary SQL against Solarwinds DB
         **NOTE**: This method takes raw TSQL syntax, *NOT* SWQL syntax
+        Returns empty data structure if successful
         """
-        return self.invoke("Orion.Reporting", "ExecuteSQL", statement)
+        self.invoke("Orion.Reporting", "ExecuteSQL", statement)
+        return True
 
     def _req(self, method, frag, data=None):
         resp = self.client.request(
