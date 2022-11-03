@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from logging import NullHandler, getLogger
 from time import sleep
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import solarwinds.defaults as d
 from solarwinds.client import SwisClient
@@ -48,20 +48,20 @@ class OrionNode(Endpoint):
     def __init__(
         self,
         swis: SwisClient,
-        ip_address: Union[str, None] = None,
-        caption: Union[str, None] = None,
-        custom_properties: Union[Dict, None] = None,
-        engine_id: Union[int, None] = None,
-        latitude: Union[float, None] = None,
-        longitude: Union[float, None] = None,
-        node_id: Union[int, None] = None,
-        pollers: Union[List, None] = None,
-        polling_method: Union[str, None] = None,
-        snmp_version: Union[int, None] = None,
-        snmpv2c_ro_community: Union[str, None] = None,
-        snmpv2c_rw_community: Union[str, None] = None,
-        snmpv3_ro_cred: Union[OrionCredential, None] = None,
-        snmpv3_rw_cred: Union[OrionCredential, None] = None,
+        ip_address: Optional[str] = None,
+        caption: Optional[str] = None,
+        custom_properties: Optional[Dict] = None,
+        engine_id: Optional[int] = None,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
+        node_id: Optional[int] = None,
+        pollers: Optional[List] = None,
+        polling_method: Optional[str] = None,
+        snmp_version: Optional[int] = None,
+        snmpv2c_ro_community: Optional[str] = None,
+        snmpv2c_rw_community: Optional[str] = None,
+        snmpv3_ro_cred: Optional[OrionCredential] = None,
+        snmpv3_rw_cred: Optional[OrionCredential] = None,
     ):
         self.swis = swis
         self.caption = caption
