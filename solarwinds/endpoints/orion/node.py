@@ -267,18 +267,18 @@ class OrionNode(Endpoint):
 
         credentials = []
         order = 1
-        if self.snmpv3_ro_cred_id is not None:
+        if self.snmpv3_ro_cred is not None:
             credentials.append(
                 {
-                    "CredentialID": self.snmpv3_ro_cred_id,
+                    "CredentialID": self.snmpv3_ro_cred.id,
                     "Order": order,
                 }
             )
             order += 1
-        if self.snmpv3_rw_cred_id is not None:
+        if self.snmpv3_rw_cred is not None:
             credentials.append(
                 {
-                    "CredentialID": self.snmpv3_rw_cred_id,
+                    "CredentialID": self.snmpv3_rw_cred.id,
                     "Order": order,
                 }
             )
