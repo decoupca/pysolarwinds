@@ -153,7 +153,7 @@ class OrionNode(Endpoint):
                 self.polling_method = "icmp"
                 self.snmp_version = 0
         if self.pollers is None:
-            self.pollers = d.NODE_DEFAULT_POLLERS[self.polling_method]
+            self.pollers = d.NODE_DEFAULT_POLLERS[self.polling_method.lower()]
 
     def _get_attr_updates(self) -> Dict:
         """
