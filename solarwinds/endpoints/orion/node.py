@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from logging import NullHandler, getLogger
 from time import sleep
 from typing import Dict, List, Optional, Union
 
@@ -99,27 +98,27 @@ class OrionNode(Endpoint):
             self.settings.fetch()
 
     @property
-    def name(self) -> Union[str, None]:
+    def name(self) -> Optional[str]:
         return self.caption
 
     @property
-    def int(self):
+    def int(self) -> OrionInterfaces:
         return self.interfaces
 
     @property
-    def ints(self):
+    def ints(self) -> OrionInterfaces:
         return self.interfaces
 
     @property
-    def intf(self):
+    def intf(self) -> OrionInterfaces:
         return self.interfaces
 
     @property
-    def intfs(self):
+    def intfs(self) -> OrionInterfaces:
         return self.interfaces
 
     @property
-    def ip(self) -> Union[str, None]:
+    def ip(self) -> Optional[str]:
         return self.ip_address
 
     @ip.setter
@@ -127,7 +126,7 @@ class OrionNode(Endpoint):
         self.ip_address = ip_address
 
     @property
-    def hostname(self) -> Union[str, None]:
+    def hostname(self) -> Optional[str]:
         return self.caption
 
     @hostname.setter
@@ -135,7 +134,7 @@ class OrionNode(Endpoint):
         self.caption = hostname
 
     @property
-    def status(self):
+    def status(self) -> Optional[str]:
         return self._get_swdata_value("Status")
 
     def _set_defaults(self) -> None:
@@ -203,7 +202,7 @@ class OrionNode(Endpoint):
         else:
             return self.polling_method
 
-    def _get_pollers(self) -> Union[List, None]:
+    def _get_pollers(self) -> Optional[List]:
         if self.polling_method is not None:
             return d.NODE_DEFAULT_POLLERS[self.polling_method]
         else:
@@ -390,7 +389,7 @@ class OrionNode(Endpoint):
             logger.warning(f"node does not exist, can't unmanage")
             return False
 
-    def save(self):
+    def save(self) -> bool:
         if self.snmp_version == 3:
             if self.snmpv3_ro_cred is None and self.snmpv3_rw_cred is None:
                 raise ValueError(
@@ -398,7 +397,7 @@ class OrionNode(Endpoint):
                     "snmpv3_rw_cred when snmp_version=3"
                 )
         self.settings.save()
-        super().save()
+        return super().save()
 
     def __repr__(self) -> str:
         return self.name or self.ip_address  # type: ignore
