@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 class OrionNode(Endpoint):
     endpoint = "Orion.Nodes"
-    _id_attr = "node_id"
+    _id_attr = "id"
     _swid_key = "NodeID"
     _swquery_attrs = ["ip_address", "caption"]
     _swargs_attrs = [
@@ -51,7 +51,7 @@ class OrionNode(Endpoint):
         engine_id: Optional[int] = None,
         latitude: Optional[float] = None,
         longitude: Optional[float] = None,
-        node_id: Optional[int] = None,
+        id: Optional[int] = None,
         pollers: Optional[List] = None,
         polling_method: Optional[str] = None,
         snmp_version: Optional[int] = None,
@@ -67,7 +67,7 @@ class OrionNode(Endpoint):
         self.ip_address = ip_address
         self.latitude = latitude
         self.longitude = longitude
-        self.node_id = node_id
+        self.id = id
         self.polling_method = polling_method
         self.pollers = pollers
         self.snmp_version = snmp_version
@@ -213,7 +213,7 @@ class OrionNode(Endpoint):
             return 0
 
     def enable_pollers(self) -> bool:
-        node_id = self.node_id or self._get_id()
+        id = self.id or self._get_id()
         if self.pollers:
             logger.warning(f"no pollers to enable, doing nothing")
             return False
@@ -221,9 +221,9 @@ class OrionNode(Endpoint):
             for poller_type in self.pollers:
                 poller = {
                     "PollerType": poller_type,
-                    "NetObject": f"N:{node_id}",
+                    "NetObject": f"N:{id}",
                     "NetObjectType": "N",
-                    "NetObjectID": node_id,
+                    "NetObjectID": id,
                     "Enabled": True,
                 }
                 self.api.create("Orion.Pollers", **poller)
@@ -380,7 +380,7 @@ class OrionNode(Endpoint):
             self._get_swdata(data="properties")
             if not self._swdata["properties"]["UnManaged"]:
                 self.api.invoke(
-                    "Orion.Nodes", "Unmanage", f"N:{self.node_id}", start, end, False
+                    "Orion.Nodes", "Unmanage", f"N:{self.id}", start, end, False
                 )
                 logger.info(f"unmanaged node until {end}")
                 return True
