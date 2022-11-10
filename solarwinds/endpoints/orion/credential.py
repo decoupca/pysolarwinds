@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 from solarwinds.client import SwisClient
 from solarwinds.endpoint import Endpoint
@@ -18,17 +18,17 @@ class OrionCredential(Endpoint):
         credential_type: Optional[str] = None,
         name: Optional[str] = None,
         description: Optional[str] = None,
-    ):
+    ) -> None:
         self.swis = swis
         self.id = id
         self.credential_type = credential_type
         self.name = name
         self.description = description
-        if id is None and name is None:
+        if not id and not name:
             raise ValueError("must provide either credential ID or name")
         super().__init__()
 
-    def _get_attr_updates(self) -> dict:
+    def _get_attr_updates(self) -> Dict:
         swdata = self._swdata["properties"]
         return {
             "credential_type": swdata.get("CredentialType"),

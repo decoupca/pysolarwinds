@@ -1,10 +1,10 @@
 import logging
 
 import ipdb
-import solarwinds
+from config import SW_ARGS
 from rich import print
 
-from config import SW_ARGS
+import solarwinds
 
 disable_loggers = ["asyncio", "httpx._client"]
 for logger in disable_loggers:
