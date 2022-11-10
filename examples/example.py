@@ -12,7 +12,7 @@ for logger in disable_loggers:
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(levelname)s [%(name)s.%(funcName)s()] %(lineno)d: %(msg)s",
+    format="%(levelname)s [%(name)s.%(funcName)s:%(lineno)d]  %(msg)s",
 )
 
 sw = solarwinds.api(**SW_ARGS)
