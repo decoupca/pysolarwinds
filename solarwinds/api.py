@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List, Optional, Union
 
 import httpx
 
@@ -15,7 +15,14 @@ def _json_serial(obj):
 
 
 class API:
-    def __init__(self, hostname, username, password, verify=True, timeout=60):
+    def __init__(
+        self,
+        hostname: str,
+        username: str,
+        password: str,
+        verify: Union[bool, str] = True,
+        timeout: int = 60,
+    ):
         self.url = f"https://{hostname}:17778/SolarWinds/InformationService/v3/Json/"
         self.client = httpx.Client(
             auth=(username, password),
@@ -25,31 +32,31 @@ class API:
             verify=verify,
         )
 
-    def query(self, query, **params) -> Dict:
+    def query(self, query: str, **params) -> List:
         return parse_response(
             self._req("POST", "Query", {"query": query, "parameters": params}).json()
         )
 
-    def invoke(self, entity, verb, *args) -> Dict:
+    def invoke(self, entity: str, verb: str, *args) -> Dict:
         return self._req("POST", f"Invoke/{entity}/{verb}", args).json()
 
-    def create(self, entity, **properties) -> Dict:
-        return self._req("POST", "Create/" + entity, properties).json()
+    def create(self, entity: str, **properties) -> Dict:
+        return self._req("POST", f"Create/{entity}", properties).json()
 
-    def read(self, uri) -> Dict:
+    def read(self, uri: str) -> Dict:
         return self._req("GET", uri).json()
 
-    def update(self, uri, **properties):
-        self._req("POST", uri, properties)
+    def update(self, uris: Union[List[str], str], **properties):
+        if isinstance(uris, list):
+            self._req("POST", "BulkUpdate", {"uris": uris, "properties": properties})
+        else:
+            self._req("POST", uris, properties)
 
-    def bulkupdate(self, uris, **properties):
-        self._req("POST", "BulkUpdate", {"uris": uris, "properties": properties})
-
-    def delete(self, uri):
-        self._req("DELETE", uri)
-
-    def bulkdelete(self, uris):
-        self._req("POST", "BulkDelete", {"uris": uris})
+    def delete(self, uris: Union[List[str], str]):
+        if isinstance(uris, list):
+            self._req("POST", "BulkDelete", {"uris": uris})
+        else:
+            self._req("DELETE", uris)
 
     def sql(self, statement: str) -> bool:
         """
@@ -60,17 +67,17 @@ class API:
         self.invoke("Orion.Reporting", "ExecuteSQL", statement)
         return True
 
-    def _req(self, method, frag, data=None):
-        resp = self.client.request(
+    def _req(self, method: str, frag: str, data: Optional[Dict] = None):
+        response = self.client.request(
             method, self.url + frag, data=json.dumps(data, default=_json_serial)
         )
 
         # try to extract reason from response when request returns error
-        if 400 <= resp.status_code < 600:
+        if 400 <= response.status_code < 600:
             try:
-                resp.reason = json.loads(resp.text)["Message"]
+                response.reason = json.loads(response.text)["Message"]
             except:
                 pass
 
-        resp.raise_for_status()
-        return resp
+        response.raise_for_status()
+        return response
