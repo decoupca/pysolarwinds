@@ -188,7 +188,7 @@ class OrionNode(Endpoint):
 
     def _get_polling_method(self) -> str:
         """infer polling method from SNMP attributes if not explicitly given"""
-        if self.polling_method is None:
+        if not self.polling_method:
             ro_community = (
                 self._get_swdata_value("Community") or self.snmpv2c_ro_community
             )
@@ -211,19 +211,16 @@ class OrionNode(Endpoint):
         return d.NODE_DEFAULT_POLLERS.get(self.polling_method) or []
 
     def _get_snmp_version(self) -> int:
-        if (
-            self.snmpv2c_ro_community is not None
-            or self.snmpv2c_rw_community is not None
-        ):
+        if self.snmpv2c_ro_community or self.snmpv2c_rw_community:
             return 2
-        elif self.snmpv3_ro_cred is not None or self.snmpv3_rw_cred is not None:
+        elif self.snmpv3_ro_cred or self.snmpv3_rw_cred:
             return 3
         else:
             return 0
 
     def enable_pollers(self) -> bool:
         node_id = self.node_id or self._get_id()
-        if self.pollers is None:
+        if self.pollers:
             logger.warning(f"no pollers to enable, doing nothing")
             return False
         else:
@@ -243,7 +240,7 @@ class OrionNode(Endpoint):
         if not self.ip_address:
             raise SWObjectPropertyError(f"must provide IP address to create node")
         if self.snmp_version == 3:
-            if self.snmpv3_ro_cred is None and self.snmpv3_rw_cred is None:
+            if not self.snmpv3_ro_cred and not self.snmpv3_rw_cred:
                 raise ValueError(
                     "must provide snmpv3_ro_cred or snmpv3_rw_cred when snmp_version=3"
                 )
@@ -252,13 +249,13 @@ class OrionNode(Endpoint):
             # TODO: it is possible to directly create an snmpv3 node using ad-hoc credentials
             #       (i.e, not referencing a saved credential set), but this is not yet implemented.
             created = self.discover()
-            if created is True:
+            if created:
                 # discovery will not apply any extra params passed to node object,
                 # such as custom properties
                 self.save()
         else:
             created = super().create()
-        if created is True:
+        if created:
             self.enable_pollers()
         return created
 
@@ -270,7 +267,7 @@ class OrionNode(Endpoint):
 
         credentials = []
         order = 1
-        if self.snmpv3_ro_cred is not None:
+        if self.snmpv3_ro_cred:
             credentials.append(
                 {
                     "CredentialID": self.snmpv3_ro_cred.id,
@@ -278,7 +275,7 @@ class OrionNode(Endpoint):
                 }
             )
             order += 1
-        if self.snmpv3_rw_cred is not None:
+        if self.snmpv3_rw_cred:
             credentials.append(
                 {
                     "CredentialID": self.snmpv3_rw_cred.id,
@@ -349,21 +346,23 @@ class OrionNode(Endpoint):
                 f"Orion.DiscoveryLogItems WHERE BatchID = '{batch_id}'"
             )
             self._discovered_entities = self.swis.query(query)
-            if self._discovered_entities is not None:
+            if self._discovered_entities:
                 return True
             else:
-                raise SWNodeDiscoveryError(f"Found nothing at IP {self.ip_address}")
+                raise SWNodeDiscoveryError(
+                    f"discovery found nothing at IP: {self.ip_address}"
+                )
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
             error_message = result["ErrorMessage"]
             raise SWNodeDiscoveryError(
-                f"Node discovery failed. Status: {error_status}, Error: {error_message}"
+                f"node discovery failed. Status: {error_status}, Error: {error_message}"
             )
 
     def remanage(self) -> bool:
         if self.exists():
             self._get_swdata(data="properties")
-            if self._swdata["properties"]["UnManaged"] is True:
+            if self._swdata["properties"]["UnManaged"]:
                 self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
                 logger.info(f"re-managed node successfully")
                 return True
@@ -385,7 +384,7 @@ class OrionNode(Endpoint):
             if end is None:
                 end = now + timedelta(days=1)
             self._get_swdata(data="properties")
-            if self._swdata["properties"]["UnManaged"] is False:
+            if not self._swdata["properties"]["UnManaged"]:
                 self.swis.invoke(
                     "Orion.Nodes", "Unmanage", f"N:{self.node_id}", start, end, False
                 )
@@ -400,7 +399,7 @@ class OrionNode(Endpoint):
 
     def save(self) -> bool:
         if self.snmp_version == 3:
-            if self.snmpv3_ro_cred is None and self.snmpv3_rw_cred is None:
+            if not self.snmpv3_ro_cred and not self.snmpv3_rw_cred:
                 raise ValueError(
                     "must provide either snmpv3_ro_cred or "
                     "snmpv3_rw_cred when snmp_version=3"
