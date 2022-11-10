@@ -166,16 +166,19 @@ class OrionNode(Endpoint):
             "snmpv2c_ro_community": swdata["Community"],
             "snmpv2c_rw_community": swdata["RWCommunity"],
             "polling_method": self._get_polling_method(),
-            "pollers": self.pollers
+            "pollers": self._get_pollers()
             or d.NODE_DEFAULT_POLLERS[swdata["ObjectSubType"].lower()],
             "snmp_version": swdata["SNMPVersion"],
         }
 
     def _get_discovery_status(self) -> None:
-        if self._discovery_profile_id is None:
+        if not self._discovery_profile_id:
             return None
-        status_query = f"SELECT Status FROM Orion.DiscoveryProfiles WHERE ProfileID = {self._discovery_profile_id}"
-        self._discovery_profile_status = self.swis.query(status_query)[0]["Status"]
+        query = (
+            "SELECT Status FROM Orion.DiscoveryProfiles "
+            f"WHERE ProfileID = {self._discovery_profile_id}"
+        )
+        self._discovery_profile_status = self.swis.query(query)[0]["Status"]
 
     def _get_extra_swargs(self) -> Dict:
         return {
@@ -184,6 +187,7 @@ class OrionNode(Endpoint):
         }
 
     def _get_polling_method(self) -> str:
+        """infer polling method from SNMP attributes if not explicitly given"""
         if self.polling_method is None:
             ro_community = (
                 self._get_swdata_value("Community") or self.snmpv2c_ro_community
@@ -202,11 +206,9 @@ class OrionNode(Endpoint):
         else:
             return self.polling_method
 
-    def _get_pollers(self) -> Optional[List]:
-        if self.polling_method is not None:
-            return d.NODE_DEFAULT_POLLERS[self.polling_method]
-        else:
-            return None
+    def _get_pollers(self) -> List:
+        """get a list of solarwinds pollers to enable"""
+        return d.NODE_DEFAULT_POLLERS.get(self.polling_method) or []
 
     def _get_snmp_version(self) -> int:
         if (
