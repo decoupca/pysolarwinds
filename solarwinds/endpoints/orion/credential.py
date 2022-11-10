@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 
 from solarwinds.api import API
 from solarwinds.endpoint import Endpoint

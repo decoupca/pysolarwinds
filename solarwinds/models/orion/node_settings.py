@@ -8,7 +8,7 @@ from solarwinds.logging import get_logger
 logger = get_logger(__name__)
 
 
-class OrionNodeSetting(object):
+class OrionNodeSetting:
 
     node_attr = None
     node_attr_value = None

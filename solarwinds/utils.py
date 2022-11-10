@@ -1,8 +1,8 @@
 import re
-from typing import Dict, Union
+from typing import Dict, Optional
 
 
-def parse_response(response) -> Union[Dict, None]:
+def parse_response(response: List) -> Optional[Dict]:
     """Parse a response from SWIS"""
     if response is not None:
         result = response.get("results")
@@ -14,7 +14,7 @@ def parse_response(response) -> Union[Dict, None]:
         return None
 
 
-def sanitize_swdata(swdata) -> str:
+def sanitize_swdata(swdata: Dict) -> Dict:
     for k, v in swdata.items():
         if isinstance(v, str):
             if re.match(r"^\d+$", v):
@@ -28,5 +28,5 @@ def camel_to_snake(name: str) -> str:
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
 
 
-def print_dict(dct):
+def print_dict(dct: Dict) -> str:
     return str(dct).replace("{", "").replace("}", "").replace("'", "")
