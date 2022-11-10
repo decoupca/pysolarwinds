@@ -8,7 +8,7 @@ from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.credential import OrionCredential
 from solarwinds.endpoints.orion.interface import OrionInterfaces
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
-from solarwinds.exceptions import SWNodeDiscoveryError, SWObjectPropertyError
+from solarwinds.exceptions import SWDiscoveryError, SWObjectPropertyError
 from solarwinds.logging import get_logger
 from solarwinds.maps import NODE_DISCOVERY_STATUS_MAP
 from solarwinds.models.orion.node_settings import OrionNodeSettings
@@ -328,7 +328,7 @@ class OrionNode(Endpoint):
             result = self.api.query(query)
             result_code = result[0]["Result"]
         else:
-            raise SWNodeDiscoveryError(
+            raise SWDiscoveryError(
                 f"node discovery failed. last status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
             )
 
@@ -343,13 +343,13 @@ class OrionNode(Endpoint):
             if self._discovered_entities:
                 return True
             else:
-                raise SWNodeDiscoveryError(
+                raise SWDiscoveryError(
                     f"discovery found nothing at IP: {self.ip_address}"
                 )
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
             error_message = result["ErrorMessage"]
-            raise SWNodeDiscoveryError(
+            raise SWDiscoveryError(
                 f"node discovery failed. Status: {error_status}, Error: {error_message}"
             )
 

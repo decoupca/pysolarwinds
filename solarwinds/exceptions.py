@@ -1,4 +1,4 @@
-class SWNodeDiscoveryError(Exception):
+class SWDiscoveryError(Exception):
     pass
 
 

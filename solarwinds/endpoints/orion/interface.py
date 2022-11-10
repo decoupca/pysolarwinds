@@ -2,6 +2,7 @@ import re
 from typing import Dict, Union
 
 from solarwinds.endpoint import Endpoint
+from solarwinds.exceptions import SWDiscoveryError
 from solarwinds.logging import get_logger
 
 logger = get_logger(__name__)
@@ -156,13 +157,13 @@ class OrionInterfaces(object):
             self._discovered = results
             return True
         else:
-            logger.error(
-                f"{self.node.name}: discovery failed. SNMP may be inaccessible, creds invalid, etc."
+            raise SWDiscoveryError(
+                f"{self.node.name}: interface discovery failed. "
+                "SNMP may be inaccessible, creds invalid, etc."
             )
-            return False
 
     def monitor(self, interfaces=None) -> None:
-        if self._existing is None:
+        if not self._existing:
             self.get()
 
         if interfaces is None:
