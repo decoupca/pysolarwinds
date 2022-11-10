@@ -87,7 +87,7 @@ class OrionNode(Endpoint):
         self._discovery_profile_status = 0
         self._discovered_entities = None
 
-        self._swdata = {}
+        self._swdata = {"properties": {}, "custom_properties": {}}
 
         if self.ip_address is None and self.caption is None:
             raise SWObjectPropertyError("Must provide either ip_address or caption")
@@ -135,14 +135,11 @@ class OrionNode(Endpoint):
 
     @property
     def status(self) -> Optional[str]:
-        return self._get_swdata_value("Status")
+        return self._swdata["properties"].get("Status")
 
     def _set_defaults(self) -> None:
         if not self.polling_method:
-            if (
-                self.snmpv2c_ro_community
-                or self.snmpv2c_rw_community
-            ):
+            if self.snmpv2c_ro_community or self.snmpv2c_rw_community:
                 self.polling_method = "snmp"
                 self.snmp_version = 2
             elif self.snmpv3_ro_cred or self.snmpv3_rw_cred:
@@ -182,7 +179,7 @@ class OrionNode(Endpoint):
 
     def _get_extra_swargs(self) -> Dict:
         return {
-            "status": self._get_swdata_value("Status") or 1,
+            "status": self._swdata["properties"].get("Status") or 1,
             "objectsubtype": self._get_polling_method().upper(),
         }
 
@@ -190,10 +187,11 @@ class OrionNode(Endpoint):
         """infer polling method from SNMP attributes if not explicitly given"""
         if not self.polling_method:
             ro_community = (
-                self._get_swdata_value("Community") or self.snmpv2c_ro_community
+                self._swdata["properties"].get("Community") or self.snmpv2c_ro_community
             )
             rw_community = (
-                self._get_swdata_value("RWCommunity") or self.snmpv2c_rw_community
+                self._swdata["properties"].get("RWCommunity")
+                or self.snmpv2c_rw_community
             )
             if (
                 ro_community is not None

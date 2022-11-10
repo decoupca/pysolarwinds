@@ -316,12 +316,6 @@ class Endpoint:
         ):
             self._swargs = swargs
 
-    def _get_swdata_value(self, key: str, data: str = "properties") -> Any:
-        if self._swdata is not None:
-            data = self._swdata.get(data)
-            if data is not None:
-                return data.get(key)
-
     def _get_extra_swargs(self) -> dict:
         # overwrite in subcasses if they have extra swargs
         return {}
