@@ -12,8 +12,7 @@ from solarwinds.exceptions import (SWNodeDiscoveryError, SWObjectNotFound,
                                    SWObjectPropertyError)
 from solarwinds.logging import get_logger
 from solarwinds.maps import NODE_DISCOVERY_STATUS_MAP
-from solarwinds.models.orion.node_settings import (OrionNodeSetting,
-                                                   OrionNodeSettings)
+from solarwinds.models.orion.node_settings import OrionNodeSettings
 
 logger = get_logger(__name__)
 
@@ -237,7 +236,7 @@ class OrionNode(Endpoint):
             raise SWObjectPropertyError(f"must provide IP address to create node")
         if self.snmp_version == 3:
             if not self.snmpv3_ro_cred and not self.snmpv3_rw_cred:
-                raise ValueError(
+                raise SWObjectPropertyError(
                     "must provide snmpv3_ro_cred or snmpv3_rw_cred when snmp_version=3"
                 )
             # creating nodes with a saved credential set requires discovery
@@ -310,7 +309,7 @@ class OrionNode(Endpoint):
         self._discovery_profile_id = self.swis.invoke(
             "Orion.Discovery", "StartDiscovery", discovery_profile
         )
-        logger.debug(f"discovering node: job id: {self._discovery_profile_id}")
+        logger.info(f"discovering node: job id: {self._discovery_profile_id}...")
         self._get_discovery_status()
         seconds_waited = 0
         while seconds_waited < timeout and self._discovery_profile_status == 1:
@@ -335,7 +334,7 @@ class OrionNode(Endpoint):
             )
 
         if result_code == 2:
-            logger.debug(f"node discovery job finished, getting discovered items...")
+            logger.info(f"node discovery job finished, getting discovered items...")
             batch_id = result[0]["BatchID"]
             query = (
                 "SELECT EntityType, DisplayName, NetObjectID FROM "
