@@ -162,7 +162,7 @@ class OrionNodeSettings(object):
                     if old_setting.name == setting_name and str(
                         old_setting.value
                     ) == str(setting_value):
-                        log.debug(
+                        logger.debug(
                             f'setting "{setting_name}" with value "{setting_value}" already set'
                         )
                     else:
