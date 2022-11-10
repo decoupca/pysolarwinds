@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 
 from solarwinds.client import SwisClient
 from solarwinds.endpoint import Endpoint
@@ -14,10 +14,10 @@ class OrionCredential(Endpoint):
     def __init__(
         self,
         swis: SwisClient,
-        id: Union[int, None] = None,
-        credential_type: Union[str, None] = None,
-        name: Union[str, None] = None,
-        description: Union[str, None] = None,
+        id: Optional[int] = None,
+        credential_type: Optional[str] = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
     ):
         self.swis = swis
         self.id = id
@@ -37,4 +37,4 @@ class OrionCredential(Endpoint):
         }
 
     def __repr__(self):
-        return f"<OrionCredential: {self.name or self.id}>"
+        return f"<OrionCredential: {self.credential_type}: {self.name or self.id}>"

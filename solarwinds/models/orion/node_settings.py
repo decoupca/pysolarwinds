@@ -16,14 +16,14 @@ class OrionNodeSetting(object):
 
     def __init__(
         self, node, name: str, value: Union[str, int], node_setting_id: int = None
-    ):
+    ) -> None:
         self.node = node
         self.swis = node.swis
         self.node_setting_id = node_setting_id
         self.name = name
         self.value = value
         self.build()
-        if self.node_attr_value is not None:
+        if self.node_attr_value:
             setattr(self.node, self.node_attr, self.node_attr_value)
 
     def build(self) -> None:
@@ -41,7 +41,7 @@ class OrionNodeSetting(object):
 
 
 class SNMPCredentialSetting(OrionNodeSetting):
-    def build(self):
+    def build(self) -> None:
         cred = OrionCredential(swis=self.swis, id=self.value)
         mode = self.name[:2]
         version = int(cred.credential_type[-1:])
@@ -69,14 +69,14 @@ class OrionNodeSettings(object):
         self.swis = node.swis
         self._settings = []
 
-    def fetch(self):
+    def fetch(self) -> None:
         self._settings = []
         query = (
             "SELECT SettingName, SettingValue, NodeSettingID "
             f"FROM Orion.NodeSettings WHERE NodeID = '{self.node.id}'"
         )
         settings = self.swis.query(query)
-        if settings is not None:
+        if settings:
             for setting in settings:
                 name = setting["SettingName"]
                 value = setting["SettingValue"]

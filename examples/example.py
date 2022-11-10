@@ -18,12 +18,14 @@ logging.basicConfig(
 sw = solarwinds.api(**SW_ARGS)
 
 
-node = sw.orion.node(
-    caption="death-star",
-    snmpv3_ro_cred=sw.orion.credential(name="NETSEC"),
-    custom_properties={"Site": "PTC - Plano, TX, US", "Region": "AMER"},
-)
+# node = sw.orion.node(
+#     caption="death-star",
+#     snmpv3_ro_cred=sw.orion.credential(name="NETSEC"),
+#     custom_properties={"Site": "PTC - Plano, TX, US", "Region": "AMER"},
+# )
 
+# node = sw.orion.node(caption='FBCR03FW01')
+cred = sw.orion.credential(id=10)
 # node.update()
 # node.snmp_version = 3
 # node.snmpv3_ro_cred = cred
