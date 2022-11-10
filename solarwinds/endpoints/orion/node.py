@@ -138,20 +138,20 @@ class OrionNode(Endpoint):
         return self._get_swdata_value("Status")
 
     def _set_defaults(self) -> None:
-        if self.polling_method is None:
+        if not self.polling_method:
             if (
-                self.snmpv2c_ro_community is not None
-                or self.snmpv2c_rw_community is not None
+                self.snmpv2c_ro_community
+                or self.snmpv2c_rw_community
             ):
                 self.polling_method = "snmp"
                 self.snmp_version = 2
-            elif self.snmpv3_ro_cred is not None or self.snmpv3_rw_cred is not None:
+            elif self.snmpv3_ro_cred or self.snmpv3_rw_cred:
                 self.polling_method = "snmp"
                 self.snmp_version = 3
             else:
                 self.polling_method = "icmp"
                 self.snmp_version = 0
-        if self.pollers is None:
+        if not self.pollers:
             self.pollers = d.NODE_DEFAULT_POLLERS[self.polling_method.lower()]
 
     def _get_attr_updates(self) -> Dict:
