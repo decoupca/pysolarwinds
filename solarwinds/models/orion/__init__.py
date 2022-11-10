@@ -10,8 +10,20 @@ class Orion(object):
         self.api = api
         self.worldmap = WorldMap(api)
 
-    def credential(self, **kwargs) -> OrionCredential:
-        return OrionCredential(self.api, **kwargs)
+    def credential(
+        self,
+        id: Optional[int] = None,
+        credential_type: Optional[str] = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> OrionCredential:
+        return OrionCredential(
+            api=self.api,
+            id=id,
+            credential_type=credential_type,
+            name=name,
+            description=description,
+        )
 
     def node(
         self,
