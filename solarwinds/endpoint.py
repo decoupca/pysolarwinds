@@ -9,16 +9,20 @@ logger = get_logger(__name__)
 
 
 class Endpoint:
+
+    endpoint = None
+    _id_attr = None
+    _swid_key = None
+    _swquery_attrs = None
+    _swargs_attrs = None
+    _required_swargs_attrs = None
+    _child_objects = None
+
     def __init__(self):
         self.endpoint = None
         self.uri = None
         self.id = None
         self._exists = False
-        self._id_attr = None
-        self._swid_key = None
-        self._swquery_attrs = []
-        self._swargs_attrs = None
-        self._required_swargs_attrs = None
         self._extra_swargs = None
         self._changes = None
         self._exclude_custom_props = EXCLUDE_CUSTOM_PROPS
