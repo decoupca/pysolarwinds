@@ -8,11 +8,8 @@ from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.credential import OrionCredential
 from solarwinds.endpoints.orion.interface import OrionInterfaces
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
-from solarwinds.exceptions import (
-    SWNodeDiscoveryError,
-    SWObjectNotFound,
-    SWObjectPropertyError,
-)
+from solarwinds.exceptions import (SWNodeDiscoveryError, SWObjectNotFound,
+                                   SWObjectPropertyError)
 from solarwinds.logging import get_logger
 from solarwinds.maps import NODE_DISCOVERY_STATUS_MAP
 from solarwinds.models.orion.node_settings import OrionNodeSettings

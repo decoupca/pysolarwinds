@@ -20,7 +20,6 @@ class Endpoint:
 
     def __init__(self):
         self.uri = None
-        self.id = None
         self._exists = False
         self._extra_swargs = None
         self._changes = None
