@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Dict
 
 import httpx
-
 from solarwinds.utils import parse_response
 
 

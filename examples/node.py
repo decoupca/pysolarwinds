@@ -2,9 +2,9 @@ import logging
 from pprint import pprint
 
 import ipdb
-from config import SNMPV2C, SW_ARGS
-
 import solarwinds
+
+from config import SNMPV2C, SW_ARGS
 
 format = "%(asctime)s %(levelname)s %(funcName)s %(lineno)s: %(message)s"
 logging.basicConfig(level=logging.DEBUG, format=format)

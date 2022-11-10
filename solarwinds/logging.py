@@ -1,4 +1,7 @@
-from logging import NullHandler, getLogger
+from logging import Logger, NullHandler, getLogger
 
-log = getLogger(__name__)
-log.addHandler(NullHandler())
+
+def get_logger(name: str) -> Logger:
+    logger = getLogger(name)
+    logger.addHandler(NullHandler())
+    return logger

@@ -1,10 +1,10 @@
 import logging
 
 import ipdb
-from config import SW_ARGS
+import solarwinds
 from rich import print
 
-import solarwinds
+from config import SW_ARGS
 
 logging.basicConfig(level=logging.DEBUG)
 
