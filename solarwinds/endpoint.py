@@ -80,9 +80,9 @@ class Endpoint(object):
                 query_lines = "\n".join(queries)
                 log.debug(f"built SWQL queries:\n{query_lines}")
                 for query in queries:
-                    result = self._query(query)
+                    result = self.swis.query(query)
                     if result:
-                        uri = result["uri"]
+                        uri = result[0]["uri"]
                         log.debug(f"found uri: {uri}")
                         self.uri = uri
                         return uri
@@ -459,10 +459,6 @@ class Endpoint(object):
         else:
             log.warning("object doesn't exist, doing nothing")
             return False
-
-    def _query(self, query) -> dict:
-        log.debug(f"executing SWIS query: {query}")
-        return self.swis.query(query)
 
     def save(self) -> bool:
         """Update object in solarwinds with local object's properties"""
