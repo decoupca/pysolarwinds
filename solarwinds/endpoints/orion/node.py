@@ -11,12 +11,12 @@ from solarwinds.endpoints.orion.interface import OrionInterfaces
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 from solarwinds.exceptions import (SWNodeDiscoveryError, SWObjectNotFound,
                                    SWObjectPropertyError)
+from solarwinds.logging import get_logger
 from solarwinds.maps import NODE_DISCOVERY_STATUS_MAP
 from solarwinds.models.orion.node_settings import (OrionNodeSetting,
                                                    OrionNodeSettings)
 
-log = getLogger(__name__)
-log.addHandler(NullHandler())
+logger = get_logger(__name__)
 
 
 class OrionNode(Endpoint):
@@ -176,7 +176,7 @@ class OrionNode(Endpoint):
         if self._discovery_profile_id is None:
             return None
         status_query = f"SELECT Status FROM Orion.DiscoveryProfiles WHERE ProfileID = {self._discovery_profile_id}"
-        self._discovery_profile_status = self.swis.query(status_query)["Status"]
+        self._discovery_profile_status = self.swis.query(status_query)[0]["Status"]
 
     def _get_extra_swargs(self) -> Dict:
         return {
@@ -223,7 +223,7 @@ class OrionNode(Endpoint):
     def enable_pollers(self) -> bool:
         node_id = self.node_id or self._get_id()
         if self.pollers is None:
-            log.warning(f"no pollers to enable, doing nothing")
+            logger.warning(f"no pollers to enable, doing nothing")
             return False
         else:
             for poller_type in self.pollers:
@@ -235,7 +235,7 @@ class OrionNode(Endpoint):
                     "Enabled": True,
                 }
                 self.swis.create("Orion.Pollers", **poller)
-                log.info(f"enabled poller {poller_type}")
+                logger.info(f"enabled poller {poller_type}")
             return True
 
     def create(self) -> bool:
@@ -314,14 +314,14 @@ class OrionNode(Endpoint):
         self._discovery_profile_id = self.swis.invoke(
             "Orion.Discovery", "StartDiscovery", discovery_profile
         )
-        log.debug(f"node discovery: job id: {self._discovery_profile_id}")
+        logger.debug(f"node discovery: job id: {self._discovery_profile_id}")
         self._get_discovery_status()
         seconds_waited = 0
         while seconds_waited < timeout and self._discovery_profile_status == 1:
             sleep(1)
             seconds_waited += 1
             self._get_discovery_status()
-            log.debug(
+            logger.debug(
                 f"discovering node: waited {seconds_waited}sec, timeout {timeout}sec, "
                 f"status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
             )
@@ -329,20 +329,21 @@ class OrionNode(Endpoint):
         if self._discovery_profile_status == 2:
             result_query = f"SELECT Result, ResultDescription, ErrorMessage, BatchID FROM Orion.DiscoveryLogs WHERE ProfileID = {self._discovery_profile_id}"
             result = self.swis.query(result_query)
-            result_code = result["Result"]
+            result_code = result[0]["Result"]
         else:
             raise SWNodeDiscoveryError(
                 f"node discovery failed. last status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
             )
 
         if result_code == 2:
-            log.debug(f"node discovery job finished, getting discovered items...")
-            batch_id = result["BatchID"]
+            logger.debug(f"node discovery job finished, getting discovered items...")
+            batch_id = result[0]["BatchID"]
             discovered_query = f"SELECT EntityType, DisplayName, NetObjectID FROM Orion.DiscoveryLogItems WHERE BatchID = '{batch_id}'"
             self._discovered_entities = self.swis.query(discovered_query)
             if self._discovered_entities is not None:
                 return True
             else:
+                logger.info()
                 return False
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
@@ -356,13 +357,13 @@ class OrionNode(Endpoint):
             self._get_swdata(data="properties")
             if self._swdata["properties"]["UnManaged"] is True:
                 self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
-                log.info(f"re-managed node successfully")
+                logger.info(f"re-managed node successfully")
                 return True
             else:
-                log.warning(f"node is already managed, doing nothing")
+                logger.warning(f"node is already managed, doing nothing")
                 return False
         else:
-            log.warning(f"node does not exist, can't remanage")
+            logger.warning(f"node does not exist, can't remanage")
             return False
 
     def unmanage(
@@ -380,13 +381,13 @@ class OrionNode(Endpoint):
                 self.swis.invoke(
                     "Orion.Nodes", "Unmanage", f"N:{self.node_id}", start, end, False
                 )
-                log.info(f"unmanaged node until {end}")
+                logger.info(f"unmanaged node until {end}")
                 return True
             else:
-                log.warning(f"node is already unmanaged, doing nothing")
+                logger.warning(f"node is already unmanaged, doing nothing")
                 return False
         else:
-            log.warning(f"node does not exist, can't unmanage")
+            logger.warning(f"node does not exist, can't unmanage")
             return False
 
     def save(self):

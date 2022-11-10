@@ -6,13 +6,20 @@ from rich import print
 
 from config import SW_ARGS
 
-logging.basicConfig(level=logging.DEBUG)
+disable_loggers = ["asyncio", "httpx._client"]
+for logger in disable_loggers:
+    logging.getLogger(logger).disabled = True
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(levelname)s [%(name)s] %(funcName)s() %(lineno)d: %(msg)s",
+)
 
 sw = solarwinds.api(**SW_ARGS)
 
 
 node = sw.orion.node(
-    ip_address="172.25.46.14",
+    caption="death-star",
     snmpv3_ro_cred=sw.orion.credential(name="NETSEC"),
     custom_properties={"Site": "PTC - Plano, TX, US", "Region": "AMER"},
 )

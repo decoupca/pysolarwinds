@@ -1,4 +1,3 @@
-from logging import NullHandler, getLogger
 from typing import Any, Dict, Union
 
 from solarwinds.defaults import EXCLUDE_CUSTOM_PROPS
@@ -9,7 +8,7 @@ from solarwinds.utils import print_dict, sanitize_swdata
 logger = get_logger(__name__)
 
 
-class Endpoint(object):
+class Endpoint:
     endpoint = None
     uri = None
     id = None

@@ -2,7 +2,9 @@ import re
 from typing import Dict, Union
 
 from solarwinds.endpoint import Endpoint
-from solarwinds.logging import log
+from solarwinds.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class OrionInterface(Endpoint):
@@ -100,7 +102,7 @@ class OrionInterfaces(object):
             raise IndexError
 
     def add(self, interfaces):
-        log.info(f"{self.node.name}: monitoring {len(interfaces)} interfaces...")
+        logger.info(f"{self.node.name}: monitoring {len(interfaces)} interfaces...")
         return self.swis.invoke(
             "Orion.NPM.Interfaces",
             "AddInterfacesOnNode",
@@ -114,7 +116,7 @@ class OrionInterfaces(object):
         Queries for interfaces that have already been discovered and assigned
         to node
         """
-        log.info(f"{self.node.name}: getting existing interfaces...")
+        logger.info(f"{self.node.name}: getting existing interfaces...")
         query = f"""
             SELECT
                 I.Uri AS uri,
@@ -134,25 +136,27 @@ class OrionInterfaces(object):
         """
         result = self.swis.query(query)
         self._existing = [OrionInterface(self.node, data=data) for data in result]
-        log.info(f"{self.node.name}: found {len(self._existing)} existing interfaces")
+        logger.info(
+            f"{self.node.name}: found {len(self._existing)} existing interfaces"
+        )
 
     def discover(self) -> bool:
         """
         Runs SNMP discovery of all available interfaces. This can take a while
         depending on network conditions and number of interfaces on node
         """
-        log.info(f"{self.node.name}: discovering interfaces via SNMP...")
+        logger.info(f"{self.node.name}: discovering interfaces via SNMP...")
         result = self.swis.invoke(
             "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.node.id
         )
         self._discovery_response_code = result["Result"]
         if self._discovery_response_code == 0:
             results = result["DiscoveredInterfaces"]
-            log.info(f"{self.node.name}: discovered {len(results)} interfaces")
+            logger.info(f"{self.node.name}: discovered {len(results)} interfaces")
             self._discovered = results
             return True
         else:
-            log.error(
+            logger.error(
                 f"{self.node.name}: discovery failed. SNMP may be inaccessible, creds invalid, etc."
             )
             return False
@@ -170,7 +174,9 @@ class OrionInterfaces(object):
             extraneous = [x for x in self._existing if x.name not in interfaces]
 
             if missing:
-                log.info(f"{self.node.name}: found {len(missing)} missing interfaces")
+                logger.info(
+                    f"{self.node.name}: found {len(missing)} missing interfaces"
+                )
                 self.discover()
                 to_add = [
                     x
@@ -181,14 +187,14 @@ class OrionInterfaces(object):
                     self.add(to_add)
 
             if extraneous:
-                log.info(
+                logger.info(
                     f"{self.node.name}: found {len(extraneous)} interfaces to delete"
                 )
                 for intf in extraneous:
                     intf.delete()
 
             if not missing and not extraneous:
-                log.info(
+                logger.info(
                     f"{self.node.name}: all {len(interfaces)} provided interfaces "
                     "already monitored, doing nothing"
                 )
