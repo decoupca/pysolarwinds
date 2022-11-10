@@ -238,6 +238,8 @@ class OrionNode(Endpoint):
             return True
 
     def create(self) -> bool:
+        if not self.ip_address:
+            raise SWObjectPropertyError(f"must provide IP address to create node")
         if self.snmp_version == 3:
             if self.snmpv3_ro_cred is None and self.snmpv3_rw_cred is None:
                 raise ValueError(
@@ -313,7 +315,7 @@ class OrionNode(Endpoint):
         self._discovery_profile_id = self.swis.invoke(
             "Orion.Discovery", "StartDiscovery", discovery_profile
         )
-        logger.debug(f"node discovery: job id: {self._discovery_profile_id}")
+        logger.debug(f"discovering node: job id: {self._discovery_profile_id}")
         self._get_discovery_status()
         seconds_waited = 0
         while seconds_waited < timeout and self._discovery_profile_status == 1:
@@ -326,8 +328,11 @@ class OrionNode(Endpoint):
             )
 
         if self._discovery_profile_status == 2:
-            result_query = f"SELECT Result, ResultDescription, ErrorMessage, BatchID FROM Orion.DiscoveryLogs WHERE ProfileID = {self._discovery_profile_id}"
-            result = self.swis.query(result_query)
+            query = (
+                "SELECT Result, ResultDescription, ErrorMessage, BatchID "
+                f"FROM Orion.DiscoveryLogs WHERE ProfileID = {self._discovery_profile_id}"
+            )
+            result = self.swis.query(query)
             result_code = result[0]["Result"]
         else:
             raise SWNodeDiscoveryError(
@@ -337,18 +342,20 @@ class OrionNode(Endpoint):
         if result_code == 2:
             logger.debug(f"node discovery job finished, getting discovered items...")
             batch_id = result[0]["BatchID"]
-            discovered_query = f"SELECT EntityType, DisplayName, NetObjectID FROM Orion.DiscoveryLogItems WHERE BatchID = '{batch_id}'"
-            self._discovered_entities = self.swis.query(discovered_query)
+            query = (
+                "SELECT EntityType, DisplayName, NetObjectID FROM "
+                f"Orion.DiscoveryLogItems WHERE BatchID = '{batch_id}'"
+            )
+            self._discovered_entities = self.swis.query(query)
             if self._discovered_entities is not None:
                 return True
             else:
-                logger.info()
-                return False
+                raise SWNodeDiscoveryError(f"Found nothing at IP {self.ip_address}")
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
             error_message = result["ErrorMessage"]
             raise SWNodeDiscoveryError(
-                f"node discovery failed. status: {error_status}, error: {error_message}"
+                f"Node discovery failed. Status: {error_status}, Error: {error_message}"
             )
 
     def remanage(self) -> bool:
