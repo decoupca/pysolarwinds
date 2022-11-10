@@ -87,8 +87,6 @@ class OrionNode(Endpoint):
         self._discovery_profile_status = 0
         self._discovered_entities = None
 
-        self._swdata = {"properties": {}, "custom_properties": {}}
-
         if self.ip_address is None and self.caption is None:
             raise SWObjectPropertyError("Must provide either ip_address or caption")
 
