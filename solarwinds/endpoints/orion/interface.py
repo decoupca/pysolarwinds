@@ -2,14 +2,13 @@ import re
 from typing import Dict, Union
 
 from solarwinds.endpoint import Endpoint
-from solarwinds.endpoints.orion.node import OrionNode
 from solarwinds.logging import log
 
 
 class OrionInterface(Endpoint):
     endpoint = "Orion.NPM.Interfaces"
 
-    def __init__(self, node: OrionNode, data: Dict) -> None:
+    def __init__(self, node, data: Dict) -> None:
         self.node = node
         self.swis = node.swis
         self.data = data

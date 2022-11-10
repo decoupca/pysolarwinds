@@ -76,6 +76,7 @@ class OrionNodeSettings(object):
             f"FROM Orion.NodeSettings WHERE NodeID = '{self.node.id}'"
         )
         settings = self.swis.query(query)
+        import ipdb; ipdb.set_trace()
         if settings is not None:
             for setting in settings:
                 name = setting["SettingName"]

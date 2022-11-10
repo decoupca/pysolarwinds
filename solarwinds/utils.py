@@ -8,8 +8,6 @@ def parse_response(response) -> Union[Dict, None]:
         result = response.get("results")
         if len(result) == 0:
             return None
-        elif len(result) == 1:
-            return result[0]
         else:
             return result
     else:
