@@ -1,3 +1,3 @@
 class BaseModel(object):
-    def __init__(self, swis):
-        self.swis = swis
+    def __init__(self, api):
+        self.api = api

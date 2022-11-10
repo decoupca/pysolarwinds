@@ -14,7 +14,7 @@ def _json_serial(obj):
         return serial
 
 
-class SwisClient:
+class API:
     def __init__(self, hostname, username, password, verify=True, timeout=60):
         self.url = f"https://{hostname}:17778/SolarWinds/InformationService/v3/Json/"
         self.client = httpx.Client(

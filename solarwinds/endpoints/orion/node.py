@@ -3,7 +3,7 @@ from time import sleep
 from typing import Dict, List, Optional, Union
 
 import solarwinds.defaults as d
-from solarwinds.client import SwisClient
+from solarwinds.api import API
 from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.credential import OrionCredential
 from solarwinds.endpoints.orion.interface import OrionInterfaces
@@ -48,7 +48,7 @@ class OrionNode(Endpoint):
 
     def __init__(
         self,
-        swis: SwisClient,
+        api: API,
         ip_address: Optional[str] = None,
         caption: Optional[str] = None,
         custom_properties: Optional[Dict] = None,
@@ -64,7 +64,7 @@ class OrionNode(Endpoint):
         snmpv3_ro_cred: Optional[OrionCredential] = None,
         snmpv3_rw_cred: Optional[OrionCredential] = None,
     ):
-        self.swis = swis
+        self.api = api
         self.caption = caption
         self.engine_id = engine_id or 1
         self.custom_properties = custom_properties
@@ -175,7 +175,7 @@ class OrionNode(Endpoint):
             "SELECT Status FROM Orion.DiscoveryProfiles "
             f"WHERE ProfileID = {self._discovery_profile_id}"
         )
-        self._discovery_profile_status = self.swis.query(query)[0]["Status"]
+        self._discovery_profile_status = self.api.query(query)[0]["Status"]
 
     def _get_extra_swargs(self) -> Dict:
         return {
@@ -230,7 +230,7 @@ class OrionNode(Endpoint):
                     "NetObjectID": node_id,
                     "Enabled": True,
                 }
-                self.swis.create("Orion.Pollers", **poller)
+                self.api.create("Orion.Pollers", **poller)
                 logger.info(f"enabled poller {poller_type}")
             return True
 
@@ -287,7 +287,7 @@ class OrionNode(Endpoint):
             "WmiRetriesCount": 0,
             "WmiRetryIntervalMiliseconds": 1000,
         }
-        core_plugin_config = self.swis.invoke(
+        core_plugin_config = self.api.invoke(
             "Orion.Discovery", "CreateCorePluginConfiguration", core_plugin_context
         )
         discovery_profile = {
@@ -309,7 +309,7 @@ class OrionNode(Endpoint):
                 {"PluginConfigurationItem": core_plugin_config},
             ],
         }
-        self._discovery_profile_id = self.swis.invoke(
+        self._discovery_profile_id = self.api.invoke(
             "Orion.Discovery", "StartDiscovery", discovery_profile
         )
         logger.info(f"discovering node: job id: {self._discovery_profile_id}...")
@@ -329,7 +329,7 @@ class OrionNode(Endpoint):
                 "SELECT Result, ResultDescription, ErrorMessage, BatchID "
                 f"FROM Orion.DiscoveryLogs WHERE ProfileID = {self._discovery_profile_id}"
             )
-            result = self.swis.query(query)
+            result = self.api.query(query)
             result_code = result[0]["Result"]
         else:
             raise SWNodeDiscoveryError(
@@ -343,7 +343,7 @@ class OrionNode(Endpoint):
                 "SELECT EntityType, DisplayName, NetObjectID FROM "
                 f"Orion.DiscoveryLogItems WHERE BatchID = '{batch_id}'"
             )
-            self._discovered_entities = self.swis.query(query)
+            self._discovered_entities = self.api.query(query)
             if self._discovered_entities:
                 return True
             else:
@@ -361,7 +361,7 @@ class OrionNode(Endpoint):
         if self.exists():
             self._get_swdata(data="properties")
             if self._swdata["properties"]["UnManaged"]:
-                self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
+                self.api.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
                 logger.info(f"re-managed node successfully")
                 return True
             else:
@@ -383,7 +383,7 @@ class OrionNode(Endpoint):
                 end = now + timedelta(days=1)
             self._get_swdata(data="properties")
             if not self._swdata["properties"]["UnManaged"]:
-                self.swis.invoke(
+                self.api.invoke(
                     "Orion.Nodes", "Unmanage", f"N:{self.node_id}", start, end, False
                 )
                 logger.info(f"unmanaged node until {end}")

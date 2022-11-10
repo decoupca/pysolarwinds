@@ -12,7 +12,7 @@ class OrionInterface(Endpoint):
 
     def __init__(self, node, data: Dict) -> None:
         self.node = node
-        self.swis = node.swis
+        self.api = node.api
         self.data = data
         self.uri = data.get("uri")
         self._id = None
@@ -75,7 +75,7 @@ class OrionInterfaces(object):
 
     def __init__(self, node) -> None:
         self.node = node
-        self.swis = node.swis
+        self.api = node.api
         self._existing = None
         self._discovered = None
         self._discovery_response_code = None
@@ -103,7 +103,7 @@ class OrionInterfaces(object):
 
     def add(self, interfaces):
         logger.info(f"{self.node.name}: monitoring {len(interfaces)} interfaces...")
-        return self.swis.invoke(
+        return self.api.invoke(
             "Orion.NPM.Interfaces",
             "AddInterfacesOnNode",
             self.node.id,
@@ -134,7 +134,7 @@ class OrionInterfaces(object):
             WHERE
                 N.NodeID = '{self.node.id}'
         """
-        result = self.swis.query(query)
+        result = self.api.query(query)
         self._existing = [OrionInterface(self.node, data=data) for data in result]
         logger.info(
             f"{self.node.name}: found {len(self._existing)} existing interfaces"
@@ -146,7 +146,7 @@ class OrionInterfaces(object):
         depending on network conditions and number of interfaces on node
         """
         logger.info(f"{self.node.name}: discovering interfaces via SNMP...")
-        result = self.swis.invoke(
+        result = self.api.invoke(
             "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.node.id
         )
         self._discovery_response_code = result["Result"]

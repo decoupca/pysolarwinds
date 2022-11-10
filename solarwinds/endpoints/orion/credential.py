@@ -1,6 +1,6 @@
 from typing import Dict, Optional, Union
 
-from solarwinds.client import SwisClient
+from solarwinds.api import API
 from solarwinds.endpoint import Endpoint
 
 
@@ -13,13 +13,13 @@ class OrionCredential(Endpoint):
 
     def __init__(
         self,
-        swis: SwisClient,
+        api: API,
         id: Optional[int] = None,
         credential_type: Optional[str] = None,
         name: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
-        self.swis = swis
+        self.api = api
         self.id = id
         self.credential_type = credential_type
         self.name = name

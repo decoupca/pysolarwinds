@@ -19,7 +19,7 @@ class WorldMapPoint(Endpoint):
 
     def __init__(
         self,
-        swis,
+        api,
         node=None,
         point_id=None,
         instance_id=None,
@@ -29,7 +29,7 @@ class WorldMapPoint(Endpoint):
         auto_added=False,
         street_address=None,
     ):
-        self.swis = swis
+        self.api = api
         self.node = node
         self.point_id = point_id
         self.instance_id = instance_id

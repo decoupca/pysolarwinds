@@ -4,12 +4,12 @@ from solarwinds.models.orion.worldmap import WorldMap
 
 
 class Orion(object):
-    def __init__(self, swis):
-        self.swis = swis
-        self.worldmap = WorldMap(swis)
+    def __init__(self, api):
+        self.api = api
+        self.worldmap = WorldMap(api)
 
     def credential(self, **kwargs) -> OrionCredential:
-        return OrionCredential(self.swis, **kwargs)
+        return OrionCredential(self.api, **kwargs)
 
     def node(self, **kwargs) -> OrionNode:
-        return OrionNode(self.swis, **kwargs)
+        return OrionNode(self.api, **kwargs)

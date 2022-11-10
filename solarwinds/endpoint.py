@@ -78,7 +78,7 @@ class Endpoint:
                 query_lines = "\n".join(queries)
                 logger.debug(f"built SWQL queries:\n{query_lines}")
                 for query in queries:
-                    result = self.swis.query(query)
+                    result = self.api.query(query)
                     if result:
                         uri = result[0]["uri"]
                         logger.debug(f"found uri: {uri}")
@@ -110,11 +110,11 @@ class Endpoint:
             swdata = {"properties": None, "custom_properties": None}
             logger.debug("getting object data from solarwinds...")
             if data == "both" or data == "properties":
-                swdata["properties"] = sanitize_swdata(self.swis.read(self.uri))
+                swdata["properties"] = sanitize_swdata(self.api.read(self.uri))
             if data == "both" or data == "custom_properties":
                 if hasattr(self, "custom_properties"):
                     swdata["custom_properties"] = sanitize_swdata(
-                        self.swis.read(f"{self.uri}/CustomProperties")
+                        self.api.read(f"{self.uri}/CustomProperties")
                     )
             if swdata.get("properties") or swdata.get("custom_properties"):
                 self._swdata = swdata
@@ -216,7 +216,7 @@ class Endpoint:
                         logger.debug(
                             f"initializing child object at self.{attr} with args {child_args}"
                         )
-                        setattr(self, attr, child_class(self.swis, **child_args))
+                        setattr(self, attr, child_class(self.api, **child_args))
                 else:
                     logger.debug(
                         f"child object at self.{attr} already initialized, doing nothing"
@@ -421,10 +421,10 @@ class Endpoint:
                 if not getattr(self, attr):
                     raise SWObjectPropertyError(f"Missing required attribute: {attr}")
 
-            self.uri = self.swis.create(self.endpoint, **self._swargs["properties"])
+            self.uri = self.api.create(self.endpoint, **self._swargs["properties"])
             logger.debug("created object")
             if self._swargs.get("custom_properties"):
-                self.swis.update(
+                self.api.update(
                     f"{self.uri}/CustomProperties",
                     **self._swargs["custom_properties"],
                 )
@@ -440,7 +440,7 @@ class Endpoint:
     def delete(self) -> bool:
         """Delete object"""
         if self.exists():
-            self.swis.delete(self.uri)
+            self.api.delete(self.uri)
             logger.debug("deleted object")
             self.uri = None
             self._exists = False
@@ -458,13 +458,13 @@ class Endpoint:
                 self._diff()
             if self._changes:
                 if self._changes.get("properties"):
-                    self.swis.update(self.uri, **self._changes["properties"])
+                    self.api.update(self.uri, **self._changes["properties"])
                     logger.info(
                         f"{self.name}: updated properties: {print_dict(self._changes['properties'])}"
                     )
                     self._get_swdata(refresh=True, data="properties")
                 if self._changes.get("custom_properties"):
-                    self.swis.update(
+                    self.api.update(
                         f"{self.uri}/CustomProperties",
                         **self._changes["custom_properties"],
                     )

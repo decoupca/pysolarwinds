@@ -1,12 +1,11 @@
-from logging import NullHandler, getLogger
 from typing import Union
 
 from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.credential import OrionCredential
 from solarwinds.exceptions import SWObjectCreationError, SWObjectNotFound
+from solarwinds.logging import get_logger
 
-log = getLogger(__name__)
-log.addHandler(NullHandler())
+logger = get_logger(__name__)
 
 
 class OrionNodeSetting(object):
@@ -18,7 +17,7 @@ class OrionNodeSetting(object):
         self, node, name: str, value: Union[str, int], node_setting_id: int = None
     ) -> None:
         self.node = node
-        self.swis = node.swis
+        self.api = node.api
         self.node_setting_id = node_setting_id
         self.name = name
         self.value = value
@@ -42,7 +41,7 @@ class OrionNodeSetting(object):
 
 class SNMPCredentialSetting(OrionNodeSetting):
     def build(self) -> None:
-        cred = OrionCredential(swis=self.swis, id=self.value)
+        cred = OrionCredential(api=self.api, id=self.value)
         mode = self.name[:2]
         version = int(cred.credential_type[-1:])
         self.node_attr = f"snmpv{version}_{mode.lower()}_cred"
@@ -66,7 +65,7 @@ class OrionNodeSettings(object):
 
     def __init__(self, node):
         self.node = node
-        self.swis = node.swis
+        self.api = node.api
         self._settings = []
 
     def fetch(self) -> None:
@@ -75,7 +74,7 @@ class OrionNodeSettings(object):
             "SELECT SettingName, SettingValue, NodeSettingID "
             f"FROM Orion.NodeSettings WHERE NodeID = '{self.node.id}'"
         )
-        settings = self.swis.query(query)
+        settings = self.api.query(query)
         if settings:
             for setting in settings:
                 name = setting["SettingName"]
@@ -109,7 +108,7 @@ class OrionNodeSettings(object):
             "INSERT INTO NodeSettings (NodeID, SettingName, SettingValue) VALUES "
             f"('{setting.node.id}', '{setting.name}', '{setting.value}')"
         )
-        self.swis.sql(statement)
+        self.api.sql(statement)
         # raw SQL statements don't return anything, so we need to pull the
         # node_setting_id from a separate query
         query = (
@@ -117,7 +116,7 @@ class OrionNodeSettings(object):
             f"FROM Orion.NodeSettings WHERE NodeID = '{self.node.id}' "
             f"AND SettingName = '{setting.name}'"
         )
-        result = self.swis.query(query)
+        result = self.api.query(query)
         if result:
             setting.node_setting_id = result["NodeSettingID"]
         else:
@@ -130,7 +129,7 @@ class OrionNodeSettings(object):
 
     def delete(self, setting: OrionNodeSetting) -> bool:
         statement = f"DELETE FROM NodeSettings WHERE NodeSettingID = '{setting.node_setting_id}'"
-        self.swis.sql(statement)
+        self.api.sql(statement)
         self._settings.remove(setting)
         return True
 
