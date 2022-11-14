@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 
 def parse_response(response: List) -> Optional[Dict]:
