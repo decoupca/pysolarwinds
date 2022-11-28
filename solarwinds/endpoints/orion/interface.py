@@ -77,8 +77,8 @@ class OrionInterfaces(object):
     def __init__(self, node) -> None:
         self.node = node
         self.api = node.api
-        self._existing = None
-        self._discovered = None
+        self._existing = []
+        self._discovered = []
         self._discovery_response_code = None
 
     def _get_iface_by_abbr(self, abbr):
@@ -136,7 +136,8 @@ class OrionInterfaces(object):
                 N.NodeID = '{self.node.id}'
         """
         result = self.api.query(query)
-        self._existing = [OrionInterface(self.node, data=data) for data in result]
+        if result:
+            self._existing = [OrionInterface(self.node, data=data) for data in result]
         logger.info(
             f"{self.node.name}: found {len(self._existing)} existing interfaces"
         )
