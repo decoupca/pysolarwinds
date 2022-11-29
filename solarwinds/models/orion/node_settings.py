@@ -118,7 +118,7 @@ class OrionNodeSettings(object):
         )
         result = self.api.query(query)
         if result:
-            setting.node_setting_id = result["NodeSettingID"]
+            setting.node_setting_id = result[0]["NodeSettingID"]
         else:
             raise SWObjectCreationError(
                 f'found no setting "{setting.name}" '

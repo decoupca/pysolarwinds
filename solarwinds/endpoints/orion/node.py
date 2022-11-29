@@ -8,7 +8,11 @@ from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.credential import OrionCredential
 from solarwinds.endpoints.orion.interface import OrionInterfaces
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
-from solarwinds.exceptions import SWDiscoveryError, SWObjectPropertyError
+from solarwinds.exceptions import (
+    SWDiscoveryError,
+    SWObjectExists,
+    SWObjectPropertyError,
+)
 from solarwinds.logging import get_logger
 from solarwinds.maps import NODE_DISCOVERY_STATUS_MAP
 from solarwinds.models.orion.node_settings import OrionNodeSettings
@@ -233,9 +237,19 @@ class OrionNode(Endpoint):
     def create(self) -> bool:
         if not self.ip_address:
             raise SWObjectPropertyError(f"must provide IP address to create node")
+        # SWIS API won't let us create a SNMPv3 node directly,
+        # so we need to first create it as a SNMPv2c node, then
+        # switch it to SNMPv3
+        snmp_version = self.snmp_version
+        if snmp_version == 3:
+            self.snmp_version = 2
         created = super().create()
         if created:
             self.enable_pollers()
+            if snmp_version == 3:
+                self.snmp_version = 3
+                self.save()
+
         return created
 
     def discover(self, retries=None, timeout=None) -> bool:

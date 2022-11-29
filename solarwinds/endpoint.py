@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional, Union
 
 from solarwinds.defaults import EXCLUDE_CUSTOM_PROPS
-from solarwinds.exceptions import SWIDNotFound, SWObjectPropertyError
+from solarwinds.exceptions import SWIDNotFound, SWObjectExists, SWObjectPropertyError
 from solarwinds.logging import get_logger
 from solarwinds.utils import print_dict, sanitize_swdata
 
@@ -414,8 +414,7 @@ class Endpoint:
     def create(self) -> bool:
         """Create object"""
         if self.exists():
-            logger.warning("object exists, can't create")
-            return False
+            raise SWObjectExists("object exists, cannot create")
         else:
             self._build_swargs()
             if not self._swargs:
