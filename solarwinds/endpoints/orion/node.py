@@ -233,22 +233,7 @@ class OrionNode(Endpoint):
     def create(self) -> bool:
         if not self.ip_address:
             raise SWObjectPropertyError(f"must provide IP address to create node")
-        if self.snmp_version == 3:
-            if not self.snmpv3_ro_cred and not self.snmpv3_rw_cred:
-                raise SWObjectPropertyError(
-                    "must provide snmpv3_ro_cred or snmpv3_rw_cred when snmp_version=3"
-                )
-            # creating nodes with a saved credential set requires discovery
-            # https://thwack.solarwinds.com/product-forums/the-orion-platform/f/orion-sdk/25327/using-orion-credential-set-for-snmpv3-when-adding-node-through-sdk/25220#25220
-            # TODO: it is possible to directly create an snmpv3 node using ad-hoc credentials
-            #       (i.e, not referencing a saved credential set), but this is not yet implemented.
-            created = self.discover()
-            if created:
-                # discovery will not apply any extra params passed to node object,
-                # such as custom properties
-                self.save()
-        else:
-            created = super().create()
+        created = super().create()
         if created:
             self.enable_pollers()
         return created
