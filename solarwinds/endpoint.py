@@ -25,7 +25,7 @@ class Endpoint:
         self._changes = None
         self._exclude_custom_props = EXCLUDE_CUSTOM_PROPS
         self._child_objects = None
-        self._swdata = {}
+        self._swdata = {"properties": {}, "custom_properties": {}}
         if self.exists():
             self.refresh()
         else:
