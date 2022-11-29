@@ -25,7 +25,7 @@ class Endpoint:
         self._changes = None
         self._exclude_custom_props = EXCLUDE_CUSTOM_PROPS
         self._child_objects = None
-        self._swdata = {'properties': {}, 'custom_properties': {}}
+        self._swdata = {"properties": {}, "custom_properties": {}}
         if self.exists():
             self.refresh()
         else:
@@ -106,7 +106,10 @@ class Endpoint:
         """
         Caches solarwinds data
         """
-        if not self._swdata or refresh:
+        if (
+            not self._swdata.get("properties")
+            and not self._swdata.get("custom_properties")
+        ) or refresh:
             swdata = {"properties": None, "custom_properties": None}
             logger.debug("getting object data from solarwinds...")
             if data == "both" or data == "properties":
