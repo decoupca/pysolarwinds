@@ -8,7 +8,7 @@ import solarwinds
 
 disable_loggers = [
     "asyncio",
-    # "httpx._client"
+    "httpx._client"
 ]
 for logger in disable_loggers:
     logging.getLogger(logger).disabled = True
@@ -30,11 +30,10 @@ node = sw.orion.node(
     **{
         "caption": "FBDR00FW01",
         "ip_address": "172.25.133.5",
-        "polling_method": "snmp",
-        "snmp_version": 3,
+        "polling_method": "icmp",
+        "snmp_version": 0,
         "snmpv2c_ro_community": None,
         "snmpv2c_rw_community": None,
-        "snmpv3_ro_cred": sw.orion.credential(name="NETSEC"),
         "engine_id": 1,
         "custom_properties": {
             "Region": "EMEA",
@@ -49,5 +48,5 @@ node = sw.orion.node(
 # node.snmp_version = 3
 # node.snmpv3_ro_cred = cred
 # node.update()
-node.create()
+# node.create()
 ipdb.set_trace()
