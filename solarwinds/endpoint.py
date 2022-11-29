@@ -25,7 +25,7 @@ class Endpoint:
         self._changes = None
         self._exclude_custom_props = EXCLUDE_CUSTOM_PROPS
         self._child_objects = None
-        self._swdata = {}
+        self._swdata = {'properties': {}, 'custom_properties': {}}
         if self.exists():
             self.refresh()
         else:
@@ -405,7 +405,7 @@ class Endpoint:
             logger.debug(f"got solarwinds object id {self.id}")
         else:
             raise SWIDNotFound(
-                f'could not find id value in _swdata["{self._swid_key}"]'
+                f'could not find id value in _swdata["properties"]["{self._swid_key}"]'
             )
 
     def create(self) -> bool:
