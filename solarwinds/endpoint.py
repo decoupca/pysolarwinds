@@ -316,12 +316,14 @@ class Endpoint:
     def _diff_properties(self) -> Optional[Dict]:
         changes = {}
         logger.debug("diff'ing properties...")
-        for k, sw_v in self._swdata["properties"].items():
-            local_v = self._swargs["properties"].get(k)
-            if local_v:
-                if local_v != sw_v:
-                    changes[k] = local_v
-                    logger.debug(f"property {k} has changed from {sw_v} to {local_v}")
+        # we need to convert empty values to NoneType for comparison, but
+        # back to empty strings for SW API compatibility
+        for k, local_v in self._swargs["properties"].items():
+            local_v = local_v or None
+            sw_v = self._swdata["properties"].get(k)
+            if local_v != sw_v:
+                changes[k] = local_v or ""
+                logger.debug(f"property {k} has changed from {sw_v} to {local_v}")
         if changes:
             return changes
         else:
