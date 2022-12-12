@@ -137,7 +137,7 @@ class Endpoint:
             for attr, new_v in attr_updates.items():
                 v = getattr(self, attr)
                 if not v or overwrite:
-                    setattr(self, attr, new_v)
+                    setattr(self, attr, new_v or None)
                     logger.debug(f"updated self.{attr} = {new_v}")
                 else:
                     logger.debug(
