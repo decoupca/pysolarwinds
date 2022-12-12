@@ -195,11 +195,7 @@ class OrionNode(Endpoint):
                 self._swdata["properties"].get("RWCommunity")
                 or self.snmpv2c_rw_community
             )
-            if (
-                ro_community is not None
-                or rw_community is not None
-                or self.snmp_version
-            ):
+            if ro_community or rw_community or self.snmp_version != 0:
                 return "snmp"
             else:
                 return "icmp"
