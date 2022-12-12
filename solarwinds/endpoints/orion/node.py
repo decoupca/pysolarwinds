@@ -181,8 +181,8 @@ class OrionNode(Endpoint):
 
     def _get_extra_swargs(self) -> Dict:
         return {
-            "status": self._swdata["properties"].get("Status") or 1,
-            "objectsubtype": self._get_polling_method().upper(),
+            "Status": self._swdata["properties"].get("Status") or 1,
+            "ObjectSubType": self._get_polling_method().upper(),
         }
 
     def _get_polling_method(self) -> str:

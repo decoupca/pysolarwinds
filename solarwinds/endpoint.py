@@ -317,7 +317,6 @@ class Endpoint:
         changes = {}
         logger.debug("diff'ing properties...")
         for k, sw_v in self._swdata["properties"].items():
-            k = k.lower()
             local_v = self._swargs["properties"].get(k)
             if local_v:
                 if local_v != sw_v:
