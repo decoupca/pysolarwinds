@@ -6,10 +6,7 @@ from rich import print
 
 import solarwinds
 
-disable_loggers = [
-    "asyncio",
-    "httpx._client"
-]
+disable_loggers = ["asyncio", "httpx._client"]
 for logger in disable_loggers:
     logging.getLogger(logger).disabled = True
 

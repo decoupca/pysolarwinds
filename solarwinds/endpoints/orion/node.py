@@ -25,12 +25,14 @@ class OrionNode(Endpoint):
     _id_attr = "id"
     _swid_key = "NodeID"
     _swquery_attrs = ["ip_address", "caption"]
-    _swargs_attrs = [
-        "caption",
-        "engine_id",
-        "ip_address",
-        "snmp_version",
-    ]
+    _swargs_attrs = {
+        "caption": "Caption",
+        "engine_id": "EngineID",
+        "ip_address": "IPAddress",
+        "snmp_version": "SNMPVersion",
+        "snmpv2c_ro_community": "Community",
+        "snmpv2c_rw_community": "RWCommunity",
+    }
     _required_swargs_attrs = ["ip_address", "engine_id"]
     _child_objects = {
         "map_point": {

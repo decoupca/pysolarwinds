@@ -289,14 +289,10 @@ class Endpoint:
         swargs = {"properties": None, "custom_properties": None}
         properties = {}
         custom_properties = {}
-        for attr in self._swargs_attrs:
+        for attr, swarg in self._swargs_attrs.items():
             value = getattr(self, attr)
-            if value:
-                # store args without underscores so they match
-                # solarwinds argument names
-                attr = attr.replace("_", "")
-                properties[attr] = value
-                logger.debug(f'_swargs["properties"]["{attr}"] = {value}')
+            properties[swarg] = value
+            logger.debug(f'_swargs["properties"]["{attr}"] = {value}')
 
         extra_swargs = self._get_extra_swargs()
         if extra_swargs:
