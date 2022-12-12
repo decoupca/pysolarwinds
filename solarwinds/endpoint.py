@@ -320,7 +320,7 @@ class Endpoint:
         # back to empty strings for SW API compatibility
         for k, local_v in self._swargs["properties"].items():
             local_v = local_v or None
-            sw_v = self._swdata["properties"].get(k)
+            sw_v = self._swdata["properties"].get(k) or None
             if local_v != sw_v:
                 changes[k] = local_v or ""
                 logger.debug(f"property {k} has changed from {sw_v} to {local_v}")
