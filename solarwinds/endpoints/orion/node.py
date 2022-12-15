@@ -217,7 +217,7 @@ class OrionNode(Endpoint):
 
     def enable_pollers(self) -> bool:
         id = self.id or self._get_id()
-        if self.pollers:
+        if not self.pollers:
             logger.warning(f"no pollers to enable, doing nothing")
             return False
         else:
