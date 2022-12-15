@@ -22,6 +22,7 @@ logger = get_logger(__name__)
 
 class OrionNode(Endpoint):
     endpoint = "Orion.Nodes"
+    _type = "node"
     _id_attr = "id"
     _swid_key = "NodeID"
     _swquery_attrs = ["ip_address", "caption"]
@@ -247,7 +248,6 @@ class OrionNode(Endpoint):
             if snmp_version == 3:
                 self.snmp_version = 3
                 self.save()
-
         return created
 
     def discover(self, retries=None, timeout=None) -> bool:
@@ -305,7 +305,9 @@ class OrionNode(Endpoint):
         self._discovery_profile_id = self.api.invoke(
             "Orion.Discovery", "StartDiscovery", discovery_profile
         )
-        logger.info(f"discovering node: job id: {self._discovery_profile_id}...")
+        logger.info(
+            f"{self.name}: discovering node: job id: {self._discovery_profile_id}..."
+        )
         self._get_discovery_status()
         seconds_waited = 0
         while seconds_waited < timeout and self._discovery_profile_status == 1:
@@ -326,11 +328,13 @@ class OrionNode(Endpoint):
             result_code = result[0]["Result"]
         else:
             raise SWDiscoveryError(
-                f"node discovery failed. last status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
+                f"{self.name}: node discovery failed. last status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
             )
 
         if result_code == 2:
-            logger.info(f"node discovery job finished, getting discovered items...")
+            logger.info(
+                f"{self.name}: node discovery job finished, getting discovered items..."
+            )
             batch_id = result[0]["BatchID"]
             query = (
                 "SELECT EntityType, DisplayName, NetObjectID FROM "
@@ -341,13 +345,13 @@ class OrionNode(Endpoint):
                 return True
             else:
                 raise SWDiscoveryError(
-                    f"discovery found nothing at IP: {self.ip_address}"
+                    f"{self.name}: discovery found nothing at IP: {self.ip_address}"
                 )
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
             error_message = result["ErrorMessage"]
             raise SWDiscoveryError(
-                f"node discovery failed. Status: {error_status}, Error: {error_message}"
+                f"{self.name}: node discovery failed. Status: {error_status}, Error: {error_message}"
             )
 
     def remanage(self) -> bool:
@@ -355,13 +359,13 @@ class OrionNode(Endpoint):
             self._get_swdata(data="properties")
             if self._swdata["properties"]["UnManaged"]:
                 self.api.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
-                logger.info(f"re-managed node successfully")
+                logger.info(f"{self.name}: re-managed node")
                 return True
             else:
-                logger.warning(f"node is already managed, doing nothing")
+                logger.warning(f"{self.name}: already managed, doing nothing")
                 return False
         else:
-            logger.warning(f"node does not exist, can't remanage")
+            logger.warning(f"{self.name}: does not exist, nothing to re-manage")
             return False
 
     def unmanage(
@@ -379,13 +383,13 @@ class OrionNode(Endpoint):
                 self.api.invoke(
                     "Orion.Nodes", "Unmanage", f"N:{self.id}", start, end, False
                 )
-                logger.info(f"unmanaged node until {end}")
+                logger.info(f"{self.name}: unmanaged until {end}")
                 return True
             else:
-                logger.warning(f"node is already unmanaged, doing nothing")
+                logger.warning(f"{self.name}: already unmanaged, doing nothing")
                 return False
         else:
-            logger.warning(f"node does not exist, can't unmanage")
+            logger.warning(f"{self.name}: does not exist, nothing to unmanage")
             return False
 
     def save(self) -> bool:

@@ -4,6 +4,7 @@ from solarwinds.endpoint import Endpoint
 class WorldMapPoint(Endpoint):
     name = "WorldMapPoint"
     endpoint = "Orion.WorldMap.Point"
+    _type = "map_point"
     _id_attr = "point_id"
     _swid_key = "PointId"
     _required_swargs_attrs = ["instance_id"]

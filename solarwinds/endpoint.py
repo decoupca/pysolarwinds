@@ -11,6 +11,7 @@ logger = get_logger(__name__)
 class Endpoint:
 
     endpoint = None
+    _type = None
     _id_attr = None
     _swid_key = None
     _swquery_attrs = None
@@ -37,6 +38,11 @@ class Endpoint:
         init_methods = [getattr(self, x) for x in dir(self) if x.startswith("_init")]
         for method in init_methods:
             method()
+
+    @property
+    def name(self) -> str:
+        """override in subclasses"""
+        return str(getattr(self, self._id_attr))
 
     def refresh(self) -> None:
         if self.exists():
@@ -434,18 +440,19 @@ class Endpoint:
             self._update_child_attrs()
             self._create_child_objects()
             self.refresh()
+            logger.info(f"{self.name}: created {self._type}")
             return True
 
     def delete(self) -> bool:
         """Delete object"""
         if self.exists():
             self.api.delete(self.uri)
-            logger.debug("deleted object")
+            logger.debug(f"{self.name}: deleted {self._type}")
             self.uri = None
             self._exists = False
             return True
         else:
-            logger.warning("object doesn't exist, doing nothing")
+            logger.warning(f"{self.name}: {self._type} doesn't exist, doing nothing")
             return False
 
     def save(self) -> bool:
@@ -453,7 +460,6 @@ class Endpoint:
         self._build_swargs()
         if self.exists():
             if not self._changes:
-                logger.debug("found no changes, running _diff()...")
                 self._diff()
             if self._changes:
                 if self._changes.get("properties"):
@@ -483,5 +489,5 @@ class Endpoint:
                 logger.info(f"{self.name}: found no changes, doing nothing")
                 return False
         else:
-            logger.debug(f"{self.name}: object does not exist, creating...")
+            logger.debug(f"{self.name}: {self._type} does not exist, creating...")
             return self.create()
