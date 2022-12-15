@@ -422,7 +422,6 @@ class Endpoint:
                     raise SWObjectPropertyError(f"Missing required attribute: {attr}")
 
             self.uri = self.api.create(self.endpoint, **self._swargs["properties"])
-            logger.debug("created object")
             if self._swargs.get("custom_properties"):
                 self.api.update(
                     f"{self.uri}/CustomProperties",
@@ -442,9 +441,9 @@ class Endpoint:
         """Delete object"""
         if self.exists():
             self.api.delete(self.uri)
-            logger.debug(f"{self.name}: deleted {self._type}")
             self.uri = None
             self._exists = False
+            logger.info(f"{self.name}: deleted {self._type}")
             return True
         else:
             logger.warning(f"{self.name}: {self._type} doesn't exist, doing nothing")
@@ -484,5 +483,5 @@ class Endpoint:
                 logger.info(f"{self.name}: found no changes, doing nothing")
                 return False
         else:
-            logger.debug(f"{self.name}: {self._type} does not exist, creating...")
+            logger.info(f"{self.name}: {self._type} does not exist, creating...")
             return self.create()
