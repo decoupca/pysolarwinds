@@ -11,7 +11,6 @@ logger = get_logger(__name__)
 class OrionInterface(Endpoint):
     endpoint = "Orion.NPM.Interfaces"
     _type = "interface"
-    _name_attr = "name"
 
     def __init__(self, node, data: Dict) -> None:
         self.node = node

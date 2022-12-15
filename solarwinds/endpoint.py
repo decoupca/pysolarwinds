@@ -39,11 +39,6 @@ class Endpoint:
         for method in init_methods:
             method()
 
-    @property
-    def name(self) -> str:
-        """override in subclasses"""
-        return str(getattr(self, self._id_attr))
-
     def refresh(self) -> None:
         if self.exists():
             self._get_swdata()
