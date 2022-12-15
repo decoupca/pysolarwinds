@@ -7,7 +7,6 @@ from solarwinds.endpoint import Endpoint
 class OrionCredential(Endpoint):
     endpoint = "Orion.Credential"
     _type = "credential"
-    _name_attr = "name"
     _id_attr = "credential_id"
     _swid_key = "ID"
     _swquery_attrs = ["id", "name"]
