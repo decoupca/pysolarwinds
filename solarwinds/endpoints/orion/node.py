@@ -254,6 +254,8 @@ class OrionNode(Endpoint):
         return created
 
     def discover(self, retries=None, timeout=None) -> bool:
+        if not self.ip_address:
+            raise SWObjectPropertyError("Discovery requires ip_address is set")
         if retries is None:
             retries = d.NODE_DISCOVERY_SNMP_RETRIES
         if timeout is None:
@@ -314,8 +316,8 @@ class OrionNode(Endpoint):
         self._get_discovery_status()
         seconds_waited = 0
         while seconds_waited < timeout and self._discovery_profile_status == 1:
-            sleep(1)
-            seconds_waited += 1
+            sleep(5)
+            seconds_waited += 5
             self._get_discovery_status()
             logger.debug(
                 f"discovering node: waited {seconds_waited}sec, timeout {timeout}sec, "
