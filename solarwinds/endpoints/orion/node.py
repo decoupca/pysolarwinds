@@ -69,7 +69,7 @@ class OrionNode(Endpoint):
     ):
         self.api = api
         self.caption = caption
-        self.engine_id = engine_id or 1
+        self.engine_id = engine_id
         self.custom_properties = custom_properties
         self.ip_address = ip_address
         self.latitude = latitude
