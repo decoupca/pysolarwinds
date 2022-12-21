@@ -35,7 +35,7 @@ class API:
 
     @property
     def url(self) -> str:
-        return f'https://{self.hostname}:17778/SolarWinds/InformationService/v3/Json/'
+        return f"https://{self.hostname}:17778/SolarWinds/InformationService/v3/Json/"
 
     def query(self, query: str, **params) -> List:
         return parse_response(
