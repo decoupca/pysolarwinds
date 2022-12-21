@@ -1,10 +1,10 @@
 import json
 from datetime import datetime
 from typing import Dict, List, Optional, Union
-from solarwinds.exceptions import SWISError
 
 import httpx
 
+from solarwinds.exceptions import SWISError
 from solarwinds.utils import parse_response
 
 

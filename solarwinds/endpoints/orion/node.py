@@ -181,10 +181,13 @@ class OrionNode(Endpoint):
         self._discovery_profile_status = self.api.query(query)[0]["Status"]
 
     def _get_extra_swargs(self) -> Dict:
-        return {
+        extra_swargs = {
             "Status": self._swdata["properties"].get("Status") or 1,
             "ObjectSubType": self._get_polling_method().upper(),
         }
+        if not self.engine_id:
+            extra_swargs.update({"EngineID": 1})
+        return extra_swargs
 
     def _get_polling_method(self) -> str:
         """infer polling method from SNMP attributes if not explicitly given"""
