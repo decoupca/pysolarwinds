@@ -29,6 +29,7 @@ NODE_DEFAULT_POLLERS = {
         "N.Uptime.SNMP.Generic",
     ],
 }
+
 EXCLUDE_CUSTOM_PROPS = [
     "DisplayName",
     "NodeID",
@@ -37,3 +38,5 @@ EXCLUDE_CUSTOM_PROPS = [
     "InstanceSiteId",
     "Description",
 ]
+
+IMPORT_RESOURCES_TIMEOUT = 30

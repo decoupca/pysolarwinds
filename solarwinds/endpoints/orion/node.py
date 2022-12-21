@@ -10,8 +10,8 @@ from solarwinds.endpoints.orion.interface import OrionInterfaces
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 from solarwinds.exceptions import (
     SWDiscoveryError,
-    SWObjectExists,
     SWObjectPropertyError,
+    SWResourceImportError,
 )
 from solarwinds.logging import get_logger
 from solarwinds.maps import NODE_DISCOVERY_STATUS_MAP
@@ -91,6 +91,9 @@ class OrionNode(Endpoint):
         self._discovery_profile_id = None
         self._discovery_profile_status = 0
         self._discovered_entities = None
+
+        self._import_job_id = None
+        self._import_status = None
 
         if self.ip_address is None and self.caption is None:
             raise SWObjectPropertyError("Must provide either ip_address or caption")
@@ -179,6 +182,16 @@ class OrionNode(Endpoint):
             f"WHERE ProfileID = {self._discovery_profile_id}"
         )
         self._discovery_profile_status = self.api.query(query)[0]["Status"]
+
+    def _get_import_status(self) -> None:
+        if not self._import_job_id:
+            return None
+        self._import_status = self.api.invoke(
+            "Orion.Nodes",
+            "GetScheduledListResourcesStatus",
+            self._import_job_id,
+            self.id,
+        )
 
     def _get_extra_swargs(self) -> Dict:
         extra_swargs = {
@@ -315,9 +328,10 @@ class OrionNode(Endpoint):
         )
         self._get_discovery_status()
         seconds_waited = 0
+        report_increment = 5
         while seconds_waited < timeout and self._discovery_profile_status == 1:
-            sleep(5)
-            seconds_waited += 5
+            sleep(report_increment)
+            seconds_waited += report_increment
             self._get_discovery_status()
             logger.debug(
                 f"discovering node: waited {seconds_waited}sec, timeout {timeout}sec, "
@@ -357,6 +371,62 @@ class OrionNode(Endpoint):
             error_message = result["ErrorMessage"]
             raise SWDiscoveryError(
                 f"{self.name}: node discovery failed. Status: {error_status}, Error: {error_message}"
+            )
+
+    def import_snmp_resources(self, timeout=None) -> bool:
+        """
+        imports (adds to monitoring) all available SNMP resources (OIDs),
+        such as interfaces, CPU and RAM stats, routing tables, etc.
+        As far as I can tell, the SWIS API provides no way of choosing
+        which resources to import.
+        """
+        if self.polling_method != "snmp":
+            raise SWObjectPropertyError(
+                f"{self.name}: polling_method must be 'snmp' to import resources"
+            )
+        else:
+            if (
+                not self.snmpv2c_ro_community
+                and not self.snmpv2c_rw_community
+                and not self.snmpv3_ro_cred
+                and not self.snmpv3_rw_cred
+            ):
+                raise SWObjectPropertyError(
+                    f"{self.name}: must set SNMPv2 community or SNMPv3 credentials"
+                )
+        if timeout is None:
+            timeout = d.IMPORT_RESOURCES_TIMEOUT
+        logger.info(f"{self.name}: importing all SNMP resources...")
+        self._import_job_id = self.api.invoke(
+            "Orion.Nodes", "ScheduleListResources", self.id
+        )
+        logger.debug(f"{self.name}: resource import job ID: {self._import_job_id}")
+        self._get_import_status()
+        seconds_waited = 0
+        report_increment = 5
+        while seconds_waited < timeout and self._import_status != "ReadyForImport":
+            sleep(report_increment)
+            seconds_waited += report_increment
+            self._get_import_status()
+            logger.debug(
+                f"{self.name}: resource import: waited {seconds_waited}sec, "
+                f"timeout {timeout}sec, status: {self._import_status}"
+            )
+        if self._import_status == "ReadyForImport":
+            imported = self.api.invoke(
+                "Orion.Nodes", "ImportListResourcesResult", self._import_job_id, self.id
+            )
+            if imported:
+                logger.info(f"{self.name}: imported all SNMP resources")
+                return True
+            else:
+                raise SWResourceImportError(
+                    f"{self.name}: SNMP resource import failed. "
+                    "SWIS does not provide any further info."
+                )
+        else:
+            raise SWResourceImportError(
+                f"{self.name}: timed out waiting for SNMP resources"
             )
 
     def remanage(self) -> bool:

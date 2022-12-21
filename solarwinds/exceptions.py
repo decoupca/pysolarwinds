@@ -2,6 +2,10 @@ class SWDiscoveryError(Exception):
     pass
 
 
+class SWResourceImportError(Exception):
+    pass
+
+
 class SWIDNotFound(Exception):
     pass
 
