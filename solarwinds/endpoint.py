@@ -134,17 +134,19 @@ class Endpoint:
         """
         Updates object attributes from dict
         """
-        if attr_updates is not None:
-            for attr, new_v in attr_updates.items():
-                v = getattr(self, attr)
-                if not v or overwrite:
-                    setattr(self, attr, new_v or None)
-                    logger.debug(f"updated self.{attr} = {new_v}")
-                else:
-                    logger.debug(
-                        f"{attr} already has value '{v}' and overwrite is False, "
-                        f"leaving intact"
-                    )
+        if attr_updates is None:
+            attr_updates = self._get_attr_updates()
+
+        for attr, new_v in attr_updates.items():
+            v = getattr(self, attr)
+            if not v or overwrite:
+                setattr(self, attr, new_v or None)
+                logger.debug(f"updated self.{attr} = {new_v}")
+            else:
+                logger.debug(
+                    f"{attr} already has value '{v}' and overwrite is False, "
+                    f"leaving intact"
+                )
 
         if cp_updates is not None:
             self.custom_properties = cp_updates or None

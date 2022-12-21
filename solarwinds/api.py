@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from typing import Dict, List, Optional, Union
+from solarwinds.exceptions import SWISError
 
 import httpx
 
@@ -72,12 +73,10 @@ class API:
             method, self.url + frag, data=json.dumps(data, default=_json_serial)
         )
 
-        # try to extract reason from response when request returns error
         if 400 <= response.status_code < 600:
-            try:
-                response.reason = json.loads(response.text)["Message"]
-            except:
-                pass
-
-        response.raise_for_status()
+            error_msg = response.json().get("FullException")
+            msg = f"{method} to {self.url + frag} returned {response.status_code}\n"
+            if error_msg:
+                msg = msg + "Full exception returned by SWIS:\n" + error_msg
+            raise SWISError(msg)
         return response

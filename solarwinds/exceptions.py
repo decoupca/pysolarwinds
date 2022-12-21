@@ -28,3 +28,7 @@ class SWNonUniqueResult(Exception):
 
 class SWObjectCreationError(Exception):
     pass
+
+
+class SWISError(Exception):
+    pass
