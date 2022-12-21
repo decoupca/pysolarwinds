@@ -24,7 +24,7 @@ class API:
         verify: Union[bool, str] = True,
         timeout: int = 60,
     ):
-        self.url = f"https://{hostname}:17778/SolarWinds/InformationService/v3/Json/"
+        self.hostname = hostname
         self.client = httpx.Client(
             auth=(username, password),
             timeout=httpx.Timeout(timeout),
@@ -32,6 +32,10 @@ class API:
             limits=httpx.Limits(max_keepalive_connections=None, max_connections=None),
             verify=verify,
         )
+
+    @property
+    def url(self) -> str:
+        return f'https://{self.hostname}:17778/SolarWinds/InformationService/v3/Json/'
 
     def query(self, query: str, **params) -> List:
         return parse_response(
