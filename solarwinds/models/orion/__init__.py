@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 
 from solarwinds.endpoints.orion.credential import OrionCredential
+from solarwinds.endpoints.orion.engines import OrionEngine
 from solarwinds.endpoints.orion.node import OrionNode
 from solarwinds.models.orion.worldmap import WorldMap
 
@@ -9,6 +10,14 @@ class Orion(object):
     def __init__(self, api):
         self.api = api
         self.worldmap = WorldMap(api)
+
+    def engine(
+        self,
+        id: Optional[int] = None,
+        ip_address: Optional[str] = None,
+        name: Optional[str] = None,
+    ) -> OrionEngine:
+        return OrionEngine(api=self.api, id=id, ip_address=ip_address, name=name)
 
     def credential(
         self,

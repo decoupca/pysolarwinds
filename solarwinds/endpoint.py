@@ -11,6 +11,7 @@ logger = get_logger(__name__)
 class Endpoint:
 
     endpoint = None
+    _attr_map = None
     _type = None
     _id_attr = None
     _swid_key = None
@@ -70,8 +71,8 @@ class Endpoint:
             queries = []
             for attr in self._swquery_attrs:
                 v = getattr(self, attr)
-                if v is not None:
-                    k = attr.replace("_", "")
+                if v:
+                    k = self._attr_map[attr]
                     queries.append(
                         f"SELECT Uri as uri FROM {self.endpoint} WHERE {k} = '{v}'"
                     )

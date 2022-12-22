@@ -8,6 +8,11 @@ class OrionCredential(Endpoint):
     endpoint = "Orion.Credential"
     _type = "credential"
     _id_attr = "credential_id"
+    _attr_map = {
+        "credential_type": "CredentialType",
+        "id": "ID",
+        "name": "Name",
+    }
     _swid_key = "ID"
     _swquery_attrs = ["id", "name"]
     _swargs_attrs = ["id", "name"]
