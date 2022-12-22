@@ -425,10 +425,9 @@ class OrionNode(Endpoint):
 
     def import_snmp_resources(self, timeout=None) -> bool:
         """
-        imports (adds to monitoring) all available SNMP resources (OIDs),
-        such as interfaces, CPU and RAM stats, routing tables, etc.
-        As far as I can tell, the SWIS API provides no way of choosing
-        which resources to import >:(
+        discovers and adds to monitoring all available SNMP OIDs,
+        such as interfaces, CPU/RAM stats, routing tables, etc.
+        AFAICT, the SWIS API provides no way of choosing which resources to import
         """
         logger.info(f"{self.name}: importing all SNMP resources...")
         if self.polling_method != "snmp":
@@ -449,7 +448,9 @@ class OrionNode(Endpoint):
             timeout = d.IMPORT_RESOURCES_TIMEOUT
 
         # the verbs associated with this method need to be pointed at this
-        # node's assigned polling engine
+        # node's assigned polling engine. If they are directed at the main SWIS
+        # server and the node uses a different polling engine, the process
+        # will hang at "unknown" status
         if not isinstance(self.polling_engine, OrionEngine):
             self._resolve_endpoint_attrs()
         api_hostname = self.api.hostname
