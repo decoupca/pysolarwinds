@@ -430,8 +430,7 @@ class OrionNode(Endpoint):
         As far as I can tell, the SWIS API provides no way of choosing
         which resources to import >:(
         """
-        # TODO: We need to point this method's API calls directly to this
-        # node's assigned polling engine, or it will fail
+        logger.info(f"{self.name}: importing all SNMP resources...")
         if self.polling_method != "snmp":
             raise SWObjectPropertyError(
                 f"{self.name}: polling_method must be 'snmp' to import resources"
@@ -448,7 +447,14 @@ class OrionNode(Endpoint):
                 )
         if timeout is None:
             timeout = d.IMPORT_RESOURCES_TIMEOUT
-        logger.info(f"{self.name}: importing all SNMP resources...")
+
+        # the verbs associated with this method need to be pointed at this
+        # node's assigned polling engine
+        if not isinstance(self.polling_engine, OrionEngine):
+            self._resolve_endpoint_attrs()
+        api_hostname = self.api.hostname
+        self.api.hostname = self.polling_engine.ip_address
+
         self._import_job_id = self.api.invoke(
             "Orion.Nodes", "ScheduleListResources", self.id
         )
@@ -470,13 +476,16 @@ class OrionNode(Endpoint):
             )
             if imported:
                 logger.info(f"{self.name}: imported all SNMP resources")
+                self.api.hostname = api_hostname
                 return True
             else:
+                self.api.hostname = api_hostname
                 raise SWResourceImportError(
                     f"{self.name}: SNMP resource import failed. "
                     "SWIS does not provide any further info."
                 )
         else:
+            self.api.hostname = api_hostname
             raise SWResourceImportError(
                 f"{self.name}: timed out waiting for SNMP resources"
             )
