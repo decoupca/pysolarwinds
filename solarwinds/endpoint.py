@@ -12,6 +12,7 @@ class Endpoint:
 
     endpoint = None
     _attr_map = None
+    _endpoint_attrs = None
     _type = None
     _id_attr = None
     _swid_key = None
@@ -34,12 +35,28 @@ class Endpoint:
         else:
             self._set_defaults()
         self._call_init_methods()
+        self._resolve_endpoint_attrs()
         self._update_attrs_from_children()
 
     def _call_init_methods(self):
         init_methods = [getattr(self, x) for x in dir(self) if x.startswith("_init")]
         for method in init_methods:
             method()
+
+    def _resolve_endpoint_attrs(self) -> None:
+        if self._endpoint_attrs:
+            for attr, endpoint_class in self._endpoint_attrs.items():
+                value = getattr(self, attr)
+                if not isinstance(value, endpoint_class):
+                    if isinstance(value, int):
+                        endpoint = endpoint_class(api=self.api, id=value)
+                    elif isinstance(value, str):
+                        endpoint = endpoint_class(api=self.api, name=value)
+                    setattr(self, attr, endpoint)
+                else:
+                    endpoint = value
+                    if not endpoint.exists():
+                        raise SWObjectPropertyError(f"{endpoint} does not exist")
 
     @property
     def _schema_doc_url(self) -> str:
@@ -440,6 +457,7 @@ class Endpoint:
         if self.exists():
             raise SWObjectExists("object exists, cannot create")
         else:
+            self._resolve_endpoint_attrs()
             self._build_swargs()
             if not self._swargs:
                 raise SWObjectPropertyError("Can't create object without properties.")
@@ -477,6 +495,7 @@ class Endpoint:
 
     def save(self) -> bool:
         """Update object in solarwinds with local object's properties"""
+        self._resolve_endpoint_attrs()
         self._build_swargs()
         if self.exists():
             if not self._changes:

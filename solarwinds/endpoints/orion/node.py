@@ -29,6 +29,9 @@ class OrionNode(Endpoint):
     _id_attr = "id"
     _swid_key = "NodeID"
     _swquery_attrs = ["ip_address", "caption"]
+    _endpoint_attrs = {
+        "polling_engine": OrionEngine,
+    }
     _attr_map = {
         "caption": "Caption",
         "ip_address": "IPAddress",
@@ -103,18 +106,6 @@ class OrionNode(Endpoint):
 
         self._import_job_id = None
         self._import_status = None
-
-        if self.polling_engine:
-            if isinstance(self.polling_engine, int):
-                self.polling_engine = OrionEngine(api=self.api, id=self.polling_engine)
-            if isinstance(self.polling_engine, str):
-                self.polling_engine = OrionEngine(
-                    api=self.api, name=self.polling_engine
-                )
-            if not self.polling_engine.exists():
-                raise SWObjectPropertyError(
-                    f"polling engine {self.polling_engine} does not exist"
-                )
 
         if self.ip_address is None and self.caption is None:
             raise SWObjectPropertyError("Must provide either ip_address or caption")
@@ -529,6 +520,7 @@ class OrionNode(Endpoint):
             return False
 
     def save(self) -> bool:
+        self._resolve_endpoint_attrs()
         if self.snmp_version == 3:
             if not self.snmpv3_ro_cred and not self.snmpv3_rw_cred:
                 raise ValueError(
@@ -538,14 +530,6 @@ class OrionNode(Endpoint):
         if not self.polling_engine:
             self.polling_engine = OrionEngine(
                 api=self.api, id=DEFAULT_POLLING_ENGINE_ID
-            )
-        if isinstance(self.polling_engine, int):
-            self.polling_engine = OrionEngine(api=self.api, id=self.polling_engine)
-        if isinstance(self.polling_engine, str):
-            self.polling_engine = OrionEngine(api=self.api, name=self.polling_engine)
-        if not self.polling_engine.exists():
-            raise SWObjectPropertyError(
-                f"polling engine {self.polling_engine} does not exist"
             )
         self.settings.save()
         return super().save()

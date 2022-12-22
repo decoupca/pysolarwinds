@@ -6,7 +6,7 @@ from solarwinds.endpoints.orion.node import OrionNode
 from solarwinds.models.orion.worldmap import WorldMap
 
 
-class Orion(object):
+class Orion:
     def __init__(self, api):
         self.api = api
         self.worldmap = WorldMap(api)
@@ -41,7 +41,7 @@ class Orion(object):
         longitude: Optional[float] = None,
         id: Optional[int] = None,
         pollers: Optional[List] = None,
-        polling_engine: Union[OrionEngine, str, int] = None,
+        polling_engine: Union[OrionEngine, str, int, None] = None,
         polling_method: Optional[str] = None,
         snmp_version: Optional[int] = None,
         snmpv2c_ro_community: Optional[str] = None,
