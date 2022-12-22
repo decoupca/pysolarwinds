@@ -520,7 +520,6 @@ class OrionNode(Endpoint):
             return False
 
     def save(self) -> bool:
-        self._resolve_endpoint_attrs()
         if self.snmp_version == 3:
             if not self.snmpv3_ro_cred and not self.snmpv3_rw_cred:
                 raise ValueError(
