@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from typing import Dict, List, Optional
 
 
@@ -30,3 +31,8 @@ def camel_to_snake(name: str) -> str:
 
 def print_dict(dct: Dict) -> str:
     return str(dct).replace("{", "").replace("}", "").replace("'", "")
+
+
+def parse_datetime(date: Optional[str]) -> Optional[datetime]:
+    if date:
+        return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f")

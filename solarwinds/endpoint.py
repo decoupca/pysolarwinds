@@ -27,6 +27,7 @@ class Endpoint:
         self._changes = None
         self._exclude_custom_props = EXCLUDE_CUSTOM_PROPS
         self._child_objects = None
+        self._schema_version = "2020.2"
         self._swdata = {"properties": {}, "custom_properties": {}}
         if self.exists():
             self.refresh()
@@ -39,6 +40,28 @@ class Endpoint:
         init_methods = [getattr(self, x) for x in dir(self) if x.startswith("_init")]
         for method in init_methods:
             method()
+
+    @property
+    def _schema_doc_url(self) -> str:
+        base_url = f"http://solarwinds.github.io/OrionSDK/{self._schema_version}/schema"
+        if self.endpoint:
+            return f"{base_url}/{self.endpoint}.html"
+        else:
+            return base_url
+
+    @property
+    def _swp(self):
+        """convenience alias"""
+        return self._swdata["properties"]
+
+    @property
+    def _swcp(self):
+        """convenience alias"""
+        return self._swdata["custom_properties"]
+
+    @property
+    def instance_type(self) -> Optional[str]:
+        return self._swp.get("InstanceType")
 
     def refresh(self) -> None:
         if self.exists():
