@@ -6,6 +6,7 @@ import solarwinds.defaults as d
 from solarwinds.api import API
 from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.credential import OrionCredential
+from solarwinds.endpoints.orion.engines import OrionEngine
 from solarwinds.endpoints.orion.interface import OrionInterfaces
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 from solarwinds.exceptions import (
@@ -16,7 +17,6 @@ from solarwinds.exceptions import (
 from solarwinds.logging import get_logger
 from solarwinds.maps import NODE_DISCOVERY_STATUS_MAP
 from solarwinds.models.orion.node_settings import OrionNodeSettings
-from solarwinds.endpoints.orion.engines import OrionEngine
 
 logger = get_logger(__name__)
 

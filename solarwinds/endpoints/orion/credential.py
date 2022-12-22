@@ -9,7 +9,6 @@ class OrionCredential(Endpoint):
     _type = "credential"
     _id_attr = "credential_id"
     _attr_map = {
-        "credential_type": "CredentialType",
         "id": "ID",
         "name": "Name",
     }
@@ -21,26 +20,34 @@ class OrionCredential(Endpoint):
         self,
         api: API,
         id: Optional[int] = None,
-        credential_type: Optional[str] = None,
         name: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
         self.api = api
         self.id = id
-        self.credential_type = credential_type
         self.name = name
         self.description = description
         if not id and not name:
             raise ValueError("must provide either credential ID or name")
         super().__init__()
 
+    def description(self) -> Optional[str]:
+        return self._swp.get("Description")
+
+    @property
+    def owner(self) -> Optional[str]:
+        return self._swp.get("CredentialOwner")
+
+    @property
+    def type(self) -> Optional[str]:
+        return self._swp.get("CredentialType")
+
     def _get_attr_updates(self) -> Dict:
         swdata = self._swdata["properties"]
         return {
-            "credential_type": swdata.get("CredentialType"),
             "id": swdata.get("ID"),
             "name": swdata.get("Name"),
         }
 
     def __repr__(self):
-        return f"<OrionCredential: {self.credential_type}: {self.name or self.id}>"
+        return f"<OrionCredential: {self.type}: {self.name or self.id}>"
