@@ -16,8 +16,11 @@ from solarwinds.exceptions import (
 from solarwinds.logging import get_logger
 from solarwinds.maps import NODE_DISCOVERY_STATUS_MAP
 from solarwinds.models.orion.node_settings import OrionNodeSettings
+from solarwinds.endpoints.orion.engines import OrionEngine
 
 logger = get_logger(__name__)
+
+DEFAULT_POLLING_ENGINE_ID = 1
 
 
 class OrionNode(Endpoint):
@@ -28,7 +31,6 @@ class OrionNode(Endpoint):
     _swquery_attrs = ["ip_address", "caption"]
     _attr_map = {
         "caption": "Caption",
-        "engine_id": "EngineID",
         "ip_address": "IPAddress",
         "snmp_version": "SNMPVersion",
         "snmpv2c_ro_community": "Community",
@@ -36,7 +38,6 @@ class OrionNode(Endpoint):
     }
     _swargs_attrs = [
         "caption",
-        "engine_id",
         "ip_address",
         "snmp_version",
         "snmpv2c_ro_community",
@@ -63,11 +64,11 @@ class OrionNode(Endpoint):
         ip_address: Optional[str] = None,
         caption: Optional[str] = None,
         custom_properties: Optional[Dict] = None,
-        engine_id: Optional[int] = None,
         latitude: Optional[float] = None,
         longitude: Optional[float] = None,
         id: Optional[int] = None,
         pollers: Optional[List] = None,
+        polling_engine: Union[OrionEngine, int, str, None] = None,
         polling_method: Optional[str] = None,
         snmp_version: Optional[int] = None,
         snmpv2c_ro_community: Optional[str] = None,
@@ -77,12 +78,12 @@ class OrionNode(Endpoint):
     ):
         self.api = api
         self.caption = caption
-        self.engine_id = engine_id
         self.custom_properties = custom_properties
         self.ip_address = ip_address
         self.latitude = latitude
         self.longitude = longitude
         self.id = id
+        self.polling_engine = polling_engine
         self.polling_method = polling_method
         self.pollers = pollers
         self.snmp_version = snmp_version
@@ -102,6 +103,18 @@ class OrionNode(Endpoint):
 
         self._import_job_id = None
         self._import_status = None
+
+        if self.polling_engine:
+            if isinstance(self.polling_engine, int):
+                self.polling_engine = OrionEngine(api=self.api, id=self.polling_engine)
+            if isinstance(self.polling_engine, str):
+                self.polling_engine = OrionEngine(
+                    api=self.api, name=self.polling_engine
+                )
+            if not self.polling_engine.exists():
+                raise SWObjectPropertyError(
+                    f"polling engine {self.polling_engine} does not exist"
+                )
 
         if self.ip_address is None and self.caption is None:
             raise SWObjectPropertyError("Must provide either ip_address or caption")
@@ -149,7 +162,7 @@ class OrionNode(Endpoint):
 
     @property
     def status(self) -> Optional[str]:
-        return self._swdata["properties"].get("Status")
+        return self._swp.get("Status")
 
     def _set_defaults(self) -> None:
         if not self.polling_method:
@@ -173,14 +186,42 @@ class OrionNode(Endpoint):
         return {
             "caption": swdata["Caption"],
             "ip_address": swdata["IPAddress"],
-            "engine_id": swdata["EngineID"],
             "snmpv2c_ro_community": swdata["Community"],
             "snmpv2c_rw_community": swdata["RWCommunity"],
+            "polling_engine": OrionEngine(api=self.api, id=swdata["EngineID"]),
             "polling_method": self._get_polling_method(),
             "pollers": self._get_pollers()
             or d.NODE_DEFAULT_POLLERS[swdata["ObjectSubType"].lower()],
             "snmp_version": swdata["SNMPVersion"],
         }
+
+    def _build_swargs(self) -> None:
+        swargs = {"properties": None, "custom_properties": None}
+        properties = {
+            "Caption": self.caption,
+            "IPAddress": self.ip_address,
+            "Community": self.snmpv2c_ro_community,
+            "RWCommunity": self.snmpv2c_rw_community,
+            "ObjectSubType": self.polling_method,
+            "SNMPVersion": self._get_snmp_version(),
+            "EngineID": self.polling_engine.id,
+        }
+        custom_properties = {}
+
+        extra_swargs = self._get_extra_swargs()
+        if extra_swargs:
+            for k, v in extra_swargs.items():
+                properties[k] = v
+                logger.debug(f'_swargs["properties"]["{k}"] = {v}')
+
+        if hasattr(self, "custom_properties"):
+            custom_properties = self.custom_properties
+            logger.debug(f'_swargs["custom_properties"] = {self.custom_properties}')
+
+        swargs["properties"] = properties
+        swargs["custom_properties"] = custom_properties
+        if swargs.get("properties") or swargs.get("custom_properties"):
+            self._swargs = swargs
 
     def _get_discovery_status(self) -> None:
         if not self._discovery_profile_id:
@@ -206,8 +247,6 @@ class OrionNode(Endpoint):
             "Status": self._swdata["properties"].get("Status") or 1,
             "ObjectSubType": self._get_polling_method().upper(),
         }
-        if not self.engine_id:
-            extra_swargs.update({"EngineID": 1})
         return extra_swargs
 
     def _get_polling_method(self) -> str:
@@ -260,6 +299,18 @@ class OrionNode(Endpoint):
     def create(self) -> bool:
         if not self.ip_address:
             raise SWObjectPropertyError(f"must provide IP address to create node")
+        if not self.polling_engine:
+            self.polling_engine = OrionEngine(
+                api=self.api, id=DEFAULT_POLLING_ENGINE_ID
+            )
+        if isinstance(self.polling_engine, int):
+            self.polling_engine = OrionEngine(api=self.api, id=self.polling_engine)
+        if isinstance(self.polling_engine, str):
+            self.polling_engine = OrionEngine(api=self.api, name=self.polling_engine)
+        if not self.polling_engine.exists():
+            raise SWObjectPropertyError(
+                f"polling engine {self.polling_engine} does not exist"
+            )
         # SWIS API won't let us create a SNMPv3 node directly,
         # so we need to first create it as a SNMPv2c node, then
         # switch it to SNMPv3
@@ -484,6 +535,18 @@ class OrionNode(Endpoint):
                     "must provide either snmpv3_ro_cred or "
                     "snmpv3_rw_cred when snmp_version=3"
                 )
+        if not self.polling_engine:
+            self.polling_engine = OrionEngine(
+                api=self.api, id=DEFAULT_POLLING_ENGINE_ID
+            )
+        if isinstance(self.polling_engine, int):
+            self.polling_engine = OrionEngine(api=self.api, id=self.polling_engine)
+        if isinstance(self.polling_engine, str):
+            self.polling_engine = OrionEngine(api=self.api, name=self.polling_engine)
+        if not self.polling_engine.exists():
+            raise SWObjectPropertyError(
+                f"polling engine {self.polling_engine} does not exist"
+            )
         self.settings.save()
         return super().save()
 

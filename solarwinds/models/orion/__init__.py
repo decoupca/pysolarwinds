@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from solarwinds.endpoints.orion.credential import OrionCredential
 from solarwinds.endpoints.orion.engines import OrionEngine
@@ -39,11 +39,11 @@ class Orion(object):
         ip_address: Optional[str] = None,
         caption: Optional[str] = None,
         custom_properties: Optional[Dict] = None,
-        engine_id: Optional[int] = None,
         latitude: Optional[float] = None,
         longitude: Optional[float] = None,
         id: Optional[int] = None,
         pollers: Optional[List] = None,
+        polling_engine: Union[OrionEngine, str, int] = None,
         polling_method: Optional[str] = None,
         snmp_version: Optional[int] = None,
         snmpv2c_ro_community: Optional[str] = None,
@@ -56,11 +56,11 @@ class Orion(object):
             ip_address=ip_address,
             caption=caption,
             custom_properties=custom_properties,
-            engine_id=engine_id,
             latitude=latitude,
             longitude=longitude,
             id=id,
             pollers=pollers,
+            polling_engine=polling_engine,
             polling_method=polling_method,
             snmp_version=snmp_version,
             snmpv2c_ro_community=snmpv2c_ro_community,
