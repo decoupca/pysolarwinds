@@ -190,8 +190,8 @@ class OrionInterfaces(object):
                 msg += "Check that the node exists and is set to SNMP polling method."
             else:
                 msg += (
-                    "Common causes: Invalid SNMP credentials; "
-                    "SNMP not running or misconfigured on node; "
+                    "Common causes: Invalid credentials; "
+                    "SNMP misconfigured on node; "
                     "SNMP ports blocked by firewall or ACL"
                 )
                 raise SWDiscoveryError(msg)
