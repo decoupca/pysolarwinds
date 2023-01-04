@@ -22,6 +22,10 @@ class SWObjectExists(Exception):
     pass
 
 
+class SWObjectDoesNotExist(Exception):
+    pass
+
+
 class SWObjectPropertyError(Exception):
     pass
 

@@ -2,7 +2,12 @@ import re
 from typing import Dict, Union
 
 from solarwinds.endpoint import Endpoint
-from solarwinds.exceptions import SWDiscoveryError
+from solarwinds.endpoints.orion.engines import OrionEngine
+from solarwinds.exceptions import (
+    SWDiscoveryError,
+    SWObjectDoesNotExist,
+    SWObjectPropertyError,
+)
 from solarwinds.logging import get_logger
 
 logger = get_logger(__name__)
@@ -148,10 +153,29 @@ class OrionInterfaces(object):
         Runs SNMP discovery of all available interfaces. This can take a while
         depending on network conditions and number of interfaces on node
         """
+        if not self.node.exists():
+            raise SWObjectDoesNotExist(
+                f"{self.node}: node does not exist, can't discover interfaces"
+            )
+        if self.node.polling_method != "snmp":
+            raise SWObjectPropertyError(
+                f"{self.node}: interface discovery requires SNMP polling method; "
+                f'node polling method is currently "{self.node.polling_method}"'
+            )
         logger.info(f"{self.node.name}: discovering interfaces via SNMP...")
+
+        # the verbs associated with this method need to be pointed at this
+        # node's assigned polling engine. If they are directed at the main SWIS
+        # server and the node uses a different polling engine, the process
+        # will hang at "unknown" status
+        if not isinstance(self.node.polling_engine, OrionEngine):
+            self._resolve_endpoint_attrs()
+        api_hostname = self.api.hostname
+        self.api.hostname = self.node.polling_engine.ip_address
         result = self.api.invoke(
             "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.node.id
         )
+        self.api.hostname = api_hostname
         self._discovery_response_code = result["Result"]
         if self._discovery_response_code == 0:
             results = result["DiscoveredInterfaces"]
@@ -159,12 +183,18 @@ class OrionInterfaces(object):
             self._discovered = results
             return True
         else:
-            raise SWDiscoveryError(
-                f"{self.node.name}: interface discovery failed. "
-                "Common causes: Invalid SNMP credentials, "
-                "SNMP not running or misconfigured on node, "
-                "SNMP ports blocked by firewall or ACL"
-            )
+            msg = f"{self.node}: Interface discovery failed. "
+            # https://thwack.solarwinds.com/product-forums/the-orion-platform/f/orion-sdk/40430/data-returned-from-discoverinterfacesonnode-question/159593#159593
+            if self._discovery_response_code == 1:
+                # should never get this due to checks above
+                msg += "Check that the node exists and is set to SNMP polling method."
+            else:
+                msg += (
+                    "Common causes: Invalid SNMP credentials; "
+                    "SNMP not running or misconfigured on node; "
+                    "SNMP ports blocked by firewall or ACL"
+                )
+                raise SWDiscoveryError(msg)
 
     def monitor(self, interfaces=None) -> None:
         if not self._existing:
