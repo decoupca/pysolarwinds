@@ -316,12 +316,20 @@ class OrionNode(Endpoint):
                 self.save()
         return created
 
-    def discover(self, retries=None, timeout=None) -> bool:
+    def discover(self, retries=None, timeout=None, protocol="snmp") -> bool:
+        if protocol != "snmp":
+            raise NotImplementedError("Only SNMP-based discovery is implemented")
         if not self.ip_address:
             raise SWObjectPropertyError("Discovery requires ip_address is set")
-        if not self.snmpv3_ro_cred and not self.snmpv3_rw_cred:
+        if (
+            not self.snmpv2c_ro_community
+            and not self.snmpv2c_rw_community
+            and not self.snmpv3_ro_cred
+            and not self.snmpv3_rw_cred
+        ):
             raise SWObjectPropertyError(
-                "Discovery requires either snmpv3_ro_cred or snmpv3_rw_cred"
+                "Discovery requires at least one SNMP credential property set: "
+                "snmpv2c_ro_community, snmpv2c_rw_community, snmpv3_ro_cred, or snmpv3_rw_cred"
             )
         if not self.polling_engine:
             self.polling_engine = OrionEngine(

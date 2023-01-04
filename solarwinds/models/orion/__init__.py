@@ -3,13 +3,15 @@ from typing import Dict, List, Optional, Union
 from solarwinds.endpoints.orion.credential import OrionCredential
 from solarwinds.endpoints.orion.engines import OrionEngine
 from solarwinds.endpoints.orion.node import OrionNode
+from solarwinds.models.orion.credential import Credential
 from solarwinds.models.orion.worldmap import WorldMap
 
 
 class Orion:
     def __init__(self, api):
         self.api = api
-        self.worldmap = WorldMap(api)
+        self.worldmap = WorldMap(api=api)
+        self.credential = Credential(api=api)
 
     def engine(
         self,
@@ -18,19 +20,6 @@ class Orion:
         name: Optional[str] = None,
     ) -> OrionEngine:
         return OrionEngine(api=self.api, id=id, ip_address=ip_address, name=name)
-
-    def credential(
-        self,
-        id: Optional[int] = None,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-    ) -> OrionCredential:
-        return OrionCredential(
-            api=self.api,
-            id=id,
-            name=name,
-            description=description,
-        )
 
     def node(
         self,
