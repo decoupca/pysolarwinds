@@ -71,6 +71,9 @@ class OrionSNMPv3Credential(OrionCredential):
         self.priv_key_is_password = priv_key_is_password
         super().__init__()
 
+    def create(self) -> bool:
+        raise NotImplementedError
+
 
 class OrionSNMPv2Credential(OrionCredential):
     def __init__(
@@ -121,3 +124,6 @@ class OrionUserPassCredential(OrionCredential):
         self.username = username
         self.password = password
         super().__init__()
+
+    def create(self) -> bool:
+        raise NotImplementedError
