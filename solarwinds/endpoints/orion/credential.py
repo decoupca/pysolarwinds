@@ -2,6 +2,7 @@ from typing import Dict, Optional
 
 from solarwinds.api import API
 from solarwinds.endpoint import Endpoint
+from solarwinds.exceptions import SWObjectExists, SWObjectPropertyError
 
 
 class OrionCredential(Endpoint):
@@ -16,18 +17,8 @@ class OrionCredential(Endpoint):
     _swquery_attrs = ["id", "name"]
     _swargs_attrs = ["id", "name"]
 
-    def __init__(
-        self,
-        api: API,
-        id: Optional[int] = None,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-    ) -> None:
-        self.api = api
-        self.id = id
-        self.name = name
-        self.description = description
-        if not id and not name:
+    def __init__(self) -> None:
+        if not self.id and not self.name:
             raise ValueError("must provide either credential ID or name")
         super().__init__()
 
@@ -42,7 +33,10 @@ class OrionCredential(Endpoint):
         }
 
     def __repr__(self):
-        return f"<OrionCredential: {self.type}: {self.name or self.id}>"
+        return f"<OrionCredential: {self.name or self.id}>"
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class OrionSNMPv3Credential(OrionCredential):
@@ -75,9 +69,6 @@ class OrionSNMPv3Credential(OrionCredential):
         self.priv_method = priv_method
         self.priv_password = priv_password
         self.priv_key_is_password = priv_key_is_password
-
-        if not id and not name:
-            raise ValueError("must provide either credential ID or name")
         super().__init__()
 
 
@@ -95,6 +86,22 @@ class OrionSNMPv2Credential(OrionCredential):
         self.name = name
         self.community = community
         self.owner = owner
+        super().__init__()
+
+    def create(self) -> bool:
+        if not self.name or not self.community:
+            raise SWObjectPropertyError(f"Must provide name and community string")
+        if self.exists():
+            raise SWObjectExists(f"{self}: Credential already exists")
+        else:
+            self.id = self.api.invoke(
+                self.endpoint,
+                "CreateSNMPCredentials",
+                self.name,
+                self.community,
+                self.owner,
+            )
+            return True
 
 
 class OrionUserPassCredential(OrionCredential):
@@ -113,3 +120,4 @@ class OrionUserPassCredential(OrionCredential):
         self.owner = owner
         self.username = username
         self.password = password
+        super().__init__()

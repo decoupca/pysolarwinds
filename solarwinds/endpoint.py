@@ -1,7 +1,12 @@
 from typing import Any, Dict, Optional, Union
 
 from solarwinds.defaults import EXCLUDE_CUSTOM_PROPS
-from solarwinds.exceptions import SWIDNotFound, SWObjectExists, SWObjectPropertyError
+from solarwinds.exceptions import (
+    SWIDNotFound,
+    SWObjectDoesNotExist,
+    SWObjectExists,
+    SWObjectPropertyError,
+)
 from solarwinds.logging import get_logger
 from solarwinds.utils import print_dict, sanitize_swdata
 
@@ -149,23 +154,28 @@ class Endpoint:
         """
         Caches solarwinds data
         """
-        if (
-            not self._swdata.get("properties")
-            and not self._swdata.get("custom_properties")
-        ) or refresh:
-            swdata = {"properties": None, "custom_properties": None}
-            logger.debug("getting object data from solarwinds...")
-            if data == "both" or data == "properties":
-                swdata["properties"] = sanitize_swdata(self.api.read(self.uri))
-            if data == "both" or data == "custom_properties":
-                if hasattr(self, "custom_properties"):
-                    swdata["custom_properties"] = sanitize_swdata(
-                        self.api.read(f"{self.uri}/CustomProperties")
-                    )
-            if swdata.get("properties") or swdata.get("custom_properties"):
-                self._swdata = swdata
+        if not self.exists():
+            raise SWObjectDoesNotExist()
         else:
-            logger.debug("_swdata is already set and refresh is False, doing nothing")
+            if (
+                not self._swdata.get("properties")
+                and not self._swdata.get("custom_properties")
+            ) or refresh:
+                swdata = {"properties": None, "custom_properties": None}
+                logger.debug("getting object data from solarwinds...")
+                if data == "both" or data == "properties":
+                    swdata["properties"] = sanitize_swdata(self.api.read(self.uri))
+                if data == "both" or data == "custom_properties":
+                    if hasattr(self, "custom_properties"):
+                        swdata["custom_properties"] = sanitize_swdata(
+                            self.api.read(f"{self.uri}/CustomProperties")
+                        )
+                if swdata.get("properties") or swdata.get("custom_properties"):
+                    self._swdata = swdata
+            else:
+                logger.debug(
+                    "_swdata is already set and refresh is False, doing nothing"
+                )
 
     def _update_attrs(
         self,
@@ -487,6 +497,7 @@ class Endpoint:
         if self.exists():
             self.api.delete(self.uri)
             self.uri = None
+            self.id = None
             self._exists = False
             logger.info(f"{self.name}: deleted {self._type}")
             return True
