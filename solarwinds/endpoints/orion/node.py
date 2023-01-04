@@ -319,10 +319,19 @@ class OrionNode(Endpoint):
     def discover(self, retries=None, timeout=None) -> bool:
         if not self.ip_address:
             raise SWObjectPropertyError("Discovery requires ip_address is set")
+        if not self.snmpv3_ro_cred and not self.snmpv3_rw_cred:
+            raise SWObjectPropertyError(
+                "Discovery requires either snmpv3_ro_cred or snmpv3_rw_cred"
+            )
+        if not self.polling_engine:
+            self.polling_engine = OrionEngine(
+                api=self.api, id=DEFAULT_POLLING_ENGINE_ID
+            )
         if retries is None:
             retries = d.NODE_DISCOVERY_SNMP_RETRIES
         if timeout is None:
             timeout = d.NODE_DISCOVERY_JOB_TIMEOUT_SECONDS
+        self._resolve_endpoint_attrs()
 
         credentials = []
         order = 1
@@ -353,7 +362,7 @@ class OrionNode(Endpoint):
         )
         discovery_profile = {
             "Name": f"Discover {self.name}",
-            "EngineId": self.engine_id,
+            "EngineId": self.polling_engine.id,
             "JobTimeoutSeconds": d.NODE_DISCOVERY_JOB_TIMEOUT_SECONDS,
             "SearchTimeoutMiliseconds": d.NODE_DISCOVERY_SEARCH_TIMEOUT_MILLISECONDS,
             "SnmpTimeoutMiliseconds": d.NODE_DISCOVERY_SNMP_TIMEOUT_MILLISECONDS,
@@ -411,6 +420,8 @@ class OrionNode(Endpoint):
             )
             self._discovered_entities = self.api.query(query)
             if self._discovered_entities:
+                self._get_swdata()
+                self.caption = self._swp.get("Caption")
                 return True
             else:
                 raise SWDiscoveryError(
@@ -532,7 +543,7 @@ class OrionNode(Endpoint):
     def save(self) -> bool:
         if self.snmp_version == 3:
             if not self.snmpv3_ro_cred and not self.snmpv3_rw_cred:
-                raise ValueError(
+                raise SWObjectPropertyError(
                     "must provide either snmpv3_ro_cred or "
                     "snmpv3_rw_cred when snmp_version=3"
                 )

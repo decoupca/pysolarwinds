@@ -47,16 +47,17 @@ class Endpoint:
         if self._endpoint_attrs:
             for attr, endpoint_class in self._endpoint_attrs.items():
                 value = getattr(self, attr)
-                if not isinstance(value, endpoint_class):
-                    if isinstance(value, int):
-                        endpoint = endpoint_class(api=self.api, id=value)
-                    elif isinstance(value, str):
-                        endpoint = endpoint_class(api=self.api, name=value)
-                    setattr(self, attr, endpoint)
-                else:
-                    endpoint = value
-                    if not endpoint.exists():
-                        raise SWObjectPropertyError(f"{endpoint} does not exist")
+                if value:
+                    if not isinstance(value, endpoint_class):
+                        if isinstance(value, int):
+                            endpoint = endpoint_class(api=self.api, id=value)
+                        elif isinstance(value, str):
+                            endpoint = endpoint_class(api=self.api, name=value)
+                        setattr(self, attr, endpoint)
+                    else:
+                        endpoint = value
+                        if not endpoint.exists():
+                            raise SWObjectPropertyError(f"{endpoint} does not exist")
 
     @property
     def _schema_doc_url(self) -> str:
