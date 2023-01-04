@@ -161,7 +161,9 @@ class OrionInterfaces(object):
         else:
             raise SWDiscoveryError(
                 f"{self.node.name}: interface discovery failed. "
-                "SNMP may be inaccessible, creds invalid, etc."
+                "Common causes: Invalid SNMP credentials, "
+                "SNMP not running or misconfigured on node, "
+                "SNMP ports blocked by firewall or ACL"
             )
 
     def monitor(self, interfaces=None) -> None:
