@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Union
 import solarwinds.defaults as d
 from solarwinds.api import API
 from solarwinds.endpoint import Endpoint
-from solarwinds.endpoints.orion.credential import OrionCredential
+from solarwinds.endpoints.orion.credential import OrionCredential, OrionSNMPv2Credential
 from solarwinds.endpoints.orion.engines import OrionEngine
 from solarwinds.endpoints.orion.interface import OrionInterfaces
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
@@ -343,21 +343,39 @@ class OrionNode(Endpoint):
 
         credentials = []
         order = 1
-        if self.snmpv3_ro_cred:
-            credentials.append(
-                {
-                    "CredentialID": self.snmpv3_ro_cred.id,
-                    "Order": order,
-                }
-            )
-            order += 1
-        if self.snmpv3_rw_cred:
-            credentials.append(
-                {
-                    "CredentialID": self.snmpv3_rw_cred.id,
-                    "Order": order,
-                }
-            )
+        if self.snmp_version == 2:
+            if self.snmpv2_rw_community:
+                cred = OrionSNMPv2Credential(
+                    api=self.api, name=self.snmpv2_rw_community
+                )
+                if cred.exists():
+                    credentials.append({"CredentialID": cred.id, "Order": order})
+                    order += 1
+            if self.snmpv2_ro_community:
+                cred = OrionSNMPv2Credential(
+                    api=self.api, name=self.snmpv2_ro_community
+                )
+                if cred.exists():
+                    credentials.append({"CredentialID": cred.id, "Order": order})
+                    order += 1
+        if self.snmp_version == 3:
+            if self.snmpv3_rw_cred:
+                credentials.append(
+                    {
+                        "CredentialID": self.snmpv3_rw_cred.id,
+                        "Order": order,
+                    }
+                )
+                order += 1
+            if self.snmpv3_ro_cred:
+                credentials.append(
+                    {
+                        "CredentialID": self.snmpv3_ro_cred.id,
+                        "Order": order,
+                    }
+                )
+        if not credentials:
+            raise ValueError("No provided SNMP credentials are valid")
 
         core_plugin_context = {
             "BulkList": [{"Address": self.ip_address}],
