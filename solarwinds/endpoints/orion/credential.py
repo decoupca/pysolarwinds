@@ -2,7 +2,7 @@ from typing import Dict, Literal, Optional
 
 from solarwinds.api import API
 from solarwinds.endpoint import Endpoint
-from solarwinds.exceptions import SWObjectExists, SWObjectPropertyError
+from solarwinds.exceptions import SWObjectExists
 
 
 class OrionCredential(Endpoint):
@@ -76,17 +76,13 @@ class OrionSNMPv3Credential(OrionCredential):
 
     def _validate(self) -> None:
         if not self.name:
-            raise SWObjectPropertyError("Must provide credential name")
+            raise ValueError("Must provide credential name.")
         if not self.username:
-            raise SWObjectPropertyError("Must provide credential username")
+            raise ValueError("Must provide username.")
         if self.auth_method not in self.VALID_AUTH_METHODS:
-            raise SWObjectPropertyError(
-                f"auth_method must be: {self.VALID_AUTH_METHODS}"
-            )
+            raise ValueError(f"auth_method must be: {self.VALID_AUTH_METHODS}")
         if self.priv_method not in self.VALID_PRIV_METHODS:
-            raise SWObjectPropertyError(
-                f"priv_method must be: {self.VALID_PRIV_METHODS}"
-            )
+            raise ValueError(f"priv_method must be: {self.VALID_PRIV_METHODS}")
 
     def create(self) -> bool:
         if self.exists():
@@ -135,8 +131,8 @@ class OrionSNMPv2Credential(OrionCredential):
         self,
         api: API,
         id: Optional[int] = None,
-        name: Optional[str] = None,
-        community: Optional[str] = None,
+        name: str = "",
+        community: str = "",
         owner: str = "Orion",
     ) -> None:
         self.api = api
@@ -148,9 +144,9 @@ class OrionSNMPv2Credential(OrionCredential):
 
     def _validate(self) -> None:
         if not self.name:
-            raise SWObjectPropertyError("Must provide credential name")
+            raise ValueError("Must provide credential name.")
         if not self.community:
-            raise SWObjectPropertyError("Must provide community string")
+            raise ValueError("Must provide community string.")
 
     def create(self) -> bool:
         if self.exists():
@@ -186,10 +182,10 @@ class OrionUserPassCredential(OrionCredential):
         self,
         api: API,
         id: Optional[int] = None,
-        name: Optional[str] = None,
+        name: str = "",
         owner: str = "Orion",
-        username: Optional[str] = None,
-        password: Optional[str] = None,
+        username: str = "",
+        password: str = "",
     ) -> None:
         self.api = api
         self.id = id
@@ -199,10 +195,19 @@ class OrionUserPassCredential(OrionCredential):
         self.password = password
         super().__init__()
 
+    def _validate(self) -> None:
+        if not self.name:
+            raise ValueError("Must provide credential name.")
+        if not self.username:
+            raise ValueError("Must provide username.")
+        if not self.password:
+            raise ValueError("Must provide password.")
+
     def create(self) -> bool:
         if self.exists():
             raise SWObjectExists
         else:
+            self._validate()
             self.id = self.api.invoke(
                 self.endpoint,
                 "CreateUsernamePasswordCredentials",
@@ -217,6 +222,7 @@ class OrionUserPassCredential(OrionCredential):
         if not self.exists():
             return self.create()
         else:
+            self._validate()
             self.api.invoke(
                 self.endpoint,
                 "UpdateUsernamePasswordCredentials",
