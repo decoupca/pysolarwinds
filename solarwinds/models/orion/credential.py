@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from solarwinds.endpoints.orion.credential import (
     OrionSNMPv2Credential,
@@ -30,10 +30,10 @@ class Credential(BaseModel):
         owner: str = "Orion",
         username: Optional[str] = None,
         context: Optional[str] = None,
-        auth_method: Optional[str] = None,
+        auth_method: Optional[Literal["md5", "sha1"]] = None,
         auth_password: Optional[str] = None,
         auth_key_is_password: Optional[bool] = None,
-        priv_method: Optional[str] = None,
+        priv_method: Optional[Literal["des56", "aes128", "aes192", "aes256"]] = None,
         priv_password: Optional[str] = None,
         priv_key_is_password: Optional[bool] = None,
     ) -> OrionSNMPv3Credential:

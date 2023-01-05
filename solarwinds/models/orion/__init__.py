@@ -33,8 +33,8 @@ class Orion:
         polling_engine: Union[OrionEngine, str, int, None] = None,
         polling_method: Optional[str] = None,
         snmp_version: Optional[int] = None,
-        snmpv2c_ro_community: Optional[str] = None,
-        snmpv2c_rw_community: Optional[str] = None,
+        snmpv2_ro_community: Optional[str] = None,
+        snmpv2_rw_community: Optional[str] = None,
         snmpv3_ro_cred: Optional[OrionCredential] = None,
         snmpv3_rw_cred: Optional[OrionCredential] = None,
     ) -> OrionNode:
@@ -50,8 +50,8 @@ class Orion:
             polling_engine=polling_engine,
             polling_method=polling_method,
             snmp_version=snmp_version,
-            snmpv2c_ro_community=snmpv2c_ro_community,
-            snmpv2c_rw_community=snmpv2c_rw_community,
+            snmpv2_ro_community=snmpv2_ro_community,
+            snmpv2_rw_community=snmpv2_rw_community,
             snmpv3_ro_cred=snmpv3_ro_cred,
             snmpv3_rw_cred=snmpv3_rw_cred,
         )

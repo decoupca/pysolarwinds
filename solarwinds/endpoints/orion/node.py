@@ -36,15 +36,15 @@ class OrionNode(Endpoint):
         "caption": "Caption",
         "ip_address": "IPAddress",
         "snmp_version": "SNMPVersion",
-        "snmpv2c_ro_community": "Community",
-        "snmpv2c_rw_community": "RWCommunity",
+        "snmpv2_ro_community": "Community",
+        "snmpv2_rw_community": "RWCommunity",
     }
     _swargs_attrs = [
         "caption",
         "ip_address",
         "snmp_version",
-        "snmpv2c_ro_community",
-        "snmpv2c_rw_community",
+        "snmpv2_ro_community",
+        "snmpv2_rw_community",
     ]
     _required_swargs_attrs = ["ip_address", "engine_id"]
     _child_objects = {
@@ -74,8 +74,8 @@ class OrionNode(Endpoint):
         polling_engine: Union[OrionEngine, int, str, None] = None,
         polling_method: Optional[str] = None,
         snmp_version: Optional[int] = None,
-        snmpv2c_ro_community: Optional[str] = None,
-        snmpv2c_rw_community: Optional[str] = None,
+        snmpv2_ro_community: Optional[str] = None,
+        snmpv2_rw_community: Optional[str] = None,
         snmpv3_ro_cred: Optional[OrionCredential] = None,
         snmpv3_rw_cred: Optional[OrionCredential] = None,
     ):
@@ -90,8 +90,8 @@ class OrionNode(Endpoint):
         self.polling_method = polling_method
         self.pollers = pollers
         self.snmp_version = snmp_version
-        self.snmpv2c_ro_community = snmpv2c_ro_community
-        self.snmpv2c_rw_community = snmpv2c_rw_community
+        self.snmpv2_ro_community = snmpv2_ro_community
+        self.snmpv2_rw_community = snmpv2_rw_community
         self.snmpv3_ro_cred = snmpv3_ro_cred
         self.snmpv3_rw_cred = snmpv3_rw_cred
 
@@ -157,7 +157,7 @@ class OrionNode(Endpoint):
 
     def _set_defaults(self) -> None:
         if not self.polling_method:
-            if self.snmpv2c_ro_community or self.snmpv2c_rw_community:
+            if self.snmpv2_ro_community or self.snmpv2_rw_community:
                 self.polling_method = "snmp"
                 self.snmp_version = 2
             elif self.snmpv3_ro_cred or self.snmpv3_rw_cred:
@@ -177,8 +177,8 @@ class OrionNode(Endpoint):
         return {
             "caption": swdata["Caption"],
             "ip_address": swdata["IPAddress"],
-            "snmpv2c_ro_community": swdata["Community"],
-            "snmpv2c_rw_community": swdata["RWCommunity"],
+            "snmpv2_ro_community": swdata["Community"],
+            "snmpv2_rw_community": swdata["RWCommunity"],
             "polling_engine": OrionEngine(api=self.api, id=swdata["EngineID"]),
             "polling_method": self._get_polling_method(),
             "pollers": self._get_pollers()
@@ -191,8 +191,8 @@ class OrionNode(Endpoint):
         properties = {
             "Caption": self.caption,
             "IPAddress": self.ip_address,
-            "Community": self.snmpv2c_ro_community,
-            "RWCommunity": self.snmpv2c_rw_community,
+            "Community": self.snmpv2_ro_community,
+            "RWCommunity": self.snmpv2_rw_community,
             "ObjectSubType": self.polling_method,
             "SNMPVersion": self._get_snmp_version(),
             "EngineID": self.polling_engine.id,
@@ -244,11 +244,11 @@ class OrionNode(Endpoint):
         """infer polling method from SNMP attributes if not explicitly given"""
         if not self.polling_method:
             ro_community = (
-                self._swdata["properties"].get("Community") or self.snmpv2c_ro_community
+                self._swdata["properties"].get("Community") or self.snmpv2_ro_community
             )
             rw_community = (
                 self._swdata["properties"].get("RWCommunity")
-                or self.snmpv2c_rw_community
+                or self.snmpv2_rw_community
             )
             if ro_community or rw_community or self.snmp_version != 0:
                 return "snmp"
@@ -262,7 +262,7 @@ class OrionNode(Endpoint):
         return d.NODE_DEFAULT_POLLERS.get(self.polling_method) or []
 
     def _get_snmp_version(self) -> int:
-        if self.snmpv2c_ro_community or self.snmpv2c_rw_community:
+        if self.snmpv2_ro_community or self.snmpv2_rw_community:
             return 2
         elif self.snmpv3_ro_cred or self.snmpv3_rw_cred:
             return 3
@@ -322,14 +322,14 @@ class OrionNode(Endpoint):
         if not self.ip_address:
             raise SWObjectPropertyError("Discovery requires ip_address is set")
         if (
-            not self.snmpv2c_ro_community
-            and not self.snmpv2c_rw_community
+            not self.snmpv2_ro_community
+            and not self.snmpv2_rw_community
             and not self.snmpv3_ro_cred
             and not self.snmpv3_rw_cred
         ):
             raise SWObjectPropertyError(
                 "Discovery requires at least one SNMP credential property set: "
-                "snmpv2c_ro_community, snmpv2c_rw_community, snmpv3_ro_cred, or snmpv3_rw_cred"
+                "snmpv2_ro_community, snmpv2_rw_community, snmpv3_ro_cred, or snmpv3_rw_cred"
             )
         if not self.polling_engine:
             self.polling_engine = OrionEngine(
@@ -455,8 +455,8 @@ class OrionNode(Endpoint):
             )
         else:
             if (
-                not self.snmpv2c_ro_community
-                and not self.snmpv2c_rw_community
+                not self.snmpv2_ro_community
+                and not self.snmpv2_rw_community
                 and not self.snmpv3_ro_cred
                 and not self.snmpv3_rw_cred
             ):
