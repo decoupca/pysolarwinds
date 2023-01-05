@@ -505,6 +505,10 @@ class Endpoint:
             logger.warning(f"{self.name}: {self._type} doesn't exist, doing nothing")
             return False
 
+    def update(self) -> bool:
+        """alias to save method, to keep consistent with SWIS verb naming"""
+        return self.save()
+
     def save(self) -> bool:
         """Update object in solarwinds with local object's properties"""
         self._resolve_endpoint_attrs()
