@@ -14,8 +14,8 @@ class Credential(BaseModel):
     def snmpv2(
         self,
         id: Optional[int] = None,
-        name: Optional[str] = None,
-        community: Optional[str] = None,
+        name: str = "",
+        community: str = "",
         owner: str = "Orion",
     ) -> OrionSNMPv2Credential:
         return OrionSNMPv2Credential(
@@ -25,17 +25,17 @@ class Credential(BaseModel):
     def snmpv3(
         self,
         id: Optional[int] = None,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
+        name: str = "",
+        description: str = "",
         owner: str = "Orion",
-        username: Optional[str] = None,
-        context: Optional[str] = None,
-        auth_method: Optional[Literal["md5", "sha1"]] = None,
-        auth_password: Optional[str] = None,
-        auth_key_is_password: Optional[bool] = None,
+        username: str = "",
+        context: str = "",
+        auth_method: Optional[Literal["md5", "sha1", "sha256", "sha512"]] = None,
+        auth_password: str = "",
+        auth_key_is_password: bool = False,
         priv_method: Optional[Literal["des56", "aes128", "aes192", "aes256"]] = None,
-        priv_password: Optional[str] = None,
-        priv_key_is_password: Optional[bool] = None,
+        priv_password: str = "",
+        priv_key_is_password: bool = False,
     ) -> OrionSNMPv3Credential:
         return OrionSNMPv3Credential(
             api=self.api,
@@ -56,9 +56,9 @@ class Credential(BaseModel):
     def userpass(
         self,
         id: Optional[int] = None,
-        name: Optional[str] = None,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
+        name: str = "",
+        username: str = "",
+        password: str = "",
         owner: str = "Orion",
     ) -> OrionUserPassCredential:
         return OrionUserPassCredential(

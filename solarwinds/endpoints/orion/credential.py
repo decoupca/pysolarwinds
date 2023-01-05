@@ -40,21 +40,24 @@ class OrionCredential(Endpoint):
 
 
 class OrionSNMPv3Credential(OrionCredential):
+    VALID_AUTH_METHODS = [None, "md5", "sha1", "sha256", "sha512"]
+    VALID_PRIV_METHODS = [None, "des56", "aes128", "aes192", "aes256"]
+
     def __init__(
         self,
         api: API,
         id: Optional[int] = None,
-        name: Optional[str] = None,
+        name: str = "",
         owner: str = "Orion",
-        description: Optional[str] = None,
-        username: Optional[str] = None,
-        context: Optional[str] = None,
-        auth_method: Optional[Literal["md5", "sha1"]] = None,
-        auth_password: Optional[str] = None,
-        auth_key_is_password: Optional[bool] = None,
+        description: str = "",
+        username: str = "",
+        context: str = "",
+        auth_method: Optional[Literal["md5", "sha1", "sha256", "sha512"]] = None,
+        auth_password: str = "",
+        auth_key_is_password: bool = False,
         priv_method: Optional[Literal["des56", "aes128", "aes192", "aes256"]] = None,
-        priv_password: Optional[str] = None,
-        priv_key_is_password: Optional[bool] = None,
+        priv_password: str = "",
+        priv_key_is_password: bool = False,
     ) -> None:
         self.api = api
         self.id = id
@@ -71,8 +74,60 @@ class OrionSNMPv3Credential(OrionCredential):
         self.priv_key_is_password = priv_key_is_password
         super().__init__()
 
+    def _validate(self) -> None:
+        if not self.name:
+            raise SWObjectPropertyError("Must provide credential name")
+        if not self.username:
+            raise SWObjectPropertyError("Must provide credential username")
+        if self.auth_method not in self.VALID_AUTH_METHODS:
+            raise SWObjectPropertyError(
+                f"auth_method must be: {self.VALID_AUTH_METHODS}"
+            )
+        if self.priv_method not in self.VALID_PRIV_METHODS:
+            raise SWObjectPropertyError(
+                f"priv_method must be: {self.VALID_PRIV_METHODS}"
+            )
+
     def create(self) -> bool:
-        raise NotImplementedError
+        if self.exists():
+            raise SWObjectExists
+        self._validate()
+        self.id = self.api.invoke(
+            self.endpoint,
+            "CreateSNMPv3Credentials",
+            self.name,
+            self.username,
+            self.context,
+            self.auth_method.upper() if self.auth_method else "None",
+            self.auth_password,
+            not self.auth_key_is_password,  # AFAICT, the SWIS API has this flag inverted
+            self.priv_method.upper() if self.priv_method else "None",
+            self.priv_password,
+            not self.priv_key_is_password,  # AFAICT, the SWIS API has this flag inverted
+            self.owner,
+        )
+        return True
+
+    def save(self) -> bool:
+        if not self.exists():
+            return self.create()
+        else:
+            self._validate()
+            self.api.invoke(
+                self.endpoint,
+                "UpdateSNMPv3Credentials",
+                self.id,
+                self.name,
+                self.username,
+                self.context,
+                self.auth_method.upper() if self.auth_method else "None",
+                self.auth_password,
+                not self.auth_key_is_password,  # AFAICT, the SWIS API has this flag inverted
+                self.priv_method.upper() if self.priv_method else "None",
+                self.priv_password,
+                not self.priv_key_is_password,  # AFAICT, the SWIS API has this flag inverted
+            )
+            return True
 
 
 class OrionSNMPv2Credential(OrionCredential):
@@ -91,18 +146,37 @@ class OrionSNMPv2Credential(OrionCredential):
         self.owner = owner
         super().__init__()
 
+    def _validate(self) -> None:
+        if not self.name:
+            raise SWObjectPropertyError("Must provide credential name")
+        if not self.community:
+            raise SWObjectPropertyError("Must provide community string")
+
     def create(self) -> bool:
-        if not self.name or not self.community:
-            raise SWObjectPropertyError(f"Must provide name and community string")
         if self.exists():
-            raise SWObjectExists(f"{self}: Credential already exists")
+            raise SWObjectExists()
+        self._validate()
+
+        self.id = self.api.invoke(
+            self.endpoint,
+            "CreateSNMPCredentials",
+            self.name,
+            self.community,
+            self.owner,
+        )
+        return True
+
+    def save(self) -> bool:
+        if not self.exists():
+            return self.create()
         else:
-            self.id = self.api.invoke(
+            self._validate()
+            self.api.invoke(
                 self.endpoint,
-                "CreateSNMPCredentials",
+                "UpdateSNMPCredentials",
+                self.id,
                 self.name,
                 self.community,
-                self.owner,
             )
             return True
 
@@ -126,4 +200,28 @@ class OrionUserPassCredential(OrionCredential):
         super().__init__()
 
     def create(self) -> bool:
-        raise NotImplementedError
+        if self.exists():
+            raise SWObjectExists
+        else:
+            self.id = self.api.invoke(
+                self.endpoint,
+                "CreateUsernamePasswordCredentials",
+                self.name,
+                self.username,
+                self.password,
+                self.owner,
+            )
+            return True
+
+    def save(self) -> bool:
+        if not self.exists():
+            return self.create()
+        else:
+            self.api.invoke(
+                self.endpoint,
+                "UpdateUsernamePasswordCredentials",
+                self.id,
+                self.name,
+                self.username,
+                self.password,
+            )
