@@ -29,8 +29,8 @@ sw = solarwinds.api(**SW_ARGS)
 #         "ip_address": "172.25.133.5",
 #         "polling_method": "icmp",
 #         "snmp_version": 0,
-#         "snmpv2c_ro_community": None,
-#         "snmpv2c_rw_community": None,
+#         "snmpv2_ro_community": None,
+#         "snmpv2_rw_community": None,
 #         "engine_id": 1,
 #         "custom_properties": {
 #             "Region": "EMEA",
