@@ -8,6 +8,7 @@ from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.credential import OrionCredential, OrionSNMPv2Credential
 from solarwinds.endpoints.orion.engines import OrionEngine
 from solarwinds.endpoints.orion.interface import OrionInterfaces
+from solarwinds.endpoints.orion.pollers import OrionPoller
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 from solarwinds.exceptions import (
     SWDiscoveryError,
@@ -259,6 +260,23 @@ class OrionNode(Endpoint):
 
     def _get_pollers(self) -> List:
         """get a list of solarwinds pollers to enable"""
+        if self.exists():
+            query = f"SELECT PollerID, PollerType, NetObject, NetObjectType, NetObjectID, Enabled, DisplayName, Description, InstanceType, Uri, InstanceSiteId FROM Orion.Pollers WHERE NetObjectID='{self.id}'"
+            results = self.api.query(query)
+            if results:
+                pollers = []
+                for result in results:
+                    pollers.append(
+                        OrionPoller(
+                            api=self.api,
+                            uri=result["Uri"],
+                            poller_id=result["PollerID"],
+                            net_object_id=result["NetObjectID"],
+                            poller_type=result["PollerType"],
+                            enabled=result["Enabled"],
+                        )
+                    )
+                return pollers
         return d.NODE_DEFAULT_POLLERS.get(self.polling_method) or []
 
     def _get_snmp_version(self) -> int:

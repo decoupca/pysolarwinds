@@ -19,6 +19,8 @@ NODE_DEFAULT_POLLERS = {
         "N.ResponseTime.ICMP.Native",
     ],
     "snmp": [
+        "N.Status.ICMP.Native",
+        "N.ResponseTime.ICMP.Native",
         "N.AssetInventory.Snmp.Generic",
         "N.Cpu.SNMP.HrProcessorLoad",
         "N.Details.SNMP.Generic",
@@ -29,6 +31,32 @@ NODE_DEFAULT_POLLERS = {
         "N.Uptime.SNMP.Generic",
     ],
 }
+
+NODE_CISCO_POLLERS = [
+    "N.Cpu.SNMP.CiscoGen3",
+    "N.Details.SNMP.Generic",
+    "N.EnergyWise.SNMP.Cisco",
+    "N.HardwareHealthMonitoring.SNMP.NPM.Cisco",
+    "N.Memory.SNMP.CiscoGen4",
+    "N.MulticastRouting.SNMP.MulticastRoutingTable",
+    "N.ResponseTime.ICMP.Native",
+    "N.ResponseTime.SNMP.Native",
+    "N.Routing.SNMP.Ipv4CidrRoutingTable",
+    "N.RoutingNeighbor.SNMP.BGP",
+    "N.RoutingNeighbor.SNMP.OSPF",
+    "N.Status.ICMP.Native",
+    "N.Status.SNMP.Native",
+    "N.SwitchStack.SNMP.Cisco",
+    "N.Topology_CDP.SNMP.cdpCacheTable",
+    "N.Topology_LLDP.SNMP.lldpRemoteSystemsData",
+    "N.Topology_Layer2.SNMP.Dot1dTpFdb",
+    "N.Topology_Layer3.SNMP.ipNetToMedia",
+    "N.Topology_Layer3_IpRouting.SNMP.ipCidrRouter",
+    "N.Topology_PortsMap.SNMP.Dot1dBase",
+    "N.Topology_Vlans.SNMP.VtpVlan",
+    "N.Uptime.SNMP.Generic",
+    "N.VRFRouting.SNMP.MPLSVPNStandard",
+]
 
 EXCLUDE_CUSTOM_PROPS = [
     "DisplayName",
