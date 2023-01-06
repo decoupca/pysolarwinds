@@ -15,16 +15,16 @@ class OrionPoller:
         data: Optional[Dict] = None,
         uri: Optional[str] = None,
     ) -> None:
-        self.api = api
         if not uri and not data:
             raise ValueError("must provide URI or data dict")
+        self.api = api
         self.uri = uri
         self._data = data
         if not self.uri:
             self.uri = self._data.get("Uri")
         if not self._data:
-            self._data = self._read()
-            
+            self.read()
+
         self.enabled = self._data.get("Enabled")
 
     @property
