@@ -5,16 +5,6 @@ from solarwinds.api import API
 
 class OrionPoller:
     _endpoint = "Orion.Pollers"
-    _id_attr = "poller_id"
-    _name_attr = "poller_type"
-    _read_attr_map = {
-        "poller_id": "PollerID",
-        "poller_type": "PollerType",
-        "net_object_id": "NetObjectID",
-        "display_name": "DisplayName",
-        "description": "Description",
-        "enabled": "Enabled",
-    }
     _write_attr_map = {
         "enabled": "Enabled",
     }
@@ -22,30 +12,59 @@ class OrionPoller:
     def __init__(
         self,
         api: API,
-        uri: str,
-        net_object_id: Optional[int] = None,
-        poller_id: Optional[int] = None,
-        poller_type: str = "",
-        display_name: Optional[str] = None,
-        description: Optional[str] = None,
-        enabled: bool = True,
+        data: Optional[Dict] = None,
+        uri: Optional[str] = None,
     ) -> None:
         self.api = api
         self.uri = uri
-        self.net_object_id = net_object_id
-        self.poller_id = poller_id
-        self.poller_type = poller_type
-        self.display_name = display_name
-        self.description = description
-        self.enabled = enabled
+        self._data = data
+        if not uri and not data:
+            raise ValueError("must provide URI or data dict")
+        if not self.uri:
+            self.uri = self._data.get("Uri")
+        if not self._data:
+            self._data = self._read()
+        self.enabled = self._data.get("Enabled")
 
     @property
     def id(self) -> int:
-        return getattr(self, self._id_attr)
+        return self.poller_id
+
+    @property
+    def display_name(self) -> Optional[str]:
+        return self._data.get("DisplayName")
+
+    @property
+    def description(self) -> Optional[str]:
+        return self._data.get("Description")
+
+    @property
+    def poller_id(self) -> int:
+        return self._data.get("PollerID")
+
+    @property
+    def poller_type(self) -> str:
+        return self._data.get("PollerType")
+
+    @property
+    def net_object(self) -> str:
+        return self._data.get("NetObject")
+
+    @property
+    def net_object_type(self) -> str:
+        return self._data.get("NetObjectType")
 
     @property
     def name(self) -> str:
-        return getattr(self, self._name_attr)
+        return self.display_name or self.poller_type
+
+    @property
+    def instance_type(self) -> str:
+        return self._data.get("InstanceType")
+
+    @property
+    def instance_site_id(self) -> bool:
+        return self._data.get("InstanceSiteId")
 
     def save(self) -> bool:
         updates = {}
@@ -54,10 +73,11 @@ class OrionPoller:
         self.api.update(self.uri, **updates)
         return True
 
+    def _read(self) -> Dict:
+        return self.api.read(self.uri)
+
     def read(self) -> bool:
-        data = self.api.read(self.uri)
-        for attr, prop in self._read_attr_map.items():
-            setattr(self, attr, data.get(prop))
+        self._data = self._read()
         return True
 
     def __repr__(self) -> str:

@@ -266,16 +266,7 @@ class OrionNode(Endpoint):
             if results:
                 pollers = []
                 for result in results:
-                    pollers.append(
-                        OrionPoller(
-                            api=self.api,
-                            uri=result["Uri"],
-                            poller_id=result["PollerID"],
-                            net_object_id=result["NetObjectID"],
-                            poller_type=result["PollerType"],
-                            enabled=result["Enabled"],
-                        )
-                    )
+                    pollers.append(OrionPoller(api=self.api, data=result))
                 return pollers
         return d.NODE_DEFAULT_POLLERS.get(self.polling_method) or []
 
