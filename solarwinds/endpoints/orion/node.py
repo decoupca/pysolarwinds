@@ -475,7 +475,7 @@ class OrionNode(Endpoint):
         such as interfaces, CPU/RAM stats, routing tables, etc.
         AFAICT, the SWIS API provides no way of choosing which resources to import
         """
-        logger.info(f"{self.name}: importing all SNMP resources...")
+        logger.info(f"{self.name}: importing and monitoring all available SNMP resources (OIDs)...")
         if self.polling_method != "snmp":
             raise SWObjectPropertyError(
                 f"{self.name}: polling_method must be 'snmp' to import resources"
@@ -522,7 +522,7 @@ class OrionNode(Endpoint):
                 "Orion.Nodes", "ImportListResourcesResult", self._import_job_id, self.id
             )
             if imported:
-                logger.info(f"{self.name}: imported all SNMP resources")
+                logger.info(f"{self.name}: imported and monitored all SNMP resources (OIDs)")
                 self.api.hostname = api_hostname
                 return True
             else:

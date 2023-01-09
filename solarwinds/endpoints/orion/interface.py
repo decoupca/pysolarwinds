@@ -37,6 +37,10 @@ class OrionInterface(Endpoint):
     def id(self) -> int:
         return int(self._id)
 
+    @id.setter
+    def id(self, id) -> None:
+        self._id = id
+
     @property
     def name(self) -> str:
         return self._name.strip()
@@ -188,7 +192,7 @@ class OrionInterfaces(object):
                     f"{self.node}: No interfaces discovered. "
                     "The node may not have any interfaces available to monitor, "
                     "or there might be a problem with SNMP configuration / reachability. "
-                    "The SWIS API is inconsistent in its response codes so more precisely "
+                    "The SWIS API is inconsistent in its response codes so precisely "
                     "identifying the cause isn't possible."
                 )
                 raise SWDiscoveryError(msg)
