@@ -179,9 +179,19 @@ class OrionInterfaces(object):
         self._discovery_response_code = result["Result"]
         if self._discovery_response_code == 0:
             results = result["DiscoveredInterfaces"]
-            logger.info(f"{self.node.name}: discovered {len(results)} interfaces")
-            self._discovered = results
-            return True
+            if results:
+                logger.info(f"{self.node.name}: discovered {len(results)} interfaces")
+                self._discovered = results
+                return True
+            else:
+                msg = (
+                    f"{self.node}: No interfaces discovered. "
+                    "The node may not have any interfaces available to monitor, "
+                    "or there might be a problem with SNMP configuration / reachability. "
+                    "The SWIS API is inconsistent in its response codes so more precisely "
+                    "identifying the cause isn't possible."
+                )
+                raise SWDiscoveryError(msg)
         else:
             msg = f"{self.node}: Interface discovery failed. "
             # https://thwack.solarwinds.com/product-forums/the-orion-platform/f/orion-sdk/40430/data-returned-from-discoverinterfacesonnode-question/159593#159593
@@ -190,7 +200,7 @@ class OrionInterfaces(object):
                 msg += "Check that the node exists and is set to SNMP polling method."
             else:
                 msg += (
-                    "Common causes: Invalid credentials; "
+                    "Common causes: Invalid SNMP credentials; "
                     "SNMP misconfigured on node; "
                     "SNMP ports blocked by firewall or ACL"
                 )
