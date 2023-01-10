@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.engines import OrionEngine
@@ -151,6 +151,15 @@ class OrionInterfaces(object):
         logger.info(
             f"{self.node.name}: found {len(self._existing)} existing interfaces"
         )
+
+    def delete(self, interfaces: Union[OrionInterface, List[OrionInterface]]) -> bool:
+        if isinstance(interfaces, OrionInterface):
+            interfaces = [interfaces]
+
+        uris = [x.uri for x in interfaces]
+        self.api.delete(uris)
+        logger.info(f"deleted {len(interfaces)} interfaces")
+        return True
 
     def discover(self) -> bool:
         """
