@@ -44,7 +44,8 @@ class OrionNodeSetting:
 
 class SNMPCredentialSetting(OrionNodeSetting):
     def build(self) -> None:
-        cred = CredentialModel.get(api=self.api, id=self.value)
+        model = CredentialModel(api=self.api)
+        cred = model.get(id=self.value)
         mode = self.name[:2]
         version = int(cred.type[-1:])
         self.node_attr = f"snmpv{version}_{mode.lower()}_cred"
