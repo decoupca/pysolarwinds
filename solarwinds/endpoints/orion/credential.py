@@ -125,6 +125,9 @@ class OrionSNMPv3Credential(OrionCredential):
             )
             return True
 
+    def __repr__(self) -> str:
+        return f"<OrionSNMPv3Credential: {self.name or self.id}>"
+
 
 class OrionSNMPv2Credential(OrionCredential):
     def __init__(
@@ -175,6 +178,9 @@ class OrionSNMPv2Credential(OrionCredential):
                 self.community,
             )
             return True
+
+    def __repr__(self) -> str:
+        return f"<OrionSNMPv2Credential: {self.name or self.id}>"
 
 
 class OrionUserPassCredential(OrionCredential):
@@ -231,3 +237,6 @@ class OrionUserPassCredential(OrionCredential):
                 self.username,
                 self.password,
             )
+
+    def __repr__(self) -> str:
+        return f"<OrionUserPassCredential: {self.name or self.id}>"

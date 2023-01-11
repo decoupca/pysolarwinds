@@ -11,6 +11,31 @@ from solarwinds.model import BaseModel
 class Credential(BaseModel):
     name = "Credential"
 
+    def get(self, id: Optional[int] = None, name: Optional[str] = None):
+        if id:
+            query = f"SELECT ID, Name, Description, CredentialType, CredentialOwner FROM Orion.Credential WHERE ID = '{id}'"
+        if name:
+            query = f"SELECT ID, Name, Description, CredentialType, CredentialOwner FROM Orion.Credential WHERE Name = '{name}'"
+        result = self.api.query(query)[0]
+
+        if result:
+            if result["CredentialType"].endswith("SnmpCredentialsV3"):
+                return OrionSNMPv3Credential(
+                    api=self.api,
+                    id=id,
+                    name=name,
+                    owner=result["CredentialOwner"],
+                    description=result["Description"],
+                )
+            if result["CredentialType"].endswith("SnmpCredentialsV2"):
+                return OrionSNMPv2Credential(
+                    api=self.api,
+                    id=id,
+                    name=name,
+                    owner=result["CredentialOwner"],
+                    description=result["Description"],
+                )
+
     def snmpv2(
         self,
         id: Optional[int] = None,
