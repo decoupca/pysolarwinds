@@ -538,7 +538,7 @@ class OrionNode(Endpoint):
         else:
             self.api.hostname = api_hostname
             raise SWResourceImportError(
-                f"{self.name}: timed out waiting for SNMP resources"
+                f"{self.name}: timed out waiting for SNMP resources ({timeout}sec)"
             )
 
     def remanage(self) -> bool:
