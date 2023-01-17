@@ -47,7 +47,7 @@ class OrionNode(Endpoint):
         "snmpv2_ro_community",
         "snmpv2_rw_community",
     ]
-    _required_swargs_attrs = ["ip_address", "engine_id"]
+    _required_swargs_attrs = ["ip_address", "polling_engine"]
     _child_objects = {
         "map_point": {
             "class": WorldMapPoint,
