@@ -74,6 +74,20 @@ class OrionPoller:
         self.api.update(self.uri, **updates)
         return True
 
+    def disable(self) -> bool:
+        if not self.enabled:
+            return True
+        else:
+            self.enabled = False
+            return self.save()
+
+    def enable(self) -> bool:
+        if self.enabled:
+            return True
+        else:
+            self.enabled = True
+            return self.save()
+
     def _read(self) -> Dict:
         return self.api.read(self.uri)
 
