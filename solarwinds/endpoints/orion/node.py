@@ -8,7 +8,7 @@ from solarwinds.endpoint import Endpoint
 from solarwinds.endpoints.orion.credential import OrionCredential, OrionSNMPv2Credential
 from solarwinds.endpoints.orion.engines import OrionEngine
 from solarwinds.endpoints.orion.interface import OrionInterfaces
-from solarwinds.endpoints.orion.pollers import OrionPoller
+from solarwinds.endpoints.orion.pollers import OrionPoller, OrionPollers
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 from solarwinds.exceptions import (
     SWDiscoveryError,
@@ -71,7 +71,7 @@ class OrionNode(Endpoint):
         latitude: Optional[float] = None,
         longitude: Optional[float] = None,
         id: Optional[int] = None,
-        pollers: Optional[List] = None,
+        pollers: Optional[List[str]] = None,
         polling_engine: Union[OrionEngine, int, str, None] = None,
         polling_method: Optional[str] = None,
         snmp_version: Optional[int] = None,
@@ -89,7 +89,6 @@ class OrionNode(Endpoint):
         self.id = id
         self.polling_engine = polling_engine
         self.polling_method = polling_method
-        self.pollers = pollers
         self.snmp_version = snmp_version
         self.snmpv2_ro_community = snmpv2_ro_community
         self.snmpv2_rw_community = snmpv2_rw_community
@@ -98,8 +97,10 @@ class OrionNode(Endpoint):
 
         self.map_point = None
 
-        self.settings = OrionNodeSettings(self)
-        self.interfaces = OrionInterfaces(self)
+        pollers = pollers or d.NODE_DEFAULT_POLLERS
+        self.pollers = OrionPollers(node=self, pollers=pollers)
+        self.settings = OrionNodeSettings(node=self)
+        self.interfaces = OrionInterfaces(node=self)
 
         self._discovery_profile_id = None
         self._discovery_profile_status = 0
@@ -182,8 +183,6 @@ class OrionNode(Endpoint):
             "snmpv2_rw_community": swdata["RWCommunity"],
             "polling_engine": OrionEngine(api=self.api, id=swdata["EngineID"]),
             "polling_method": self._get_polling_method(),
-            "pollers": self._get_pollers()
-            or d.NODE_DEFAULT_POLLERS[swdata["ObjectSubType"].lower()],
             "snmp_version": swdata["SNMPVersion"],
         }
 
@@ -257,18 +256,6 @@ class OrionNode(Endpoint):
                 return "icmp"
         else:
             return self.polling_method
-
-    def _get_pollers(self) -> List:
-        """get a list of solarwinds pollers to enable"""
-        if self.exists():
-            query = f"SELECT PollerID, PollerType, NetObject, NetObjectType, NetObjectID, Enabled, DisplayName, Description, InstanceType, Uri, InstanceSiteId FROM Orion.Pollers WHERE NetObjectID='{self.id}'"
-            results = self.api.query(query)
-            if results:
-                pollers = []
-                for result in results:
-                    pollers.append(OrionPoller(api=self.api, data=result))
-                return pollers
-        return d.NODE_DEFAULT_POLLERS.get(self.polling_method) or []
 
     def _get_snmp_version(self) -> int:
         if self.snmpv2_ro_community or self.snmpv2_rw_community:
@@ -528,6 +515,8 @@ class OrionNode(Endpoint):
                     f"{self.name}: imported and monitored all SNMP resources (OIDs)"
                 )
                 self.api.hostname = api_hostname
+                # discovery causes new pollers to be added automatically; let's fetch them
+                self.pollers.fetch()
                 return True
             else:
                 self.api.hostname = api_hostname

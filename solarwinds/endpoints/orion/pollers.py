@@ -1,6 +1,8 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Union
 
 from solarwinds.api import API
+from solarwinds.endpoints.orion.node import OrionNode
+from solarwinds.exceptions import SWObjectExists
 
 
 class OrionPoller:
@@ -102,3 +104,76 @@ class OrionPoller:
 
     def __str__(self) -> str:
         return self.name
+
+
+class OrionPollers:
+    def __init__(self, node: OrionNode, pollers: Optional[List[str]] = None) -> None:
+        self.node = node
+        self.api = self.node.api
+        self._pollers = []
+        if self.node.exists():
+            self.fetch()
+        if pollers:
+            for poller in pollers:
+                if not self.get(poller):
+                    self.add(poller=poller, enabled=True)
+
+    def add(self, type: str, enabled: bool = True) -> bool:
+        if self.get(type):
+            raise SWObjectExists(f"{self.node}: poller already exists: {type}")
+
+        poller = {
+            "PollerType": type,
+            "NetObject": f"N:{id}",
+            "NetObjectType": "N",
+            "NetObjectID": self.node.id,
+            "Enabled": enabled,
+        }
+        self.api.create("Orion.Pollers", **poller)
+        return True
+
+    def delete(self, poller: Union[OrionPoller, str]) -> bool:
+        if isinstance(poller, str):
+            poller = self[poller]
+        return poller.delete()
+
+    def disable(self, poller: Union[OrionPoller, str]) -> bool:
+        if isinstance(poller, str):
+            poller = self[poller]
+        return poller.disable()
+
+    def enable(self, poller: Union[OrionPoller, str]) -> bool:
+        if isinstance(poller, str):
+            poller = self[poller]
+        return poller.enable()
+
+    def fetch(self) -> None:
+        query = (
+            f"SELECT PollerID, PollerType, NetObject, NetObjectType, NetObjectID, "
+            "Enabled, DisplayName, Description, InstanceType, Uri, InstanceSiteId "
+            f"FROM Orion.Pollers WHERE NetObjectID='{self.node.id}'"
+        )
+        results = self.api.query(query)
+        if results:
+            pollers = []
+            for result in results:
+                pollers.append(OrionPoller(api=self.api, data=result))
+            self._pollers = pollers
+
+    def get(self, name: str) -> Optional[OrionPoller]:
+        for poller in self._pollers:
+            if poller.name == name:
+                return poller
+        return None
+
+    def __getitem__(self, item: Union[str, int]) -> OrionPoller:
+        if isinstance(item, int):
+            return self._pollers[item]
+        elif isinstance(item, str):
+            for poller in self._pollers:
+                if poller.name == item:
+                    return poller
+            raise KeyError(f"Poller not found: {item}")
+
+    def __repr__(self) -> str:
+        return str(self._pollers)
