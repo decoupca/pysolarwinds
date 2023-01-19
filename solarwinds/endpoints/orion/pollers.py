@@ -2,6 +2,9 @@ from typing import Dict, List, Optional, Union
 
 from solarwinds.api import API
 from solarwinds.exceptions import SWObjectExists
+from solarwinds.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class OrionPoller:
@@ -75,27 +78,35 @@ class OrionPoller:
         for attr, prop in self._write_attr_map.items():
             updates.update({prop: getattr(self, attr)})
         self.api.update(self.uri, **updates)
+        logger.debug(f"{self.node}: {self}: updated properties: {updates}")
         return True
 
     def delete(self) -> bool:
         self.api.delete(self.uri)
         if self.node.pollers.get(self):
             self.node.pollers._pollers.remove(self)
+        logger.info(f"{self.node}: {self}: deleted poller")
         return True
 
     def disable(self) -> bool:
         if not self.enabled:
+            logger.debug(f"{self.node}: {self}: poller already disabled")
             return True
         else:
             self.enabled = False
-            return self.save()
+            self.save()
+            logger.info(f"{self.node}: {self}: disabled poller")
+            return True
 
     def enable(self) -> bool:
         if self.enabled:
+            logger.debug(f"{self.node}: {self}: poller already enabled")
             return True
         else:
             self.enabled = True
-            return self.save()
+            self.save()
+            logger.info(f"{self.node}: {self}: enabled poller")
+            return True
 
     def _read(self) -> Dict:
         return self.api.read(self.uri)
@@ -105,9 +116,7 @@ class OrionPoller:
         return True
 
     def __repr__(self) -> str:
-        return (
-            f'<OrionPoller: {self.name}: {"Enabled" if self.enabled else "Disabled"}>'
-        )
+        return f'OrionPoller({self.name}: {"Enabled" if self.enabled else "Disabled"})'
 
     def __str__(self) -> str:
         return self.name
@@ -129,20 +138,25 @@ class OrionPollers:
     def list(self) -> List:
         return [x.name for x in self._pollers]
 
-    def add(self, type: str, enabled: bool = True) -> bool:
-        if self.get(type):
-            raise SWObjectExists(f"{self.node}: poller already exists: {type}")
+    def add(self, poller: str, enabled: bool = True) -> bool:
+        if self.get(poller):
+            raise SWObjectExists(f"{self.node}: poller already exists: {poller}")
 
-        poller = {
-            "PollerType": type,
-            "NetObject": f"N:{id}",
+        kwargs = {
+            "PollerType": poller,
+            "NetObject": f"N:{self.node.id}",
             "NetObjectType": "N",
             "NetObjectID": self.node.id,
             "Enabled": enabled,
         }
-        uri = self.api.create("Orion.Pollers", **poller)
+        uri = self.api.create("Orion.Pollers", **kwargs)
         data = self.api.read(uri)
-        self._pollers.append(OrionPoller(api=self.api, node=self.node, data=data))
+        new_poller = OrionPoller(api=self.api, node=self.node, data=data)
+        self._pollers.append(new_poller)
+        logger.info(
+            f"{self.node}: {new_poller}: created new poller "
+            f"({'enabled' if enabled else 'disabled'})"
+        )
         return True
 
     def delete(self, poller: Union[OrionPoller, str]) -> bool:
