@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional, Union
 
 from solarwinds.api import API
-from solarwinds.endpoints.orion.node import OrionNode
 from solarwinds.exceptions import SWObjectExists
 
 
@@ -14,12 +13,14 @@ class OrionPoller:
     def __init__(
         self,
         api: API,
+        node,
         data: Optional[Dict] = None,
         uri: Optional[str] = None,
     ) -> None:
         if not uri and not data:
             raise ValueError("must provide URI or data dict")
         self.api = api
+        self.node = node
         self.uri = uri
         self._data = data
         if not self.uri:
@@ -76,6 +77,12 @@ class OrionPoller:
         self.api.update(self.uri, **updates)
         return True
 
+    def delete(self) -> bool:
+        self.api.delete(self.uri)
+        if self.node.pollers.get(self):
+            self.node.pollers._pollers.remove(self)
+        return True
+
     def disable(self) -> bool:
         if not self.enabled:
             return True
@@ -107,7 +114,7 @@ class OrionPoller:
 
 
 class OrionPollers:
-    def __init__(self, node: OrionNode, pollers: Optional[List[str]] = None) -> None:
+    def __init__(self, node, pollers: Optional[List[str]] = None) -> None:
         self.node = node
         self.api = self.node.api
         self._pollers = []
@@ -116,7 +123,11 @@ class OrionPollers:
         if pollers:
             for poller in pollers:
                 if not self.get(poller):
-                    self.add(poller=poller, enabled=True)
+                    self.add(type=poller, enabled=True)
+
+    @property
+    def list(self) -> List:
+        return [x.name for x in self._pollers]
 
     def add(self, type: str, enabled: bool = True) -> bool:
         if self.get(type):
@@ -129,13 +140,16 @@ class OrionPollers:
             "NetObjectID": self.node.id,
             "Enabled": enabled,
         }
-        self.api.create("Orion.Pollers", **poller)
+        uri = self.api.create("Orion.Pollers", **poller)
+        data = self.api.read(uri)
+        self._pollers.append(OrionPoller(api=self.api, node=self.node, data=data))
         return True
 
     def delete(self, poller: Union[OrionPoller, str]) -> bool:
         if isinstance(poller, str):
             poller = self[poller]
-        return poller.delete()
+        poller.delete()
+        return True
 
     def disable(self, poller: Union[OrionPoller, str]) -> bool:
         if isinstance(poller, str):
@@ -157,13 +171,17 @@ class OrionPollers:
         if results:
             pollers = []
             for result in results:
-                pollers.append(OrionPoller(api=self.api, data=result))
+                pollers.append(OrionPoller(api=self.api, node=self.node, data=result))
             self._pollers = pollers
 
-    def get(self, name: str) -> Optional[OrionPoller]:
-        for poller in self._pollers:
-            if poller.name == name:
-                return poller
+    def get(self, poller: Union[OrionPoller, str]) -> Optional[OrionPoller]:
+        for existing_poller in self._pollers:
+            if isinstance(poller, str):
+                if existing_poller.name == poller:
+                    return existing_poller
+            if isinstance(poller, OrionPoller):
+                if existing_poller == poller:
+                    return existing_poller
         return None
 
     def __getitem__(self, item: Union[str, int]) -> OrionPoller:

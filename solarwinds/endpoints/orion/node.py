@@ -97,8 +97,6 @@ class OrionNode(Endpoint):
 
         self.map_point = None
 
-        pollers = pollers or d.NODE_DEFAULT_POLLERS
-        self.pollers = OrionPollers(node=self, pollers=pollers)
         self.settings = OrionNodeSettings(node=self)
         self.interfaces = OrionInterfaces(node=self)
 
@@ -113,6 +111,9 @@ class OrionNode(Endpoint):
             raise SWObjectPropertyError("Must provide either ip_address or caption")
 
         super().__init__()
+
+        pollers = pollers or d.NODE_DEFAULT_POLLERS
+        self.pollers = OrionPollers(node=self, pollers=pollers)
 
         if self.exists():
             self.settings.fetch()
