@@ -88,12 +88,12 @@ class OrionNode(Endpoint):
         self.longitude = longitude
         self.id = id
         self.polling_engine = polling_engine
-        self.polling_method = polling_method
         self.snmp_version = snmp_version
         self.snmpv2_ro_community = snmpv2_ro_community
         self.snmpv2_rw_community = snmpv2_rw_community
         self.snmpv3_ro_cred = snmpv3_ro_cred
         self.snmpv3_rw_cred = snmpv3_rw_cred
+        self.polling_method = polling_method
 
         self.map_point = None
 
@@ -112,8 +112,10 @@ class OrionNode(Endpoint):
 
         super().__init__()
 
-        pollers = pollers or d.NODE_DEFAULT_POLLERS
-        self.pollers = OrionPollers(node=self, pollers=pollers)
+        self.polling_method = self._get_polling_method()
+        if not self.exists():
+            pollers = pollers or d.NODE_DEFAULT_POLLERS[self.polling_method]
+        self.pollers = OrionPollers(node=self, enabled_pollers=pollers)
 
         if self.exists():
             self.settings.fetch()
@@ -169,8 +171,6 @@ class OrionNode(Endpoint):
             else:
                 self.polling_method = "icmp"
                 self.snmp_version = 0
-        if not self.pollers:
-            self.pollers = d.NODE_DEFAULT_POLLERS[self.polling_method.lower()]
 
     def _get_attr_updates(self) -> Dict:
         """
@@ -266,24 +266,6 @@ class OrionNode(Endpoint):
         else:
             return 0
 
-    def enable_pollers(self) -> bool:
-        id = self.id or self._get_id()
-        if not self.pollers:
-            logger.warning(f"no pollers to enable, doing nothing")
-            return False
-        else:
-            for poller_type in self.pollers:
-                poller = {
-                    "PollerType": poller_type,
-                    "NetObject": f"N:{id}",
-                    "NetObjectType": "N",
-                    "NetObjectID": id,
-                    "Enabled": True,
-                }
-                self.api.create("Orion.Pollers", **poller)
-                logger.info(f"enabled poller {poller_type}")
-            return True
-
     def create(self) -> bool:
         if not self.ip_address:
             raise SWObjectPropertyError(f"must provide IP address to create node")
@@ -307,7 +289,9 @@ class OrionNode(Endpoint):
             self.snmp_version = 2
         created = super().create()
         if created:
-            self.enable_pollers()
+            if self.pollers._enabled_pollers:
+                for poller in self.pollers._enabled_pollers:
+                    self.pollers.add(poller=poller, enabled=True)
             if snmp_version == 3:
                 self.snmp_version = 3
                 self.save()

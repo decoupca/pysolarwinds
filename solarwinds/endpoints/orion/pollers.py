@@ -125,16 +125,19 @@ class OrionPoller:
 
 
 class OrionPollers:
-    def __init__(self, node, pollers: Optional[List[str]] = None) -> None:
+    def __init__(self, node, enabled_pollers: Optional[List[str]] = None) -> None:
         self.node = node
         self.api = self.node.api
+        self._enabled_pollers = enabled_pollers
         self._pollers = []
         if self.node.exists():
             self.fetch()
-        if pollers:
-            for poller in pollers:
-                if not self.get(poller):
-                    self.add(poller=poller, enabled=True)
+            if self._enabled_pollers:
+                for poller in self._enabled_pollers:
+                    if not self.get(poller):
+                        self.add(poller=poller, enabled=True)
+                    else:
+                        self.get(poller).enable()
 
     @property
     def list(self) -> List:
@@ -210,4 +213,4 @@ class OrionPollers:
             raise KeyError(f"Poller not found: {item}")
 
     def __repr__(self) -> str:
-        return str(self.list)
+        return str(self._pollers)
