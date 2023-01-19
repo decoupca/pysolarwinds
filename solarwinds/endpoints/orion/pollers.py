@@ -134,7 +134,7 @@ class OrionPollers:
         if pollers:
             for poller in pollers:
                 if not self.get(poller):
-                    self.add(type=poller, enabled=True)
+                    self.add(poller=poller, enabled=True)
 
     @property
     def list(self) -> List:
