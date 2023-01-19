@@ -116,7 +116,9 @@ class OrionPoller:
         return True
 
     def __repr__(self) -> str:
-        return f'OrionPoller({self.name}: {"Enabled" if self.enabled else "Disabled"})'
+        return (
+            f'OrionPoller("{self.name}": {"Enabled" if self.enabled else "Disabled"})'
+        )
 
     def __str__(self) -> str:
         return self.name
@@ -208,4 +210,4 @@ class OrionPollers:
             raise KeyError(f"Poller not found: {item}")
 
     def __repr__(self) -> str:
-        return str(self._pollers)
+        return str(self.list)
