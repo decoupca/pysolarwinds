@@ -531,6 +531,7 @@ class OrionNode(Endpoint):
             if self._swdata["properties"]["UnManaged"]:
                 self.api.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
                 logger.info(f"{self.name}: re-managed node")
+                self._get_swdata(data="properties", refresh=True)
                 return True
             else:
                 logger.warning(f"{self.name}: already managed, doing nothing")
@@ -555,6 +556,7 @@ class OrionNode(Endpoint):
                     "Orion.Nodes", "Unmanage", f"N:{self.id}", start, end, False
                 )
                 logger.info(f"{self.name}: unmanaged until {end}")
+                self._get_swdata(data="properties", refresh=True)
                 return True
             else:
                 logger.warning(f"{self.name}: already unmanaged, doing nothing")
