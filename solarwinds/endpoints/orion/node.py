@@ -157,8 +157,18 @@ class OrionNode(Endpoint):
         self.caption = hostname
 
     @property
+    def managed(self) -> Optional[bool]:
+        if isinstance(self.status, int):
+            return self.status != 9
+
+    @property
     def status(self) -> Optional[str]:
         return self._swp.get("Status")
+
+    @property
+    def unmanaged(self) -> Optional[bool]:
+        if isinstance(self.status, int):
+            return self.status == 9
 
     def _set_defaults(self) -> None:
         if not self.polling_method:
@@ -309,7 +319,7 @@ class OrionNode(Endpoint):
             and not self.snmpv3_rw_cred
         ):
             raise SWObjectPropertyError(
-                "Discovery requires at least one SNMP credential property set: "
+                "Discovery requires at least one SNMP credential or community property set: "
                 "snmpv2_ro_community, snmpv2_rw_community, snmpv3_ro_cred, or snmpv3_rw_cred"
             )
         if not self.polling_engine:
