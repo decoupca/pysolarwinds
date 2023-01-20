@@ -157,7 +157,7 @@ class OrionNode(Endpoint):
         self.caption = hostname
 
     @property
-    def managed(self) -> Optional[bool]:
+    def is_managed(self) -> Optional[bool]:
         if isinstance(self.status, int):
             return self.status != 9
 
@@ -166,7 +166,7 @@ class OrionNode(Endpoint):
         return self._swp.get("Status")
 
     @property
-    def unmanaged(self) -> Optional[bool]:
+    def is_unmanaged(self) -> Optional[bool]:
         if isinstance(self.status, int):
             return self.status == 9
 
