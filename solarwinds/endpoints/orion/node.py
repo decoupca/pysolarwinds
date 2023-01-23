@@ -378,6 +378,7 @@ class OrionNode(Endpoint):
             "Orion.Discovery", "CreateCorePluginConfiguration", core_plugin_context
         )
         discovery_profile = {
+            # N.B.: "milliseconds" is misspelled in keys below
             "Name": f"Discover {self.name}",
             "EngineId": self.polling_engine.id,
             "JobTimeoutSeconds": d.NODE_DISCOVERY_JOB_TIMEOUT_SECONDS,
