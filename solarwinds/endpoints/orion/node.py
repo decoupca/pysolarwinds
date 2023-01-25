@@ -9,6 +9,7 @@ from solarwinds.endpoints.orion.credential import OrionCredential, OrionSNMPv2Cr
 from solarwinds.endpoints.orion.engines import OrionEngine
 from solarwinds.endpoints.orion.interface import OrionInterfaces
 from solarwinds.endpoints.orion.pollers import OrionPoller, OrionPollers
+from solarwinds.endpoints.orion.volumes import OrionVolume, OrionVolumes
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 from solarwinds.exceptions import (
     SWDiscoveryError,
@@ -113,9 +114,10 @@ class OrionNode(Endpoint):
         super().__init__()
 
         self.polling_method = self._get_polling_method()
-        if not self.exists():
-            pollers = pollers or d.NODE_DEFAULT_POLLERS[self.polling_method]
+        # if not self.exists():
+        #     pollers = pollers or d.NODE_DEFAULT_POLLERS[self.polling_method]
         self.pollers = OrionPollers(node=self, enabled_pollers=pollers)
+        self.volumes = OrionVolumes(node=self)
 
         if self.exists():
             self.settings.fetch()
@@ -397,6 +399,9 @@ class OrionNode(Endpoint):
                 {"PluginConfigurationItem": core_plugin_config},
             ],
         }
+        import ipdb
+
+        ipdb.set_trace()
         self._discovery_profile_id = self.api.invoke(
             "Orion.Discovery", "StartDiscovery", discovery_profile
         )
@@ -442,9 +447,7 @@ class OrionNode(Endpoint):
                 self.caption = self._swp.get("Caption")
                 return True
             else:
-                raise SWDiscoveryError(
-                    f"{self.name}: discovery found nothing at IP: {self.ip_address}"
-                )
+                raise SWDiscoveryError(f"{self.name}: discovery found no items.")
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
             error_message = result["ErrorMessage"]

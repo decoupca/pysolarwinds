@@ -1,14 +1,16 @@
 from typing import Dict, List, Optional, Union
 
 from solarwinds.api import API
+from solarwinds.endpoint import NewEndpoint
 from solarwinds.exceptions import SWObjectExists
+from solarwinds.list import BaseList
 from solarwinds.logging import get_logger
 
 logger = get_logger(__name__)
 
 
-class OrionPoller:
-    _endpoint = "Orion.Pollers"
+class OrionPoller(NewEndpoint):
+    _entity_type = "Orion.Pollers"
     _write_attr_map = {
         "enabled": "Enabled",
     }
@@ -20,18 +22,9 @@ class OrionPoller:
         data: Optional[Dict] = None,
         uri: Optional[str] = None,
     ) -> None:
-        if not uri and not data:
-            raise ValueError("must provide URI or data dict")
-        self.api = api
+        super().__init__(api=api, data=data, uri=uri)
         self.node = node
-        self.uri = uri
-        self._data = data
-        if not self.uri:
-            self.uri = self._data.get("Uri")
-        if not self._data:
-            self.read()
-
-        self.enabled = self._data.get("Enabled")
+        self.enabled = self.data.get("Enabled")
 
     @property
     def id(self) -> int:
@@ -39,27 +32,27 @@ class OrionPoller:
 
     @property
     def display_name(self) -> Optional[str]:
-        return self._data.get("DisplayName")
+        return self.data.get("DisplayName")
 
     @property
     def description(self) -> Optional[str]:
-        return self._data.get("Description")
+        return self.data.get("Description")
 
     @property
     def poller_id(self) -> int:
-        return self._data.get("PollerID")
+        return self.data.get("PollerID")
 
     @property
     def poller_type(self) -> str:
-        return self._data.get("PollerType")
+        return self.data.get("PollerType")
 
     @property
     def net_object(self) -> str:
-        return self._data.get("NetObject")
+        return self.data.get("NetObject")
 
     @property
     def net_object_type(self) -> str:
-        return self._data.get("NetObjectType")
+        return self.data.get("NetObjectType")
 
     @property
     def name(self) -> str:
@@ -67,19 +60,11 @@ class OrionPoller:
 
     @property
     def instance_type(self) -> str:
-        return self._data.get("InstanceType")
+        return self.data.get("InstanceType")
 
     @property
     def instance_site_id(self) -> bool:
-        return self._data.get("InstanceSiteId")
-
-    def save(self) -> bool:
-        updates = {}
-        for attr, prop in self._write_attr_map.items():
-            updates.update({prop: getattr(self, attr)})
-        self.api.update(self.uri, **updates)
-        logger.debug(f"{self.node}: {self}: updated properties: {updates}")
-        return True
+        return self.data.get("InstanceSiteId")
 
     def delete(self) -> bool:
         self.api.delete(self.uri)
@@ -108,23 +93,15 @@ class OrionPoller:
             logger.info(f"{self.node}: {self}: enabled poller")
             return True
 
-    def _read(self) -> Dict:
-        return self.api.read(self.uri)
-
-    def read(self) -> bool:
-        self._data = self._read()
-        return True
-
     def __repr__(self) -> str:
         return (
             f'OrionPoller("{self.name}": {"Enabled" if self.enabled else "Disabled"})'
         )
 
-    def __str__(self) -> str:
-        return self.name
 
+class OrionPollers(BaseList):
+    _item_class = OrionPoller
 
-class OrionPollers:
     def __init__(self, node, enabled_pollers: Optional[List[str]] = None) -> None:
         self.node = node
         self.api = self.node.api
@@ -192,25 +169,3 @@ class OrionPollers:
             for result in results:
                 pollers.append(OrionPoller(api=self.api, node=self.node, data=result))
             self._pollers = pollers
-
-    def get(self, poller: Union[OrionPoller, str]) -> Optional[OrionPoller]:
-        for existing_poller in self._pollers:
-            if isinstance(poller, str):
-                if existing_poller.name == poller:
-                    return existing_poller
-            if isinstance(poller, OrionPoller):
-                if existing_poller == poller:
-                    return existing_poller
-        return None
-
-    def __getitem__(self, item: Union[str, int]) -> OrionPoller:
-        if isinstance(item, int):
-            return self._pollers[item]
-        elif isinstance(item, str):
-            for poller in self._pollers:
-                if poller.name == item:
-                    return poller
-            raise KeyError(f"Poller not found: {item}")
-
-    def __repr__(self) -> str:
-        return str(self._pollers)

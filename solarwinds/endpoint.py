@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional, Union
 
+from solarwinds.api import API
 from solarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from solarwinds.exceptions import (
     SWIDNotFound,
@@ -546,3 +547,56 @@ class Endpoint:
         else:
             logger.info(f"{self.name}: {self._type} does not exist, creating...")
             return self.create()
+
+
+class NewEndpoint:
+    _entity_type = ""
+    _write_attr_map = {}
+
+    def __init__(
+        self,
+        api: API,
+        data: Optional[Dict] = None,
+        uri: Optional[str] = None,
+    ) -> None:
+        if not uri and not data:
+            raise ValueError("must provide URI or data")
+        self.api = api
+        self.uri = uri
+        self.data = data
+        if not self.uri:
+            self.uri = self.data.get("Uri")
+        if not self.data:
+            self.read()
+
+    def _read(self) -> Dict:
+        return self.api.read(self.uri)
+
+    @property
+    def caption(self) -> str:
+        return self.data.get("Caption")
+
+    def delete(self) -> bool:
+        self.api.delete(self.uri)
+        return True
+
+    def disable(self) -> bool:
+        raise NotImplementedError()
+
+    def enable(self) -> bool:
+        raise NotImplementedError()
+
+    def read(self) -> bool:
+        self._data = self._read()
+        return True
+
+    def save(self) -> bool:
+        updates = {}
+        for attr, prop in self._write_attr_map.items():
+            updates.update({prop: getattr(self, attr)})
+        self.api.update(self.uri, **updates)
+        logger.debug(f"{self.node}: {self}: updated properties: {updates}")
+        return True
+
+    def __str__(self) -> str:
+        return self.name
