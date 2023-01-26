@@ -606,7 +606,7 @@ class OrionNode(Endpoint):
         ] = "existing",
         unmanage_node: bool = True,
         unmanage_node_timeout: Union[timedelta, int] = 3600,
-        import_timeout: int = 240,
+        import_timeout: int = 300,
         enforce_icmp_status_polling: bool = True,
         exclude_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
         exclude_volumes: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
