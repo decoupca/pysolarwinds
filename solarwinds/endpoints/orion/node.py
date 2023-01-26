@@ -569,8 +569,34 @@ class OrionNode(Endpoint):
             logger.warning(f"{self.name}: does not exist, nothing to unmanage")
             return False
 
+    def enforce_icmp_status_polling(self) -> None:
+        """ensures that node uses ICMP for up/down status and response time"""
+        enable_pollers = [
+            "N.Status.ICMP.Native",
+            "N.ResponseTime.ICMP.Native",
+        ]
+        disable_pollers = [
+            "N.Status.SNMP.Native",
+            "N.ResponseTime.SNMP.Native",
+        ]
+        logger.info(f"{self}: Enforcing ICMP-based status and response time pollers...")
+        for poller_name in enable_pollers:
+            poller = self.pollers.get(poller_name)
+            if poller:
+                if not poller.enabled:
+                    poller.enable()
+            else:
+                self.pollers.add(poller=poller_name, enabled=True)
+
+        for poller_name in disable_pollers:
+            poller = self.pollers.get(poller_name)
+            if poller:
+                if poller.enabled:
+                    poller.disable()
+
     def monitor_resources(
         self,
+        pollers: Union[List[str], Literal["preserve", "all", "none"]] = "all",
         interfaces: Union[
             List[str], Literal["preserve", "up", "all", "none"]
         ] = "preserve",
@@ -578,9 +604,10 @@ class OrionNode(Endpoint):
         unmanage_node: bool = True,
         unmanage_node_timeout: int = 60,
         import_timeout: int = 240,
+        enforce_icmp_status_polling: bool = True,
     ) -> None:
         """
-        Monitors SNMP resources for node in Solarwinds.
+        Monitors SNMP resources for node.
 
         Broadly speaking, SNMP resources are those SNMP OIDs that SolarWinds is
         aware of through its installed MIBs.
@@ -599,7 +626,10 @@ class OrionNode(Endpoint):
         then remove any volumes or interfaces you don't want.
 
         Args:
-            node: The node to monitor SNMP resources on.
+            pollers: which pollers to enable. May be a list of poller names, or these values:
+                preserve: preserves existing pollers (not implemented)
+                all: enable all discovered pollers (default)
+                none: disable all discovered pollers
             interfaces: which interfaces to monitor. May be a list of interface names,
                 or these values:
                 preserve (default): preserves existing interfaces (no net change)
@@ -621,6 +651,11 @@ class OrionNode(Endpoint):
                 This timeout is a failsafe to ensure that a node does not stay unmanaged
                 indefinitely if the resource monitoring process fails before re-managing the node.
             import_timeout: maximum time in seconds to wait for SNMP resources to import.
+            enforce_icmp_status_polling: SolarWinds recommends using ICMP to monitor status
+                (up/down) and response time, which is faster than using SNMP. The ListResources
+                verbs, however, automatically enable SNMP-based status and response time pollers.
+                To override this and use the recommended ICMP-based status and response time pollers,
+                set this to True.
 
         Returns:
             None
@@ -633,55 +668,58 @@ class OrionNode(Endpoint):
         interfaces_to_delete = []
         volumes_to_delete = []
 
+        if pollers == "preserve":
+            raise NotImplementedError()
+
         if interfaces == "up" and unmanage_node:
             raise ValueError("Can't monitor up interfaces when node is unmanaged")
 
-        node._get_swdata(refresh=True)
-        already_unmanaged = node.is_unmanaged
+        self._get_swdata(refresh=True)
+        already_unmanaged = self.is_unmanaged
         if interfaces == "up" and already_unmanaged:
             raise ValueError("Can't monitor up interfaces when node is unmanaged")
 
         if unmanage_node:
             if already_unmanaged:
-                logger.info(f"{node}: Node is already unmanaged")
+                logger.info(f"{self}: Node is already unmanaged")
             else:
-                logger.info(f"{node}: Unmanaging node...")
-                node.unmanage(
+                logger.info(f"{self}: Unmanaging node...")
+                self.unmanage(
                     end=(datetime.utcnow() + timedelta(minutes=unmanage_node_timeout))
                 )
 
         if interfaces == "preserve":
-            logger.info(f"{node}: Getting existing interfaces to preserve...")
-            node.interfaces.get()
-            existing_interface_names = [x.name for x in node.interfaces]
+            logger.info(f"{self}: Getting existing interfaces to preserve...")
+            self.interfaces.get()
+            existing_interface_names = [x.name for x in self.interfaces]
             logger.info(
-                f"{node} Found {len(existing_interface_names)} existing interfaces"
+                f"{self} Found {len(existing_interface_names)} existing interfaces"
             )
 
         if volumes == "preserve":
-            logger.info(f"{node}: Getting existing volumes to preserve...")
-            existing_volume_names = [x.name for x in node.volumes]
-            logger.info(f"{node}: Found {len(existing_volume_names)} existing volumes")
+            logger.info(f"{self}: Getting existing volumes to preserve...")
+            existing_volume_names = [x.name for x in self.volumes]
+            logger.info(f"{self}: Found {len(existing_volume_names)} existing volumes")
 
-        logger.info(f"{node}: Importing all SNMP resources...")
-        node.import_snmp_resources(timeout=import_timeout)
+        logger.info(f"{self}: Importing all SNMP resources...")
+        self.import_snmp_resources(timeout=import_timeout)
 
-        logger.info(f"{node}: Getting imported interfaces...")
-        node.interfaces.get()
-        logger.info(f"{node}: Found {len(node.interfaces)} imported interfaces")
+        logger.info(f"{self}: Getting imported interfaces...")
+        self.interfaces.get()
+        logger.info(f"{self}: Found {len(self.interfaces)} imported interfaces")
         if interfaces == "preserve":
             interfaces_to_delete = [
-                x for x in node.interfaces if x.name not in existing_interface_names
+                x for x in self.interfaces if x.name not in existing_interface_names
             ]
         elif interfaces == "up":
-            interfaces_to_delete = [x for x in node.interfaces if not x.up]
+            interfaces_to_delete = [x for x in self.interfaces if not x.up]
         elif interfaces == "all":
             interfaces_to_delete = []
         elif interfaces == "none":
-            interfaces_to_delete = [x for x in node.interfaces]
+            interfaces_to_delete = [x for x in self.interfaces]
         elif isinstance(interfaces, List):
             interfaces_to_delete = [
-                x for x in node.interfaces if x.name not in interfaces
+                x for x in self.interfaces if x.name not in interfaces
             ]
         else:
             raise ValueError(
@@ -690,22 +728,22 @@ class OrionNode(Endpoint):
             )
         if interfaces_to_delete:
             logger.info(
-                f"{node}: Deleting {len(interfaces_to_delete)} extraneous interfaces..."
+                f"{self}: Deleting {len(interfaces_to_delete)} extraneous interfaces..."
             )
-            node.interfaces.delete(interfaces_to_delete)
+            self.interfaces.delete(interfaces_to_delete)
 
-        logger.info(f"{node}: Getting imported volumes...")
-        node.volumes.fetch()
+        logger.info(f"{self}: Getting imported volumes...")
+        self.volumes.fetch()
         if volumes == "preserve":
             volumes_to_delete = [
-                x for x in node.volumes if x.name not in existing_volume_names
+                x for x in self.volumes if x.name not in existing_volume_names
             ]
         elif volumes == "all":
             volumes_to_delete = []
         elif volumes == "none":
-            volumes_to_delete = [x for x in node.volumes]
+            volumes_to_delete = [x for x in self.volumes]
         elif isinstance(volumes, list):
-            volumes_to_delete = [x for x in node.volumes if x.name not in volumes]
+            volumes_to_delete = [x for x in self.volumes if x.name not in volumes]
         else:
             raise ValueError(
                 f"Unexpected value for volumes: {volumes}. "
@@ -713,15 +751,18 @@ class OrionNode(Endpoint):
             )
         if volumes_to_delete:
             logger.info(
-                f"{node}: Deleting {len(volumes_to_delete)} extraneous volumes..."
+                f"{self}: Deleting {len(volumes_to_delete)} extraneous volumes..."
             )
-            node.volumes.delete(volumes_to_delete)
+            self.volumes.delete(volumes_to_delete)
 
         if unmanage_node and not already_unmanaged:
-            logger.info(f"{node}: re-managing node...")
-            node.remanage()
+            logger.info(f"{self}: re-managing node...")
+            self.remanage()
 
-        logger.info(f"{node}: Resource import complete.")
+        if enforce_icmp_status_polling:
+            self.enforce_icmp_status_polling()
+
+        logger.info(f"{self}: Resource import complete.")
 
     def save(self) -> bool:
         if self.snmp_version == 3:
