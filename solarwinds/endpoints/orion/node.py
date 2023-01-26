@@ -721,6 +721,11 @@ class OrionNode(Endpoint):
                 poller = self.pollers.get(poller_name)
                 if not poller:
                     logger.warning(f"{self}: Poller {poller_name} does not exist")
+        else:
+            raise ValueError(
+                f"{self}: Unexpected value for pollers: {pollers}. "
+                'Must be a list of poller names, "preserve", "all", or "none"'
+            )
 
         logger.info(f"{self}: Getting imported interfaces...")
         self.interfaces.get()
