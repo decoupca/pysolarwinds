@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from time import sleep
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import solarwinds.defaults as d
 from solarwinds.api import API
@@ -568,6 +568,160 @@ class OrionNode(Endpoint):
         else:
             logger.warning(f"{self.name}: does not exist, nothing to unmanage")
             return False
+
+    def monitor_resources(
+        self,
+        interfaces: Union[
+            List[str], Literal["preserve", "up", "all", "none"]
+        ] = "preserve",
+        volumes: Union[List[str], Literal["preserve", "all", "none"]] = "preserve",
+        unmanage_node: bool = True,
+        unmanage_node_timeout: int = 60,
+        import_timeout: int = 240,
+    ) -> None:
+        """
+        Monitors SNMP resources for node in Solarwinds.
+
+        Broadly speaking, SNMP resources are those SNMP OIDs that SolarWinds is
+        aware of through its installed MIBs.
+
+        SNMP resources belong to three broad and unofficial classes:
+        1. System resources, e.g. CPU/RAM, routing tables, and hardware health stats.
+        2. System volumes, e.g. any persistent storage device that has a SNMP OID.
+        3. Interfaces. These include the usual physical and virtual interfaces you'd
+                expect, as well as others you might not, like stack ports, application ports,
+                or even more exotic stuff.
+
+        monitor_resources works by invoking the ListResources verbs in SWIS, which imports
+        all available resources from all three classes above. These verbs offer no granularity
+        whatsoever; they don't even return a list of imported items. There is no way to select
+        which resources, volumes, or interfaces you want--you can only import everything,
+        then remove any volumes or interfaces you don't want.
+
+        Args:
+            node: The node to monitor SNMP resources on.
+            interfaces: which interfaces to monitor. May be a list of interface names,
+                or these values:
+                preserve (default): preserves existing interfaces (no net change)
+                up: monitor all interfaces that are operationally and administratively up
+                all: monitor all interfaces, regardless of their operational or
+                    administrative status
+                none: exclude all interfaces from monitoring
+            volumes: which volumes to monitor. May be a list of volume names, or these
+                values:
+                preserve (default): preserves existing volumes (no net change)
+                all: monitor all available volumes
+                none: exclude all volumes from monitoring
+            unmanange_node: whether or not to unmanage (unmonitor) the node during
+                the resource import process.
+            unmanage_node_timeout: maximum time in minutes to unmonitor the node for.
+                The node will automatically re-manage itself after this timeout in case
+                monitor_resources fails to automatically re-manage the node. In all intended
+                cases, the node will be re-managed as soon as resource import has completed.
+                This timeout is a failsafe to ensure that a node does not stay unmanaged
+                indefinitely if the resource monitoring process fails before re-managing the node.
+            import_timeout: maximum time in seconds to wait for SNMP resources to import.
+
+        Returns:
+            None
+
+        Raises:
+            ValueError if node is unmanaged and interfaces == 'up'. When nodes are unmanaged,
+                the operational state of all interfaces become unmananged too.
+        """
+        existing_interface_names = []
+        interfaces_to_delete = []
+        volumes_to_delete = []
+
+        if interfaces == "up" and unmanage_node:
+            raise ValueError("Can't monitor up interfaces when node is unmanaged")
+
+        node._get_swdata(refresh=True)
+        already_unmanaged = node.is_unmanaged
+        if interfaces == "up" and already_unmanaged:
+            raise ValueError("Can't monitor up interfaces when node is unmanaged")
+
+        if unmanage_node:
+            if already_unmanaged:
+                logger.info(f"{node}: Node is already unmanaged")
+            else:
+                logger.info(f"{node}: Unmanaging node...")
+                node.unmanage(
+                    end=(datetime.utcnow() + timedelta(minutes=unmanage_node_timeout))
+                )
+
+        if interfaces == "preserve":
+            logger.info(f"{node}: Getting existing interfaces to preserve...")
+            node.interfaces.get()
+            existing_interface_names = [x.name for x in node.interfaces]
+            logger.info(
+                f"{node} Found {len(existing_interface_names)} existing interfaces"
+            )
+
+        if volumes == "preserve":
+            logger.info(f"{node}: Getting existing volumes to preserve...")
+            existing_volume_names = [x.name for x in node.volumes]
+            logger.info(f"{node}: Found {len(existing_volume_names)} existing volumes")
+
+        logger.info(f"{node}: Importing all SNMP resources...")
+        node.import_snmp_resources(timeout=import_timeout)
+
+        logger.info(f"{node}: Getting imported interfaces...")
+        node.interfaces.get()
+        logger.info(f"{node}: Found {len(node.interfaces)} imported interfaces")
+        if interfaces == "preserve":
+            interfaces_to_delete = [
+                x for x in node.interfaces if x.name not in existing_interface_names
+            ]
+        elif interfaces == "up":
+            interfaces_to_delete = [x for x in node.interfaces if not x.up]
+        elif interfaces == "all":
+            interfaces_to_delete = []
+        elif interfaces == "none":
+            interfaces_to_delete = [x for x in node.interfaces]
+        elif isinstance(interfaces, List):
+            interfaces_to_delete = [
+                x for x in node.interfaces if x.name not in interfaces
+            ]
+        else:
+            raise ValueError(
+                f"Unexpected value for interfaces: {interfaces}. "
+                'Must be a list of interface names, "preserve", "up", "all", or "none"'
+            )
+        if interfaces_to_delete:
+            logger.info(
+                f"{node}: Deleting {len(interfaces_to_delete)} extraneous interfaces..."
+            )
+            node.interfaces.delete(interfaces_to_delete)
+
+        logger.info(f"{node}: Getting imported volumes...")
+        node.volumes.fetch()
+        if volumes == "preserve":
+            volumes_to_delete = [
+                x for x in node.volumes if x.name not in existing_volume_names
+            ]
+        elif volumes == "all":
+            volumes_to_delete = []
+        elif volumes == "none":
+            volumes_to_delete = [x for x in node.volumes]
+        elif isinstance(volumes, list):
+            volumes_to_delete = [x for x in node.volumes if x.name not in volumes]
+        else:
+            raise ValueError(
+                f"Unexpected value for volumes: {volumes}. "
+                'Must be a list of volume names, "preserve", "all", or "none"'
+            )
+        if volumes_to_delete:
+            logger.info(
+                f"{node}: Deleting {len(volumes_to_delete)} extraneous volumes..."
+            )
+            node.volumes.delete(volumes_to_delete)
+
+        if unmanage_node and not already_unmanaged:
+            logger.info(f"{node}: re-managing node...")
+            node.remanage()
+
+        logger.info(f"{node}: Resource import complete.")
 
     def save(self) -> bool:
         if self.snmp_version == 3:
