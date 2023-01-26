@@ -117,8 +117,8 @@ class OrionNode(Endpoint):
         super().__init__()
 
         self.polling_method = self._get_polling_method()
-        # if not self.exists():
-        #     pollers = pollers or d.NODE_DEFAULT_POLLERS[self.polling_method]
+        if not self.exists():
+            pollers = pollers or d.NODE_DEFAULT_POLLERS[self.polling_method]
         self.pollers = OrionPollers(node=self, enabled_pollers=pollers)
         self.volumes = OrionVolumes(node=self)
 
