@@ -37,11 +37,17 @@ class OrionVolume(NewEndpoint):
 
     @property
     def name(self) -> str:
-        return self.display_name
+        # SWIS will truncate long names in the caption or description fields.
+        # The VolumeDescription field is the full, un-truncated name.
+        return self.volume_description
 
     @property
-    def volume_id(self) -> int:
+    def volume_id(self) -> Optional[int]:
         return self.data.get("VolumeID")
+
+    @property
+    def volume_description(self) -> str:
+        return self.data.get("VolumeDescription") or ""
 
     @property
     def instance_type(self) -> str:
