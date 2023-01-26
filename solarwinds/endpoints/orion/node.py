@@ -605,7 +605,7 @@ class OrionNode(Endpoint):
             List[str], List[re.Pattern], Literal["existing", "all", "none"]
         ] = "existing",
         unmanage_node: bool = True,
-        unmanage_node_timeout: int = 60,
+        unmanage_node_timeout: Union[timedelta, int] = 3600,
         import_timeout: int = 240,
         enforce_icmp_status_polling: bool = True,
         exclude_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
@@ -648,7 +648,8 @@ class OrionNode(Endpoint):
                 none: exclude all volumes from monitoring
             unmanange_node: whether or not to unmanage (unmonitor) the node during
                 the resource import process.
-            unmanage_node_timeout: maximum time in minutes to unmonitor the node for.
+            unmanage_node_timeout: maximum time to unmonitor the node for. May be a
+                datetime.timedelta object, or an integer for seconds.
                 The node will automatically re-manage itself after this timeout in case
                 monitor_resources fails to automatically re-manage the node. In all intended
                 cases, the node will be re-managed as soon as resource import has completed.
@@ -689,9 +690,17 @@ class OrionNode(Endpoint):
                 logger.info(f"{self}: Node is already unmanaged")
             else:
                 logger.info(f"{self}: Unmanaging node...")
-                self.unmanage(
-                    end=(datetime.utcnow() + timedelta(minutes=unmanage_node_timeout))
-                )
+                if isinstance(unmanage_node_timeout, timedelta):
+                    delta = unmanage_node_timeout
+                elif isinstance(unmanage_node_timeout, int):
+                    delta = timedelta(secods=unmanage_node_timeout)
+                else:
+                    raise ValueError(
+                        "Unexpected value for unmanage_node_timeout: "
+                        f"{unmanage_node_timeout}. Must be either a positive integer (seconds) "
+                        "datetime.timedelta object"
+                    )
+                self.unmanage(end=(datetime.utcnow() + delta))
 
         if include_interfaces == "existing":
             logger.info(f"{self}: Getting existing interfaces to preserve...")
