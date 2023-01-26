@@ -65,8 +65,14 @@ class OrionVolume(NewEndpoint):
 class OrionVolumes(BaseList):
     _item_class = OrionVolume
 
-    def delete(self, volume: OrionVolume) -> bool:
-        volume.delete()
+    def delete(self, volumes: Union[OrionVolume, List[OrionVolume]]) -> bool:
+        if isinstance(volumes, list):
+            self.api.delete([x.uri for x in volumes])
+            for volume in volumes:
+                self.node.volumes.items.remove(volume)
+            logger.info(f"{self.node}: deleted {len(volumes)} volumes")
+        else:
+            volume.delete()
         return True
 
     def fetch(self) -> None:
