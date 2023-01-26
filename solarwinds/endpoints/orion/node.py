@@ -596,7 +596,7 @@ class OrionNode(Endpoint):
 
     def monitor_resources(
         self,
-        pollers: Union[List[str], Literal["preserve", "all", "none"]] = "all",
+        pollers: Union[List[str], Literal["all", "none"]] = "all",
         interfaces: Union[
             List[str], Literal["preserve", "up", "all", "none"]
         ] = "preserve",
@@ -627,7 +627,6 @@ class OrionNode(Endpoint):
 
         Args:
             pollers: which pollers to enable. May be a list of poller names, or these values:
-                preserve: preserves existing pollers (not implemented)
                 all: enable all discovered pollers (default)
                 none: disable all discovered pollers
             interfaces: which interfaces to monitor. May be a list of interface names,
@@ -685,9 +684,6 @@ class OrionNode(Endpoint):
                     end=(datetime.utcnow() + timedelta(minutes=unmanage_node_timeout))
                 )
 
-        if pollers == "preserve":
-            raise NotImplementedError()
-
         if interfaces == "preserve":
             logger.info(f"{self}: Getting existing interfaces to preserve...")
             self.interfaces.get()
@@ -724,7 +720,7 @@ class OrionNode(Endpoint):
         else:
             raise ValueError(
                 f"{self}: Unexpected value for pollers: {pollers}. "
-                'Must be a list of poller names, "preserve", "all", or "none"'
+                'Must be a list of poller names, "all", or "none"'
             )
 
         logger.info(f"{self}: Getting imported interfaces...")
