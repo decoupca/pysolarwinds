@@ -69,7 +69,7 @@ class OrionPoller(NewEndpoint):
     def delete(self) -> bool:
         self.api.delete(self.uri)
         if self.node.pollers.get(self):
-            self.node.pollers._pollers.remove(self)
+            self.node.pollers.items.remove(self)
         logger.info(f"{self.node}: {self}: deleted poller")
         return True
 
@@ -106,7 +106,7 @@ class OrionPollers(BaseList):
         self.node = node
         self.api = self.node.api
         self._enabled_pollers = enabled_pollers
-        self._pollers = []
+        self.items = []
         if self.node.exists():
             self.fetch()
             if self._enabled_pollers:
@@ -118,7 +118,7 @@ class OrionPollers(BaseList):
 
     @property
     def list(self) -> List:
-        return [x.name for x in self._pollers]
+        return [x.name for x in self.items]
 
     def add(self, poller: str, enabled: bool = True) -> bool:
         if self.get(poller):
@@ -134,7 +134,7 @@ class OrionPollers(BaseList):
         uri = self.api.create("Orion.Pollers", **kwargs)
         data = self.api.read(uri)
         new_poller = OrionPoller(api=self.api, node=self.node, data=data)
-        self._pollers.append(new_poller)
+        self.items.append(new_poller)
         logger.info(
             f"{self.node}: {new_poller}: created new poller "
             f"({'enabled' if enabled else 'disabled'})"
@@ -168,4 +168,4 @@ class OrionPollers(BaseList):
             pollers = []
             for result in results:
                 pollers.append(OrionPoller(api=self.api, node=self.node, data=result))
-            self._pollers = pollers
+            self.items = pollers

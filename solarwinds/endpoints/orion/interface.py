@@ -257,6 +257,9 @@ class OrionInterfaces(object):
                     "already monitored, doing nothing"
                 )
 
+    def __len__(self) -> int:
+        return len(self._existing)
+
     def __getitem__(self, item: Union[str, int]) -> OrionInterface:
         if isinstance(item, int):
             return self._existing[item]
