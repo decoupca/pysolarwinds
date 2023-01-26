@@ -693,7 +693,7 @@ class OrionNode(Endpoint):
                 if isinstance(unmanage_node_timeout, timedelta):
                     delta = unmanage_node_timeout
                 elif isinstance(unmanage_node_timeout, int):
-                    delta = timedelta(secods=unmanage_node_timeout)
+                    delta = timedelta(seconds=unmanage_node_timeout)
                 else:
                     raise ValueError(
                         "Unexpected value for unmanage_node_timeout: "
