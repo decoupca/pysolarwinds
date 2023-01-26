@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 from time import sleep
 from typing import Dict, List, Literal, Optional, Union
@@ -605,6 +606,7 @@ class OrionNode(Endpoint):
         unmanage_node_timeout: int = 60,
         import_timeout: int = 240,
         enforce_icmp_status_polling: bool = True,
+        exclude_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
     ) -> None:
         """
         Monitors SNMP resources for node.
@@ -655,7 +657,9 @@ class OrionNode(Endpoint):
                 verbs, however, automatically enable SNMP-based status and response time pollers.
                 To override this and use the recommended ICMP-based status and response time pollers,
                 set this to True.
-
+            exclude_interfaces: regex pattern, or list of patterns. If any interface name matches
+                any pattern, it will be excluded from monitoring. Does not apply to any interfaces
+                provided in interface argument.
         Returns:
             None
 
@@ -745,6 +749,18 @@ class OrionNode(Endpoint):
                 f"Unexpected value for interfaces: {interfaces}. "
                 'Must be a list of interface names, "preserve", "up", "all", or "none"'
             )
+        if exclude_interfaces:
+            if isinstance(exclude_interfaces, re.Pattern):
+                exclude_interfaces = [exclude_interfaces]
+            for interface in self.interfaces:
+                for pattern in exclude_interfaces:
+                    if re.search(pattern, interface.name):
+                        logger.debug(
+                            f"{self}: excluding interface {interface} because "
+                            f'it matches exclusion pattern "{pattern}"'
+                        )
+                        interfaces_to_delete.append(interface)
+
         if interfaces_to_delete:
             logger.info(
                 f"{self}: Deleting {len(interfaces_to_delete)} extraneous interfaces..."
