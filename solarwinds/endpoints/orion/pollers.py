@@ -147,15 +147,33 @@ class OrionPollers(BaseList):
         poller.delete()
         return True
 
+    def delete_all(self) -> bool:
+        if self.items:
+            for poller in self.items:
+                poller.delete()
+        return True
+
     def disable(self, poller: Union[OrionPoller, str]) -> bool:
         if isinstance(poller, str):
             poller = self[poller]
         return poller.disable()
 
+    def disable_all(self) -> bool:
+        for poller in self.items:
+            if poller.enabled:
+                poller.disable()
+        return True
+
     def enable(self, poller: Union[OrionPoller, str]) -> bool:
         if isinstance(poller, str):
             poller = self[poller]
         return poller.enable()
+
+    def enable_all(self) -> bool:
+        for poller in self.items:
+            if not poller.enabled:
+                poller.disable()
+        return True
 
     def fetch(self) -> None:
         query = (
