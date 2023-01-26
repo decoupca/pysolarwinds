@@ -658,8 +658,8 @@ class OrionNode(Endpoint):
                 To override this and use the recommended ICMP-based status and response time pollers,
                 set this to True.
             exclude_interfaces: regex pattern, or list of patterns. If any interface name matches
-                any pattern, it will be excluded from monitoring. Does not apply to any interfaces
-                provided in interface argument.
+                any pattern, it will be excluded from monitoring.
+                
         Returns:
             None
 
