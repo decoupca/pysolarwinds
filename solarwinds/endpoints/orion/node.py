@@ -1,7 +1,7 @@
 import re
 from datetime import datetime, timedelta
 from time import sleep
-from typing import Dict, List, Literal, Optional, Union
+from typing import Dict, List, Literal, NewType, Optional, Union
 
 import solarwinds.defaults as d
 from solarwinds.api import API
@@ -24,6 +24,8 @@ from solarwinds.models.orion.node_settings import OrionNodeSettings
 logger = get_logger(__name__)
 
 DEFAULT_POLLING_ENGINE_ID = 1
+
+Integer = NewType("Integer", int)
 
 
 class OrionNode(Endpoint):
@@ -605,7 +607,7 @@ class OrionNode(Endpoint):
             List[str], List[re.Pattern], Literal["existing", "all", "none"]
         ] = "existing",
         unmanage_node: bool = True,
-        unmanage_node_timeout: Union[timedelta, int] = 3600,
+        unmanage_node_timeout: Union[timedelta, Integer] = 3600,
         import_timeout: int = 300,
         enforce_icmp_status_polling: bool = True,
         exclude_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
