@@ -597,16 +597,19 @@ class OrionNode(Endpoint):
 
     def monitor_resources(
         self,
-        pollers: Union[List[str], Literal["all", "none"]] = "all",
-        interfaces: Union[
+        enable_pollers: Union[List[str], Literal["all", "none"]] = "all",
+        include_interfaces: Union[
             List[str], Literal["preserve", "up", "all", "none"]
         ] = "preserve",
-        volumes: Union[List[str], Literal["preserve", "all", "none"]] = "preserve",
+        include_volumes: Union[
+            List[str], List[re.Pattern], Literal["preserve", "all", "none"]
+        ] = "preserve",
         unmanage_node: bool = True,
         unmanage_node_timeout: int = 60,
         import_timeout: int = 240,
         enforce_icmp_status_polling: bool = True,
         exclude_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
+        exclude_volumes: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
     ) -> None:
         """
         Monitors SNMP resources for node.
@@ -628,17 +631,17 @@ class OrionNode(Endpoint):
         then remove any volumes or interfaces you don't want.
 
         Args:
-            pollers: which pollers to enable. May be a list of poller names, or these values:
+            enable_pollers: which pollers to enable. May be a list of poller names, or these values:
                 all: enable all discovered pollers (default)
                 none: disable all discovered pollers
-            interfaces: which interfaces to monitor. May be a list of interface names,
+            include_interfaces: which interfaces to monitor. May be a list of interface names,
                 or these values:
                 preserve (default): preserves existing interfaces (no net change)
                 up: monitor all interfaces that are operationally and administratively up
                 all: monitor all interfaces, regardless of their operational or
                     administrative status
                 none: exclude all interfaces from monitoring
-            volumes: which volumes to monitor. May be a list of volume names, or these
+            include_volumes: which volumes to monitor. May be a list of volume names, or these
                 values:
                 preserve (default): preserves existing volumes (no net change)
                 all: monitor all available volumes
@@ -659,7 +662,9 @@ class OrionNode(Endpoint):
                 set this to True.
             exclude_interfaces: regex pattern, or list of patterns. If any interface name matches
                 any pattern, it will be excluded from monitoring.
-                
+            exclude_volumes: regex pattern, or list of patterns. If any volume name matches
+                any pattern, it will be excluded from monitoring.
+
         Returns:
             None
 
@@ -671,12 +676,12 @@ class OrionNode(Endpoint):
         interfaces_to_delete = []
         volumes_to_delete = []
 
-        if interfaces == "up" and unmanage_node:
+        if include_interfaces == "up" and unmanage_node:
             raise ValueError("Can't monitor up interfaces when node is unmanaged")
 
         self._get_swdata(refresh=True)
         already_unmanaged = self.is_unmanaged
-        if interfaces == "up" and already_unmanaged:
+        if include_interfaces == "up" and already_unmanaged:
             raise ValueError("Can't monitor up interfaces when node is unmanaged")
 
         if unmanage_node:
@@ -688,7 +693,7 @@ class OrionNode(Endpoint):
                     end=(datetime.utcnow() + timedelta(minutes=unmanage_node_timeout))
                 )
 
-        if interfaces == "preserve":
+        if include_interfaces == "preserve":
             logger.info(f"{self}: Getting existing interfaces to preserve...")
             self.interfaces.get()
             existing_interface_names = [x.name for x in self.interfaces]
@@ -696,7 +701,7 @@ class OrionNode(Endpoint):
                 f"{self} Found {len(existing_interface_names)} existing interfaces"
             )
 
-        if volumes == "preserve":
+        if include_volumes == "preserve":
             logger.info(f"{self}: Getting existing volumes to preserve...")
             existing_volume_names = [x.name for x in self.volumes]
             logger.info(f"{self}: Found {len(existing_volume_names)} existing volumes")
@@ -706,47 +711,47 @@ class OrionNode(Endpoint):
         logger.info(f"{self}: Getting imported pollers...")
         self.pollers.fetch()
         logger.info(f"{self}: Found {len(self.pollers)} imported pollers")
-        if pollers == "all":
+        if enable_pollers == "all":
             pass  # all imported pollers are enabled by default
-        elif pollers == "none":
+        elif enable_pollers == "none":
             self.pollers.disable_all()
-        elif isinstance(pollers, list):
+        elif isinstance(enable_pollers, list):
             for poller in self.pollers:
-                if poller.name in pollers:
+                if poller.name in enable_pollers:
                     if not poller.enabled:
                         poller.enable()
                 else:
                     poller.disable()
-            for poller_name in pollers:
+            for poller_name in enable_pollers:
                 poller = self.pollers.get(poller_name)
                 if not poller:
                     logger.warning(f"{self}: Poller {poller_name} does not exist")
         else:
             raise ValueError(
-                f"{self}: Unexpected value for pollers: {pollers}. "
+                f"{self}: Unexpected value for pollers: {enable_pollers}. "
                 'Must be a list of poller names, "all", or "none"'
             )
 
         logger.info(f"{self}: Getting imported interfaces...")
         self.interfaces.get()
         logger.info(f"{self}: Found {len(self.interfaces)} imported interfaces")
-        if interfaces == "preserve":
+        if include_interfaces == "preserve":
             interfaces_to_delete = [
                 x for x in self.interfaces if x.name not in existing_interface_names
             ]
-        elif interfaces == "up":
+        elif include_interfaces == "up":
             interfaces_to_delete = [x for x in self.interfaces if not x.up]
-        elif interfaces == "all":
+        elif include_interfaces == "all":
             interfaces_to_delete = []
-        elif interfaces == "none":
+        elif include_interfaces == "none":
             interfaces_to_delete = [x for x in self.interfaces]
-        elif isinstance(interfaces, List):
+        elif isinstance(include_interfaces, List):
             interfaces_to_delete = [
-                x for x in self.interfaces if x.name not in interfaces
+                x for x in self.interfaces if x.name not in include_interfaces
             ]
         else:
             raise ValueError(
-                f"Unexpected value for interfaces: {interfaces}. "
+                f"Unexpected value for interfaces: {include_interfaces}. "
                 'Must be a list of interface names, "preserve", "up", "all", or "none"'
             )
         if exclude_interfaces:
@@ -769,21 +774,34 @@ class OrionNode(Endpoint):
 
         logger.info(f"{self}: Getting imported volumes...")
         self.volumes.fetch()
-        if volumes == "preserve":
+        if include_volumes == "preserve":
             volumes_to_delete = [
                 x for x in self.volumes if x.name not in existing_volume_names
             ]
-        elif volumes == "all":
+        elif include_volumes == "all":
             volumes_to_delete = []
-        elif volumes == "none":
+        elif include_volumes == "none":
             volumes_to_delete = [x for x in self.volumes]
-        elif isinstance(volumes, list):
-            volumes_to_delete = [x for x in self.volumes if x.name not in volumes]
+        elif isinstance(include_volumes, list):
+            volumes_to_delete = [
+                x for x in self.volumes if x.name not in include_volumes
+            ]
         else:
             raise ValueError(
-                f"Unexpected value for volumes: {volumes}. "
+                f"Unexpected value for volumes: {include_volumes}. "
                 'Must be a list of volume names, "preserve", "all", or "none"'
             )
+        if exclude_volumes:
+            if isinstance(exclude_volumes, re.Pattern):
+                exclude_volumes = [exclude_volumes]
+            for volume in self.volumes:
+                for pattern in exclude_volumes:
+                    if re.search(pattern, volume.name):
+                        logger.debug(
+                            f"{self}: excluding volume {volume} because "
+                            f'it matches exclusion pattern "{pattern}"'
+                        )
+                        volumes_to_delete.append(volume)
         if volumes_to_delete:
             logger.info(
                 f"{self}: Deleting {len(volumes_to_delete)} extraneous volumes..."
