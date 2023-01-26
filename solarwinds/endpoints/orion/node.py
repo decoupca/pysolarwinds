@@ -668,9 +668,6 @@ class OrionNode(Endpoint):
         interfaces_to_delete = []
         volumes_to_delete = []
 
-        if pollers == "preserve":
-            raise NotImplementedError()
-
         if interfaces == "up" and unmanage_node:
             raise ValueError("Can't monitor up interfaces when node is unmanaged")
 
@@ -688,6 +685,9 @@ class OrionNode(Endpoint):
                     end=(datetime.utcnow() + timedelta(minutes=unmanage_node_timeout))
                 )
 
+        if pollers == "preserve":
+            raise NotImplementedError()
+
         if interfaces == "preserve":
             logger.info(f"{self}: Getting existing interfaces to preserve...")
             self.interfaces.get()
@@ -701,8 +701,26 @@ class OrionNode(Endpoint):
             existing_volume_names = [x.name for x in self.volumes]
             logger.info(f"{self}: Found {len(existing_volume_names)} existing volumes")
 
-        logger.info(f"{self}: Importing all SNMP resources...")
         self.import_snmp_resources(timeout=import_timeout)
+
+        logger.info(f"{self}: Getting imported pollers...")
+        self.pollers.fetch()
+        logger.info(f"{self}: Found {len(self.pollers)} imported pollers")
+        if pollers == "all":
+            pass  # all imported pollers are enabled by default
+        elif pollers == "none":
+            self.pollers.disable_all()
+        elif isinstance(pollers, list):
+            for poller in self.pollers:
+                if poller.name in pollers:
+                    if not poller.enabled:
+                        poller.enable()
+                else:
+                    poller.disable()
+            for poller_name in pollers:
+                poller = self.pollers.get(poller_name)
+                if not poller:
+                    logger.warning(f"{self}: Poller {poller_name} does not exist")
 
         logger.info(f"{self}: Getting imported interfaces...")
         self.interfaces.get()
