@@ -608,7 +608,7 @@ class OrionNode(Endpoint):
         ] = "existing",
         delete_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
         unmanage_node: bool = True,
-        unmanage_node_timeout: Union[timedelta, Integer] = 3600,
+        unmanage_node_timeout: Union[timedelta, Integer] = d.IMPORT_RESOURCES_UNMANAGE_NODE_TIMEOUT,
         import_timeout: int = d.IMPORT_RESOURCES_TIMEOUT,
     ) -> None:
         """
