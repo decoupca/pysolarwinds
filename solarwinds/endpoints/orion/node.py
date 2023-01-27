@@ -598,18 +598,18 @@ class OrionNode(Endpoint):
     def import_resources(
         self,
         enable_pollers: Union[List[str], Literal["all", "none"]] = "all",
-        monitor_interfaces: Union[
-            List[str], Literal["existing", "up", "all", "none"]
-        ] = "existing",
+        enforce_icmp_status_polling: bool = True,
         monitor_volumes: Union[
             List[str], List[re.Pattern], Literal["existing", "all", "none"]
         ] = "existing",
+        delete_volumes: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
+        monitor_interfaces: Union[
+            List[str], Literal["existing", "up", "all", "none"]
+        ] = "existing",
+        delete_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
         unmanage_node: bool = True,
         unmanage_node_timeout: Union[timedelta, Integer] = 3600,
         import_timeout: int = 300,
-        enforce_icmp_status_polling: bool = True,
-        delete_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
-        delete_volumes: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
     ) -> None:
         """
         Imports and monitors SNMP resources for node.
