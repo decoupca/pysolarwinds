@@ -605,9 +605,9 @@ class OrionNode(Endpoint):
         ] = "existing",
         delete_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
         unmanage_node: bool = True,
-        unmanage_node_timeout: Union[
-            timedelta, Integer
-        ] = d.IMPORT_RESOURCES_UNMANAGE_NODE_TIMEOUT,
+        unmanage_node_timeout: Union[timedelta, Integer] = timedelta(
+            days=d.IMPORT_RESOURCES_UNMANAGE_NODE_DAYS
+        ),
         import_timeout: int = d.IMPORT_RESOURCES_TIMEOUT,
     ) -> None:
         """
