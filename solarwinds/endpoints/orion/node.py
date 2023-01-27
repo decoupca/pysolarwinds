@@ -556,16 +556,13 @@ class OrionNode(Endpoint):
             if end is None:
                 end = now + timedelta(days=1)
             self._get_swdata(data="properties")
-            if not self._swdata["properties"]["UnManaged"]:
-                self.api.invoke(
-                    "Orion.Nodes", "Unmanage", f"N:{self.id}", start, end, False
-                )
-                logger.info(f"{self.name}: unmanaged until {end}")
-                self._get_swdata(data="properties", refresh=True)
-                return True
-            else:
-                logger.warning(f"{self.name}: already unmanaged, doing nothing")
-                return False
+            self.api.invoke(
+                "Orion.Nodes", "Unmanage", f"N:{self.id}", start, end, False
+            )
+            logger.info(f"{self.name}: unmanaged until {end}")
+            self._get_swdata(data="properties", refresh=True)
+            return True
+
         else:
             logger.warning(f"{self.name}: does not exist, nothing to unmanage")
             return False
@@ -608,7 +605,9 @@ class OrionNode(Endpoint):
         ] = "existing",
         delete_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
         unmanage_node: bool = True,
-        unmanage_node_timeout: Union[timedelta, Integer] = d.IMPORT_RESOURCES_UNMANAGE_NODE_TIMEOUT,
+        unmanage_node_timeout: Union[
+            timedelta, Integer
+        ] = d.IMPORT_RESOURCES_UNMANAGE_NODE_TIMEOUT,
         import_timeout: int = d.IMPORT_RESOURCES_TIMEOUT,
     ) -> None:
         """
