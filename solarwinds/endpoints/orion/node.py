@@ -609,7 +609,7 @@ class OrionNode(Endpoint):
         delete_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
         unmanage_node: bool = True,
         unmanage_node_timeout: Union[timedelta, Integer] = 3600,
-        import_timeout: int = 300,
+        import_timeout: int = d.IMPORT_RESOURCES_TIMEOUT,
     ) -> None:
         """
         Imports and monitors SNMP resources for node.
