@@ -456,14 +456,14 @@ class OrionNode(Endpoint):
                 f"{self.name}: node discovery failed. Status: {error_status}, Error: {error_message}"
             )
 
-    def import_snmp_resources(self, timeout=None) -> bool:
+    def import_all_resources(self, timeout=None) -> bool:
         """
         discovers and adds to monitoring all available SNMP OIDs,
         such as interfaces, CPU/RAM stats, routing tables, etc.
         AFAICT, the SWIS API provides no way of choosing which resources to import
         """
         logger.info(
-            f"{self.name}: importing and monitoring all available SNMP resources (OIDs)..."
+            f"{self.name}: importing and monitoring all available SNMP resources..."
         )
         if self.polling_method != "snmp":
             raise SWObjectPropertyError(
@@ -595,24 +595,24 @@ class OrionNode(Endpoint):
                 if poller.enabled:
                     poller.disable()
 
-    def monitor_resources(
+    def import_resources(
         self,
         enable_pollers: Union[List[str], Literal["all", "none"]] = "all",
-        include_interfaces: Union[
+        monitor_interfaces: Union[
             List[str], Literal["existing", "up", "all", "none"]
         ] = "existing",
-        include_volumes: Union[
+        monitor_volumes: Union[
             List[str], List[re.Pattern], Literal["existing", "all", "none"]
         ] = "existing",
         unmanage_node: bool = True,
         unmanage_node_timeout: Union[timedelta, Integer] = 3600,
         import_timeout: int = 300,
         enforce_icmp_status_polling: bool = True,
-        exclude_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
-        exclude_volumes: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
+        delete_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
+        delete_volumes: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
     ) -> None:
         """
-        Monitors SNMP resources for node.
+        Imports and monitors SNMP resources for node.
 
         Broadly speaking, SNMP resources are those SNMP OIDs that SolarWinds is
         aware of through its installed MIBs.
@@ -634,14 +634,14 @@ class OrionNode(Endpoint):
             enable_pollers: which pollers to enable. May be a list of poller names, or these values:
                 all: enable all discovered pollers (default)
                 none: disable all discovered pollers
-            include_interfaces: which interfaces to monitor. May be a list of interface names,
+            monitor_interfaces: which interfaces to monitor. May be a list of interface names,
                 or these values:
                 existing (default): preserves existing interfaces (no net change)
                 up: monitor all interfaces that are operationally and administratively up
                 all: monitor all interfaces, regardless of their operational or
                     administrative status
                 none: exclude all interfaces from monitoring
-            include_volumes: which volumes to monitor. May be a list of volume names, or these
+            monitor_volumes: which volumes to monitor. May be a list of volume names, or these
                 values:
                 existing (default): preserves existing volumes (no net change)
                 all: monitor all available volumes
@@ -661,9 +661,9 @@ class OrionNode(Endpoint):
                 verbs, however, automatically enable SNMP-based status and response time pollers.
                 To override this and use the recommended ICMP-based status and response time pollers,
                 set this to True.
-            exclude_interfaces: regex pattern, or list of patterns. If any interface name matches
+            delete_interfaces: regex pattern, or list of patterns. If any interface name matches
                 any pattern, it will be excluded from monitoring.
-            exclude_volumes: regex pattern, or list of patterns. If any volume name matches
+            delete_volumes: regex pattern, or list of patterns. If any volume name matches
                 any pattern, it will be excluded from monitoring.
 
         Returns:
@@ -677,12 +677,12 @@ class OrionNode(Endpoint):
         interfaces_to_delete = []
         volumes_to_delete = []
 
-        if include_interfaces == "up" and unmanage_node:
+        if monitor_interfaces == "up" and unmanage_node:
             raise ValueError("Can't monitor up interfaces when node is unmanaged")
 
         self._get_swdata(refresh=True)
         already_unmanaged = self.is_unmanaged
-        if include_interfaces == "up" and already_unmanaged:
+        if monitor_interfaces == "up" and already_unmanaged:
             raise ValueError("Can't monitor up interfaces when node is unmanaged")
 
         if unmanage_node:
@@ -702,7 +702,7 @@ class OrionNode(Endpoint):
                     )
                 self.unmanage(end=(datetime.utcnow() + delta))
 
-        if include_interfaces == "existing":
+        if monitor_interfaces == "existing":
             logger.info(f"{self}: Getting existing interfaces to preserve...")
             self.interfaces.get()
             existing_interface_names = [x.name for x in self.interfaces]
@@ -710,12 +710,12 @@ class OrionNode(Endpoint):
                 f"{self} Found {len(existing_interface_names)} existing interfaces"
             )
 
-        if include_volumes == "existing":
+        if monitor_volumes == "existing":
             logger.info(f"{self}: Getting existing volumes to preserve...")
             existing_volume_names = [x.name for x in self.volumes]
             logger.info(f"{self}: Found {len(existing_volume_names)} existing volumes")
 
-        self.import_snmp_resources(timeout=import_timeout)
+        self.import_all_resources(timeout=import_timeout)
 
         logger.info(f"{self}: Getting imported pollers...")
         self.pollers.fetch()
@@ -744,30 +744,30 @@ class OrionNode(Endpoint):
         logger.info(f"{self}: Getting imported interfaces...")
         self.interfaces.get()
         logger.info(f"{self}: Found {len(self.interfaces)} imported interfaces")
-        if include_interfaces == "existing":
+        if monitor_interfaces == "existing":
             interfaces_to_delete = [
                 x for x in self.interfaces if x.name not in existing_interface_names
             ]
-        elif include_interfaces == "up":
+        elif monitor_interfaces == "up":
             interfaces_to_delete = [x for x in self.interfaces if not x.up]
-        elif include_interfaces == "all":
+        elif monitor_interfaces == "all":
             interfaces_to_delete = []
-        elif include_interfaces == "none":
+        elif monitor_interfaces == "none":
             interfaces_to_delete = [x for x in self.interfaces]
-        elif isinstance(include_interfaces, List):
+        elif isinstance(monitor_interfaces, List):
             interfaces_to_delete = [
-                x for x in self.interfaces if x.name not in include_interfaces
+                x for x in self.interfaces if x.name not in monitor_interfaces
             ]
         else:
             raise ValueError(
-                f"Unexpected value for interfaces: {include_interfaces}. "
+                f"Unexpected value for interfaces: {monitor_interfaces}. "
                 'Must be a list of interface names, "existing", "up", "all", or "none"'
             )
-        if exclude_interfaces:
-            if isinstance(exclude_interfaces, re.Pattern):
-                exclude_interfaces = [exclude_interfaces]
+        if delete_interfaces:
+            if isinstance(delete_interfaces, re.Pattern):
+                delete_interfaces = [delete_interfaces]
             for interface in self.interfaces:
-                for pattern in exclude_interfaces:
+                for pattern in delete_interfaces:
                     if re.search(pattern, interface.name):
                         logger.debug(
                             f"{self}: excluding interface {interface} because "
@@ -783,28 +783,28 @@ class OrionNode(Endpoint):
 
         logger.info(f"{self}: Getting imported volumes...")
         self.volumes.fetch()
-        if include_volumes == "existing":
+        if monitor_volumes == "existing":
             volumes_to_delete = [
                 x for x in self.volumes if x.name not in existing_volume_names
             ]
-        elif include_volumes == "all":
+        elif monitor_volumes == "all":
             volumes_to_delete = []
-        elif include_volumes == "none":
+        elif monitor_volumes == "none":
             volumes_to_delete = [x for x in self.volumes]
-        elif isinstance(include_volumes, list):
+        elif isinstance(monitor_volumes, list):
             volumes_to_delete = [
-                x for x in self.volumes if x.name not in include_volumes
+                x for x in self.volumes if x.name not in monitor_volumes
             ]
         else:
             raise ValueError(
-                f"Unexpected value for volumes: {include_volumes}. "
+                f"Unexpected value for volumes: {monitor_volumes}. "
                 'Must be a list of volume names, "existing", "all", or "none"'
             )
-        if exclude_volumes:
-            if isinstance(exclude_volumes, re.Pattern):
-                exclude_volumes = [exclude_volumes]
+        if delete_volumes:
+            if isinstance(delete_volumes, re.Pattern):
+                delete_volumes = [delete_volumes]
             for volume in self.volumes:
-                for pattern in exclude_volumes:
+                for pattern in delete_volumes:
                     if re.search(pattern, volume.name):
                         logger.debug(
                             f"{self}: excluding volume {volume} because "
