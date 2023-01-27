@@ -600,7 +600,7 @@ class OrionNode(Endpoint):
         enable_pollers: Union[List[str], Literal["all", "none"]] = "all",
         enforce_icmp_status_polling: bool = True,
         monitor_volumes: Union[
-            List[str], List[re.Pattern], Literal["existing", "all", "none"]
+            List[str], Literal["existing", "all", "none"]
         ] = "existing",
         delete_volumes: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
         monitor_interfaces: Union[
