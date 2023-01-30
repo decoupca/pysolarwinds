@@ -720,7 +720,7 @@ class OrionNode(Endpoint):
         if purge_existing_pollers:
             logger.info(f"{self}: Purging existing pollers...")
             self.pollers.fetch()
-            self.pollers.deete_all()
+            self.pollers.delete_all()
 
         self.import_all_resources(timeout=import_timeout)
 
