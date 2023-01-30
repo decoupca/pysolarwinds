@@ -595,6 +595,7 @@ class OrionNode(Endpoint):
     def import_resources(
         self,
         enable_pollers: Union[List[str], Literal["all", "none"]] = "all",
+        purge_existing_pollers: bool = False,
         enforce_icmp_status_polling: bool = True,
         monitor_volumes: Union[
             List[str], Literal["existing", "all", "none"]
@@ -633,6 +634,8 @@ class OrionNode(Endpoint):
             enable_pollers: which pollers to enable. May be a list of poller names, or these values:
                 all: enable all discovered pollers (default)
                 none: disable all discovered pollers
+            purge_existing_pollers: whether or not to delete all existing pollers before discovering/
+                enabling all available pollers. Useful if existing pollers might be incorrect
             monitor_interfaces: which interfaces to monitor. May be a list of interface names,
                 or these values:
                 existing (default): preserves existing interfaces (no net change)
@@ -713,6 +716,11 @@ class OrionNode(Endpoint):
             logger.info(f"{self}: Getting existing volumes to preserve...")
             existing_volume_names = [x.name for x in self.volumes]
             logger.info(f"{self}: Found {len(existing_volume_names)} existing volumes")
+
+        if purge_existing_pollers:
+            logger.info(f"{self}: Purging existing pollers...")
+            self.pollers.fetch()
+            self.pollers.deete_all()
 
         self.import_all_resources(timeout=import_timeout)
 
