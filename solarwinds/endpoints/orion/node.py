@@ -110,6 +110,7 @@ class OrionNode(Endpoint):
 
         self._import_job_id = None
         self._import_status = None
+        self._import_response = None
 
         if self.ip_address is None and self.caption is None:
             raise SWObjectPropertyError("Must provide either ip_address or caption")
@@ -507,13 +508,11 @@ class OrionNode(Endpoint):
                 f"timeout {timeout}sec, status: {self._import_status}"
             )
         if self._import_status == "ReadyForImport":
-            imported = self.api.invoke(
+            self._import_response = self.api.invoke(
                 "Orion.Nodes", "ImportListResourcesResult", self._import_job_id, self.id
             )
-            if imported:
-                logger.info(
-                    f"{self.name}: imported and monitored all SNMP resources (OIDs)"
-                )
+            if self._import_response:
+                logger.info(f"{self.name}: imported and monitored all SNMP resources")
                 self.api.hostname = api_hostname
                 # discovery causes new pollers to be added automatically; let's fetch them
                 self.pollers.fetch()
