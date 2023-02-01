@@ -22,5 +22,19 @@ EXCLUDE_CUSTOM_PROPS = [
     "Description",
 ]
 
-IMPORT_RESOURCES_TIMEOUT = 300
+# In most cases, resource import takes 10-90 seconds. But
+# under certain conditions, e.g. high latency nodes with many resources,
+# import can take exceptionally long. Since an incomplete resource import
+# will likely leave a node in an error state, it's wise to be very generous
+# in this timeout value.
+IMPORT_RESOURCES_TIMEOUT = 600
+
+# To prevent triggering false positive alerts during resource import,
+# it makes sense to unmanage the node during the process. When the import
+# completes, the node will be re-managed right away. But, if the resource
+# import fails (e.g, due to timeout or other unhandled exception), the node
+# will remain unmanaged indefinitely without this failsafe. In testing we found
+# that remediating nodes with failed imports can take longer than expected,
+# so it's sensible to give ourselves plenty of time before the node re-manages
+# itself.
 IMPORT_RESOURCES_UNMANAGE_NODE_DAYS = 1
