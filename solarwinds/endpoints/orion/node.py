@@ -784,7 +784,7 @@ class OrionNode(Endpoint):
 
         if interfaces_to_delete:
             logger.info(
-                f"{self}: Deleting {len(interfaces_to_delete)} extraneous interfaces..."
+                f"{self}: Deleting {len(interfaces_to_delete)} unwanted interfaces..."
             )
             self.interfaces.delete(interfaces_to_delete)
 
@@ -820,7 +820,7 @@ class OrionNode(Endpoint):
                         volumes_to_delete.append(volume)
         if volumes_to_delete:
             logger.info(
-                f"{self}: Deleting {len(volumes_to_delete)} extraneous volumes..."
+                f"{self}: Deleting {len(volumes_to_delete)} unwanted volumes..."
             )
             self.volumes.delete(volumes_to_delete)
 
