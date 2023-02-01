@@ -1,13 +1,13 @@
 NODE_DISCOVERY_STATUS_MAP = {
-    0: "unknown",
-    1: "in_progress",
-    2: "finished",
-    3: "error",
-    4: "not_scheduled",
-    5: "scheduled",
-    6: "not_completed",
-    7: "canceling",
-    8: "ready_for_import",
+    0: "Unknown",
+    1: "InProgress",
+    2: "Finished",
+    3: "Error",
+    4: "NotScheduled",
+    5: "Scheduled",
+    6: "NotCompleted",
+    7: "Canceling",
+    8: "ReadyForImport",
 }
 
 NODE_STATUS_MAP = {

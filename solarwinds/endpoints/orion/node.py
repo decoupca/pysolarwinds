@@ -104,8 +104,8 @@ class OrionNode(Endpoint):
         self.settings = OrionNodeSettings(node=self)
         self.interfaces = OrionInterfaces(node=self)
 
-        self._discovery_profile_id = None
-        self._discovery_profile_status = 0
+        self._discovery_id = None
+        self._discovery_status = 0
         self._discovered_entities = None
 
         self._import_job_id = None
@@ -230,13 +230,13 @@ class OrionNode(Endpoint):
             self._swargs = swargs
 
     def _get_discovery_status(self) -> None:
-        if not self._discovery_profile_id:
+        if not self._discovery_id:
             return None
         query = (
             "SELECT Status FROM Orion.DiscoveryProfiles "
-            f"WHERE ProfileID = {self._discovery_profile_id}"
+            f"WHERE ProfileID = {self._discovery_id}"
         )
-        self._discovery_profile_status = self.api.query(query)[0]["Status"]
+        self._discovery_status = self.api.query(query)[0]["Status"]
 
     def _get_import_status(self) -> None:
         if not self._import_job_id:
@@ -401,44 +401,40 @@ class OrionNode(Endpoint):
                 {"PluginConfigurationItem": core_plugin_config},
             ],
         }
-        import ipdb
-
-        ipdb.set_trace()
-        self._discovery_profile_id = self.api.invoke(
+        self._discovery_id = self.api.invoke(
             "Orion.Discovery", "StartDiscovery", discovery_profile
         )
-        logger.info(
-            f"{self.name}: discovering node: job id: {self._discovery_profile_id}..."
-        )
+        logger.info(f"{self}: Running discovery...")
+        logger.debug(f"{self.name}: Discovery job ID: {self._discovery_id}")
         self._get_discovery_status()
         seconds_waited = 0
         report_increment = 5
-        while seconds_waited < timeout and self._discovery_profile_status == 1:
+        while seconds_waited < timeout and self._discovery_status == 1:
             sleep(report_increment)
             seconds_waited += report_increment
             self._get_discovery_status()
             logger.debug(
-                f"discovering node: waited {seconds_waited}sec, timeout {timeout}sec, "
-                f"status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
+                f"{self}: Discovering... waited {seconds_waited}sec, timeout {timeout}sec, "
+                f"status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_status]}"
             )
 
-        if self._discovery_profile_status == 2:
+        if self._discovery_status == 2:
             query = (
                 "SELECT Result, ResultDescription, ErrorMessage, BatchID "
-                f"FROM Orion.DiscoveryLogs WHERE ProfileID = {self._discovery_profile_id}"
+                f"FROM Orion.DiscoveryLogs WHERE ProfileID = {self._discovery_id}"
             )
             result = self.api.query(query)
             result_code = result[0]["Result"]
         else:
             raise SWDiscoveryError(
-                f"{self.name}: node discovery failed. last status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_profile_status]}"
+                f"{self}: Discovery failed. Last reported status: "
+                f"{NODE_DISCOVERY_STATUS_MAP[self._discovery_status]}"
             )
 
         if result_code == 2:
-            logger.info(
-                f"{self.name}: node discovery job finished, getting discovered items..."
-            )
+            logger.info(f"{self}: Discovery finished, getting discovered items...")
             batch_id = result[0]["BatchID"]
+            logger.debug(f"{self}: Discovery batch ID: {batch_id}")
             query = (
                 "SELECT EntityType, DisplayName, NetObjectID FROM "
                 f"Orion.DiscoveryLogItems WHERE BatchID = '{batch_id}'"
@@ -449,12 +445,12 @@ class OrionNode(Endpoint):
                 self.caption = self._swp.get("Caption")
                 return True
             else:
-                raise SWDiscoveryError(f"{self.name}: discovery found no items.")
+                raise SWDiscoveryError(f"{self}: Discovery found no items.")
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
-            error_message = result["ErrorMessage"]
+            error_message = result[0]["ErrorMessage"]
             raise SWDiscoveryError(
-                f"{self.name}: node discovery failed. Status: {error_status}, Error: {error_message}"
+                f"{self}: Discovery failed. Status: {error_status}, error: {error_message}"
             )
 
     def import_all_resources(self, timeout=None) -> bool:
