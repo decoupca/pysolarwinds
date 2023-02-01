@@ -612,30 +612,44 @@ class OrionNode(Endpoint):
         import_timeout: int = d.IMPORT_RESOURCES_TIMEOUT,
     ) -> None:
         """
-        Imports and monitors SNMP resources for node.
+        Imports and monitors SNMP resources.
 
-        Broadly speaking, SNMP resources are those SNMP OIDs that SolarWinds is
-        aware of through its installed MIBs.
-
-        SNMP resources belong to three broad and unofficial classes:
-        1. System resources, e.g. CPU/RAM, routing tables, and hardware health stats.
-        2. System volumes, e.g. any persistent storage device that has a SNMP OID.
+        SNMP resources include:
+        1. SolarWinds pollers, which roughly correspond to system health OIDs such as CPU,
+           RAM, routing tables, hardware health stats, etc. Available pollers vary by device
+           type and platform version.
+        2. Storage volumes, i.e. any persistent storage device that has a SNMP OID. Consider that
+           some devices present system volumes that are not actually physical storage devices,
+           but are rather loopback-mounted virtual devices, such as archives (JunOS). Since these
+           are always at 100% storage capacity, monitoring them will trigger a warning condition.
+           Consider using the monitor_volumes and/or delete_volumes options to filter them out.
         3. Interfaces. These include the usual physical and virtual interfaces you'd
-                expect, as well as others you might not, like stack ports, application ports,
-                or even more exotic stuff.
+           expect, as well as others you might not: stack ports, virtual application
+           ports, or even more exotic stuff.
 
         monitor_resources works by invoking the ListResources verbs in SWIS, which imports
         all available resources from all three classes above. These verbs offer no granularity
-        whatsoever; they don't even return a list of imported items. There is no way to select
+        whatsoever--they don't even return a list of imported items. There is no way to select
         which resources, volumes, or interfaces you want--you can only import everything,
-        then remove any volumes or interfaces you don't want.
+        then remove any pollers, volumes or interfaces you don't want.
+
+        WARNING: The ListResources verbs are also dishonest under certain conditions, such as
+                 heavy system load (as a result of, say, running many resource imports at the
+                 same time). Under such conditions, ListResources verbs return successful
+                 responses to invocations, but in fact, the import has failed. In such a case it
+                 is impossible to tell if the verbs have succeeded or failed. This could leave
+                 a node in a state that may generate alerts, or may not have system resources
+                 monitored, without raising any exception. Testing suggests the best mitigation
+                 is to limit concurrent invocations of ListResources to about 10 at a time. Further
+                 testing is warranted.
 
         Args:
             enable_pollers: which pollers to enable. May be a list of poller names, or these values:
                 all: enable all discovered pollers (default)
                 none: disable all discovered pollers
             purge_existing_pollers: whether or not to delete all existing pollers before discovering/
-                enabling all available pollers. Useful if existing pollers might be incorrect
+                enabling all available pollers. Useful if existing pollers might be incorrect. Use
+                caution when enabling this in a concurrent/threaded scenario; see warning above.
             monitor_interfaces: which interfaces to monitor. May be a list of interface names,
                 a callable object, or these values:
                 existing (default): preserves existing interfaces (no net change)
