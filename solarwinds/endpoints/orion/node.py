@@ -105,7 +105,8 @@ class OrionNode(Endpoint):
         self.interfaces = OrionInterfaces(node=self)
 
         self._discovery_id = None
-        self._discovery_status = 0
+        self._discovery_status = None
+        self._discovery_result = None
         self._discovered_entities = None
 
         self._import_job_id = None
@@ -423,8 +424,8 @@ class OrionNode(Endpoint):
                 "SELECT Result, ResultDescription, ErrorMessage, BatchID "
                 f"FROM Orion.DiscoveryLogs WHERE ProfileID = {self._discovery_id}"
             )
-            result = self.api.query(query)
-            result_code = result[0]["Result"]
+            self._discovery_result = self.api.query(query)
+            result_code = self._discovery_result[0]["Result"]
         else:
             raise SWDiscoveryError(
                 f"{self}: Discovery failed. Last reported status: "
@@ -433,7 +434,7 @@ class OrionNode(Endpoint):
 
         if result_code == 2:
             logger.info(f"{self}: Discovery finished, getting discovered items...")
-            batch_id = result[0]["BatchID"]
+            batch_id = self._discovery_result[0]["BatchID"]
             logger.debug(f"{self}: Discovery batch ID: {batch_id}")
             query = (
                 "SELECT EntityType, DisplayName, NetObjectID FROM "
@@ -448,7 +449,7 @@ class OrionNode(Endpoint):
                 raise SWDiscoveryError(f"{self}: Discovery found no items.")
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
-            error_message = result[0]["ErrorMessage"]
+            error_message = self._discovery_result[0]["ErrorMessage"]
             raise SWDiscoveryError(
                 f"{self}: Discovery failed. Status: {error_status}, error: {error_message}"
             )
