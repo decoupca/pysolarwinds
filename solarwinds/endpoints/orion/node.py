@@ -651,19 +651,19 @@ class OrionNode(Endpoint):
                 enabling all available pollers. Useful if existing pollers might be incorrect. Use
                 caution when enabling this in a concurrent/threaded scenario; see warning above.
             monitor_interfaces: which interfaces to monitor. May be a list of interface names,
-                a callable object, or these values:
+                a callable object, or these strings:
                 existing (default): preserves existing interfaces (no net change)
                 up: monitor all interfaces that are operationally and administratively up
                 all: monitor all interfaces, regardless of their operational or
                     administrative status
-                none: exclude all interfaces from monitoring
+                none: delete all imported interfaces
                 If a callable is provided, the interface will be provided as the only argument and
                 the interface will be monitored if it returns a truthy response.
             monitor_volumes: which volumes to monitor. May be a list of volume names, a callable
-                object, or these values:
+                object, or these strings:
                 existing (default): preserves existing volumes (no net change)
                 all: monitor all available volumes
-                none: exclude all volumes from monitoring
+                none: delete all imported volumes
                 If a callable is provided, the volume will be provided as the only argument and
                 the volume will be monitored if it returns a truthy response.
             unmanange_node: whether or not to unmanage (unmonitor) the node during
