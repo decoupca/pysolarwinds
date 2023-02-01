@@ -462,6 +462,10 @@ class OrionNode(Endpoint):
         discovers and adds to monitoring all available SNMP OIDs,
         such as interfaces, CPU/RAM stats, routing tables, etc.
         AFAICT, the SWIS API provides no way of choosing which resources to import
+
+        WARNING: Under certain conditions, such as high load, the SWIS verbs in use
+        here may lie--all responses are successful, yet resource import has not actually
+        occurred. Recommend limiting this call to ~10 threads.
         """
         logger.info(
             f"{self.name}: importing and monitoring all available SNMP resources..."
