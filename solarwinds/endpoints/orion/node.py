@@ -667,7 +667,12 @@ class OrionNode(Endpoint):
                 If a callable is provided, the volume will be provided as the only argument and
                 the volume will be monitored if it returns a truthy response.
             unmanange_node: whether or not to unmanage (unmonitor) the node during
-                the resource import process.
+                the resource import process. The ListResources verbs import all available OIDs
+                and interfaces, including any in a down or error state. Unmanaging the node before
+                import may mitigate this. Be aware: for this to help, your alert definitions must 
+                account for node status. In other words, if your alert definition for interface
+                down only considers the interface status, then unmanaging the node will have no
+                protective effect on preventing false positive interface down alerts.
             unmanage_node_timeout: maximum time to unmonitor the node for. May be a
                 datetime.timedelta object, or an integer for seconds.
                 The node will automatically re-manage itself after this timeout in case
