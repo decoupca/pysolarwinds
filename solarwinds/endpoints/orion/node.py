@@ -675,7 +675,12 @@ class OrionNode(Endpoint):
                 cases, the node will be re-managed as soon as resource import has completed.
                 This timeout is a failsafe to ensure that a node does not stay unmanaged
                 indefinitely if the resource monitoring process fails before re-managing the node.
-            import_timeout: maximum time in seconds to wait for SNMP resources to import.
+            import_timeout: maximum time in seconds to wait for SNMP resources to import. Generous timeouts
+                are recommended in virtually all cases, because allowing pysolarwinds to time out will
+                almost certainly leave the node in a state that will generate warnings or alerts due
+                to down interfaces or full-capacity storage volumes. In most normal cases, imports
+                take about 60-120 seconds. But high latency nodes with many OIDs can take upwards of
+                5 minutes, hence the 10 minute (600s) default value.
             enforce_icmp_status_polling: SolarWinds recommends using ICMP to monitor status
                 (up/down) and response time, which is faster than using SNMP. The ListResources
                 verbs, however, automatically enable SNMP-based status and response time pollers.
