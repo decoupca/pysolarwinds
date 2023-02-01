@@ -1,7 +1,7 @@
 import re
 from datetime import datetime, timedelta
 from time import sleep
-from typing import Dict, List, Literal, NewType, Optional, Union
+from typing import Callable, Dict, List, Literal, NewType, Optional, Union
 
 import solarwinds.defaults as d
 from solarwinds.api import API
@@ -598,11 +598,11 @@ class OrionNode(Endpoint):
         purge_existing_pollers: bool = False,
         enforce_icmp_status_polling: bool = True,
         monitor_volumes: Union[
-            List[str], Literal["existing", "all", "none"]
+            List[str], Literal["existing", "all", "none"], Callable
         ] = "existing",
         delete_volumes: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
         monitor_interfaces: Union[
-            List[str], Literal["existing", "up", "all", "none"]
+            List[str], Literal["existing", "up", "all", "none"], Callable
         ] = "existing",
         delete_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
         unmanage_node: bool = True,
@@ -637,17 +637,21 @@ class OrionNode(Endpoint):
             purge_existing_pollers: whether or not to delete all existing pollers before discovering/
                 enabling all available pollers. Useful if existing pollers might be incorrect
             monitor_interfaces: which interfaces to monitor. May be a list of interface names,
-                or these values:
+                a callable object, or these values:
                 existing (default): preserves existing interfaces (no net change)
                 up: monitor all interfaces that are operationally and administratively up
                 all: monitor all interfaces, regardless of their operational or
                     administrative status
                 none: exclude all interfaces from monitoring
-            monitor_volumes: which volumes to monitor. May be a list of volume names, or these
-                values:
+                If a callable is provided, the interface will be provided as the only argument and
+                the interface will be monitored if it returns a truthy response.
+            monitor_volumes: which volumes to monitor. May be a list of volume names, a callable
+                object, or these values:
                 existing (default): preserves existing volumes (no net change)
                 all: monitor all available volumes
                 none: exclude all volumes from monitoring
+                If a callable is provided, the volume will be provided as the only argument and
+                the volume will be monitored if it returns a truthy response.
             unmanange_node: whether or not to unmanage (unmonitor) the node during
                 the resource import process.
             unmanage_node_timeout: maximum time to unmonitor the node for. May be a
@@ -765,10 +769,15 @@ class OrionNode(Endpoint):
             interfaces_to_delete = [
                 x for x in self.interfaces if x.name not in monitor_interfaces
             ]
+        elif callable(monitor_interfaces):
+            interfaces_to_delete = [
+                x for x in self.interfaces if not monitor_interfaces(x)
+            ]
         else:
             raise ValueError(
-                f"Unexpected value for interfaces: {monitor_interfaces}. "
-                'Must be a list of interface names, "existing", "up", "all", or "none"'
+                f"Unexpected value for monitor_interfaces: {monitor_interfaces}. "
+                "Must be a list of interface names, a callable, or one of these values: "
+                '"existing", "up", "all", or "none"'
             )
         if delete_interfaces:
             if isinstance(delete_interfaces, re.Pattern):
@@ -802,10 +811,13 @@ class OrionNode(Endpoint):
             volumes_to_delete = [
                 x for x in self.volumes if x.name not in monitor_volumes
             ]
+        elif callable(monitor_volumes):
+            volumes_to_delete = [x for x in self.volumes if not monitor_volumes(x)]
         else:
             raise ValueError(
-                f"Unexpected value for volumes: {monitor_volumes}. "
-                'Must be a list of volume names, "existing", "all", or "none"'
+                f"Unexpected value for monitor_volumes: {monitor_volumes}. "
+                "Must be a list of volume names, a callable, or one of these values: "
+                '"existing", "all", or "none"'
             )
         if delete_volumes:
             if isinstance(delete_volumes, re.Pattern):
