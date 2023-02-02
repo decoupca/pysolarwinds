@@ -442,6 +442,9 @@ class OrionNode(Endpoint):
                 f"Orion.DiscoveryLogItems WHERE BatchID = '{batch_id}'"
             )
             self._discovered_items = self.api.query(query)
+            logger.info(
+                f"{self}: Discovered and imported {len(self._discovered_items)} items"
+            )
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
             error_message = self._discovery_result[0]["ErrorMessage"]
