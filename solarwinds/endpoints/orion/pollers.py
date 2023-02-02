@@ -68,7 +68,8 @@ class OrionPoller(NewEndpoint):
 
     def delete(self) -> bool:
         self.api.delete(self.uri)
-        self.node.pollers.items.remove(self)
+        if self.node.pollers.get(self):
+            self.node.pollers.items.remove(self)
         logger.info(f"{self.node}: {self}: deleted poller")
         return True
 

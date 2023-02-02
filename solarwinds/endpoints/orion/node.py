@@ -579,7 +579,7 @@ class OrionNode(Endpoint):
         for poller_name in enable_pollers:
             poller = self.pollers.get(poller_name)
             if poller:
-                if not poller.enabled:
+                if not poller.is_enabled:
                     poller.enable()
             else:
                 self.pollers.add(poller=poller_name, enabled=True)
@@ -587,7 +587,7 @@ class OrionNode(Endpoint):
         for poller_name in disable_pollers:
             poller = self.pollers.get(poller_name)
             if poller:
-                if poller.enabled:
+                if poller.is_enabled:
                     poller.disable()
 
     def import_resources(
@@ -760,7 +760,7 @@ class OrionNode(Endpoint):
         elif isinstance(enable_pollers, list):
             for poller in self.pollers:
                 if poller.name in enable_pollers:
-                    if not poller.enabled:
+                    if not poller.is_enabled:
                         poller.enable()
                 else:
                     poller.disable()
