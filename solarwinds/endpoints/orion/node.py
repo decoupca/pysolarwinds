@@ -814,6 +814,7 @@ class OrionNode(Endpoint):
                         interfaces_to_delete.append(interface)
 
         if interfaces_to_delete:
+            interfaces_to_delete = list(set(interfaces_to_delete))
             logger.info(
                 f"{self}: Deleting {len(interfaces_to_delete)} unwanted interfaces..."
             )

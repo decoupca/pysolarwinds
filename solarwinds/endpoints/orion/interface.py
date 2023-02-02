@@ -159,7 +159,8 @@ class OrionInterfaces(object):
         uris = [x.uri for x in interfaces]
         self.api.delete(uris)
         for interface in interfaces:
-            self._existing.remove(interface)
+            if interface in self._existing:
+                self._existing.remove(interface)
         logger.info(f"deleted {len(interfaces)} interfaces")
         return True
 
