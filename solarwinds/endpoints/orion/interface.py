@@ -161,6 +161,12 @@ class OrionInterfaces(object):
         logger.info(f"deleted {len(interfaces)} interfaces")
         return True
 
+    def delete_all(self) -> bool:
+        interface_count = len(self._existing)
+        self.api.delete([x.uri for x in self._existing])
+        logger.info(f"{self.node}: deleted {interface_count} interfaces")
+        return True
+
     def discover(self) -> bool:
         """
         Runs SNMP discovery of all available interfaces. This can take a while

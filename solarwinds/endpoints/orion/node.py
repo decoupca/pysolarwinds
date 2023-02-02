@@ -105,6 +105,7 @@ class OrionNode(Endpoint):
         self.interfaces = OrionInterfaces(node=self)
 
         self._discovery_id = None
+        self._discovery_batch_id = None
         self._discovery_status = None
         self._discovery_result = None
         self._discovered_entities = None
@@ -434,7 +435,7 @@ class OrionNode(Endpoint):
 
         if result_code == 2:
             logger.info(f"{self}: Discovery finished, getting discovered items...")
-            batch_id = self._discovery_result[0]["BatchID"]
+            self._discovery_batch_id = batch_id = self._discovery_result[0]["BatchID"]
             logger.debug(f"{self}: Discovery batch ID: {batch_id}")
             query = (
                 "SELECT EntityType, DisplayName, NetObjectID FROM "
@@ -669,7 +670,7 @@ class OrionNode(Endpoint):
             unmanange_node: whether or not to unmanage (unmonitor) the node during
                 the resource import process. The ListResources verbs import all available OIDs
                 and interfaces, including any in a down or error state. Unmanaging the node before
-                import may mitigate this. Be aware: for this to help, your alert definitions must 
+                import may mitigate this. Be aware: for this to help, your alert definitions must
                 account for node status. In other words, if your alert definition for interface
                 down only considers the interface status, then unmanaging the node will have no
                 protective effect on preventing false positive interface down alerts.
