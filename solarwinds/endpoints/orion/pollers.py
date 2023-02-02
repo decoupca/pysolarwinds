@@ -161,7 +161,7 @@ class OrionPollers(BaseList):
 
     def disable_all(self) -> bool:
         for poller in self.items:
-            if poller.enabled:
+            if poller.is_enabled:
                 poller.disable()
         return True
 
@@ -172,7 +172,7 @@ class OrionPollers(BaseList):
 
     def enable_all(self) -> bool:
         for poller in self.items:
-            if not poller.enabled:
+            if not poller.is_enabled:
                 poller.disable()
         return True
 
