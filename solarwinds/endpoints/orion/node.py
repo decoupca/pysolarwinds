@@ -441,7 +441,7 @@ class OrionNode(Endpoint):
                 "SELECT EntityType, DisplayName, NetObjectID FROM "
                 f"Orion.DiscoveryLogItems WHERE BatchID = '{batch_id}'"
             )
-            self._discovered_items = self.api.query(query)
+            self._discovered_items = self.api.query(query) or []
             logger.info(
                 f"{self}: Discovered and imported {len(self._discovered_items)} items"
             )

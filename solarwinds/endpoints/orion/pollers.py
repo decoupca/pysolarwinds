@@ -68,8 +68,7 @@ class OrionPoller(NewEndpoint):
 
     def delete(self) -> bool:
         self.api.delete(self.uri)
-        # if self in self.node.pollers.items:
-        #     self.node.pollers.items.remove(self)
+        self.node.pollers.items.remove(self)
         logger.info(f"{self.node}: {self}: deleted poller")
         return True
 
@@ -146,8 +145,13 @@ class OrionPollers(BaseList):
         return True
 
     def delete_all(self) -> bool:
-        for poller in self.items:
-            poller.delete()
+        pollers = self.items
+        if pollers:
+            self.api.delete([x.uri for x in self.items])
+            self.items = []
+            logger.info(f"{self.node}: Deleted all {len(pollers)} pollers")
+        else:
+            logger.debug(f"{self.node}: No pollers to delete, doing nothing")
         return True
 
     def disable(self, poller: Union[OrionPoller, str]) -> bool:
