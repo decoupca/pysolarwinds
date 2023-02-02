@@ -108,7 +108,7 @@ class OrionNode(Endpoint):
         self._discovery_batch_id = None
         self._discovery_status = None
         self._discovery_result = None
-        self._discovered_entities = None
+        self._discovered_items = None
 
         self._import_job_id = None
         self._import_status = None
@@ -441,13 +441,7 @@ class OrionNode(Endpoint):
                 "SELECT EntityType, DisplayName, NetObjectID FROM "
                 f"Orion.DiscoveryLogItems WHERE BatchID = '{batch_id}'"
             )
-            self._discovered_entities = self.api.query(query)
-            if self._discovered_entities:
-                self._get_swdata()
-                self.caption = self._swp.get("Caption")
-                return True
-            else:
-                raise SWDiscoveryError(f"{self}: Discovery found no items.")
+            self._discovered_items = self.api.query(query)
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
             error_message = self._discovery_result[0]["ErrorMessage"]
@@ -735,7 +729,7 @@ class OrionNode(Endpoint):
 
         if monitor_interfaces == "existing":
             logger.info(f"{self}: Getting existing interfaces to preserve...")
-            self.interfaces.get()
+            self.interfaces.fetch()
             existing_interface_names = [x.name for x in self.interfaces]
             logger.info(
                 f"{self} Found {len(existing_interface_names)} existing interfaces"
@@ -778,7 +772,7 @@ class OrionNode(Endpoint):
             )
 
         logger.info(f"{self}: Getting imported interfaces...")
-        self.interfaces.get()
+        self.interfaces.fetch()
         logger.info(f"{self}: Found {len(self.interfaces)} imported interfaces")
         if monitor_interfaces == "existing":
             interfaces_to_delete = [

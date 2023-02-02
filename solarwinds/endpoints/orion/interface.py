@@ -122,7 +122,7 @@ class OrionInterfaces(object):
             "AddDefaultPollers",
         )
 
-    def get(self) -> None:
+    def fetch(self) -> None:
         """
         Queries for interfaces that have already been discovered and assigned
         to node

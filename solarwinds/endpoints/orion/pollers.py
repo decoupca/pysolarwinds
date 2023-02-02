@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 class OrionPoller(NewEndpoint):
     _entity_type = "Orion.Pollers"
     _write_attr_map = {
-        "enabled": "Enabled",
+        "is_enabled": "Enabled",
     }
 
     def __init__(
@@ -24,7 +24,7 @@ class OrionPoller(NewEndpoint):
     ) -> None:
         super().__init__(api=api, data=data, uri=uri)
         self.node = node
-        self.enabled = self.data.get("Enabled")
+        self.is_enabled = self.data.get("Enabled")
 
     @property
     def id(self) -> int:
@@ -68,35 +68,33 @@ class OrionPoller(NewEndpoint):
 
     def delete(self) -> bool:
         self.api.delete(self.uri)
-        if self.node.pollers.get(self):
-            self.node.pollers.items.remove(self)
+        # if self in self.node.pollers.items:
+        #     self.node.pollers.items.remove(self)
         logger.info(f"{self.node}: {self}: deleted poller")
         return True
 
     def disable(self) -> bool:
-        if not self.enabled:
+        if not self.is_enabled:
             logger.debug(f"{self.node}: {self}: poller already disabled")
             return True
         else:
-            self.enabled = False
+            self.is_enabled = False
             self.save()
             logger.info(f"{self.node}: {self}: disabled poller")
             return True
 
     def enable(self) -> bool:
-        if self.enabled:
+        if self.is_enabled:
             logger.debug(f"{self.node}: {self}: poller already enabled")
             return True
         else:
-            self.enabled = True
+            self.is_enabled = True
             self.save()
             logger.info(f"{self.node}: {self}: enabled poller")
             return True
 
     def __repr__(self) -> str:
-        return (
-            f'OrionPoller("{self.name}": {"Enabled" if self.enabled else "Disabled"})'
-        )
+        return f'OrionPoller("{self.name}": {"Enabled" if self.is_enabled else "Disabled"})'
 
 
 class OrionPollers(BaseList):
@@ -148,9 +146,8 @@ class OrionPollers(BaseList):
         return True
 
     def delete_all(self) -> bool:
-        if self.items:
-            for poller in self.items:
-                poller.delete()
+        for poller in self.items:
+            poller.delete()
         return True
 
     def disable(self, poller: Union[OrionPoller, str]) -> bool:
