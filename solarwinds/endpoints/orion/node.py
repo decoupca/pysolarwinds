@@ -606,7 +606,7 @@ class OrionNode(Endpoint):
                 if not poller.is_enabled:
                     poller.enable()
             else:
-                self.pollers.add(poller=poller_name, enabled=True)
+                self.pollers.add(pollers=poller_name, enabled=True)
 
         for poller_name in disable_pollers:
             poller = self.pollers.get(poller_name)
