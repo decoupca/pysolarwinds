@@ -118,25 +118,28 @@ class OrionPollers(BaseList):
     def list(self) -> List:
         return [x.name for x in self.items]
 
-    def add(self, poller: str, enabled: bool = True) -> bool:
-        if self.get(poller):
-            raise SWObjectExists(f"{self.node}: poller already exists: {poller}")
+    def add(self, pollers: Union[List[str], str], enabled: bool = True) -> bool:
+        if isinstance(pollers, str):
+            pollers = [pollers]
+        for poller in pollers:
+            if self.get(poller):
+                raise SWObjectExists(f"{self.node}: poller already exists: {poller}")
 
-        kwargs = {
-            "PollerType": poller,
-            "NetObject": f"N:{self.node.id}",
-            "NetObjectType": "N",
-            "NetObjectID": self.node.id,
-            "Enabled": enabled,
-        }
-        uri = self.api.create("Orion.Pollers", **kwargs)
-        data = self.api.read(uri)
-        new_poller = OrionPoller(api=self.api, node=self.node, data=data)
-        self.items.append(new_poller)
-        logger.info(
-            f"{self.node}: {new_poller}: created new poller "
-            f"({'enabled' if enabled else 'disabled'})"
-        )
+            kwargs = {
+                "PollerType": poller,
+                "NetObject": f"N:{self.node.id}",
+                "NetObjectType": "N",
+                "NetObjectID": self.node.id,
+                "Enabled": enabled,
+            }
+            uri = self.api.create("Orion.Pollers", **kwargs)
+            data = self.api.read(uri)
+            new_poller = OrionPoller(api=self.api, node=self.node, data=data)
+            self.items.append(new_poller)
+            logger.info(
+                f"{self.node}: {new_poller}: created new poller "
+                f"({'enabled' if enabled else 'disabled'})"
+            )
         return True
 
     def delete(self, poller: Union[OrionPoller, str]) -> bool:
