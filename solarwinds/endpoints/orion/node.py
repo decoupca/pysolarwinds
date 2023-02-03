@@ -452,22 +452,26 @@ class OrionNode(Endpoint):
                 f"{self}: Discovery failed. Status: {error_status}, error: {error_message}"
             )
 
-    def import_all_resources(self, timeout=None) -> bool:
+    def import_all_resources(self, timeout=d.IMPORT_RESOURCES_TIMEOUT) -> bool:
         """
-        discovers and adds to monitoring all available SNMP OIDs,
-        such as interfaces, CPU/RAM stats, routing tables, etc.
-        AFAICT, the SWIS API provides no way of choosing which resources to import
+        Discovers, imports, and monitors all available SNMP resources.
 
-        WARNING: Under certain conditions, such as high load, the SWIS verbs in use
-        here may lie--all responses are successful, yet resource import has not actually
-        occurred. Recommend limiting this call to ~10 threads.
+        In most cases, this will leave the node in an undesirable state (i.e., with
+        down interfaces). The more useful method is `import_resources`, which provides a
+        means of removing undesired resources after import.
+
+        Args:
+            timeout: maximum time in seconds to wait for SNMP resources to import. Generous timeouts
+                are recommended in virtually all cases, because allowing pysolarwinds to time out will
+                almost certainly leave the node in a state that will generate warnings or alerts due
+                to down interfaces or full-capacity storage volumes. In most normal cases, imports
+                take about 60-120 seconds. But high latency nodes with many OIDs can take upwards of
+                5 minutes, hence the 10 minute (600s) default value.
         """
-        logger.info(
-            f"{self.name}: importing and monitoring all available SNMP resources..."
-        )
+        logger.info(f"{self}: Importing and monitoring all available SNMP resources...")
         if self.polling_method != "snmp":
             raise SWObjectPropertyError(
-                f"{self.name}: polling_method must be 'snmp' to import resources"
+                f"{self}: Polling_method must be 'snmp' to import resources"
             )
         else:
             if (
@@ -477,10 +481,8 @@ class OrionNode(Endpoint):
                 and not self.snmpv3_rw_cred
             ):
                 raise SWObjectPropertyError(
-                    f"{self.name}: must set SNMPv2 community or SNMPv3 credentials"
+                    f"{self}: Must set SNMPv2 community or SNMPv3 credentials"
                 )
-        if timeout is None:
-            timeout = d.IMPORT_RESOURCES_TIMEOUT
 
         # the verbs associated with this method need to be pointed at this
         # node's assigned polling engine. If they are directed at the main SWIS
@@ -494,7 +496,7 @@ class OrionNode(Endpoint):
         self._import_job_id = self.api.invoke(
             "Orion.Nodes", "ScheduleListResources", self.id
         )
-        logger.debug(f"{self.name}: resource import job ID: {self._import_job_id}")
+        logger.debug(f"{self}: Resource import job ID: {self._import_job_id}")
         self._get_import_status()
         seconds_waited = 0
         report_increment = 5
@@ -503,7 +505,7 @@ class OrionNode(Endpoint):
             seconds_waited += report_increment
             self._get_import_status()
             logger.debug(
-                f"{self.name}: resource import: waited {seconds_waited}sec, "
+                f"{self}: Resource import: waited {seconds_waited}sec, "
                 f"timeout {timeout}sec, status: {self._import_status}"
             )
         if self._import_status == "ReadyForImport":
@@ -511,7 +513,7 @@ class OrionNode(Endpoint):
                 "Orion.Nodes", "ImportListResourcesResult", self._import_job_id, self.id
             )
             if self._import_response:
-                logger.info(f"{self.name}: imported and monitored all SNMP resources")
+                logger.info(f"{self}: Imported and monitored all SNMP resources")
                 self.api.hostname = api_hostname
                 # discovery causes new pollers to be added automatically; let's fetch them
                 self.pollers.fetch()
@@ -519,8 +521,8 @@ class OrionNode(Endpoint):
             else:
                 self.api.hostname = api_hostname
                 raise SWResourceImportError(
-                    f"{self.name}: SNMP resource import failed. "
-                    "SWIS does not provide any further info."
+                    f"{self}: SNMP resource import failed. "
+                    "SWIS does not provide any further info, sorry :("
                 )
         else:
             self.api.hostname = api_hostname
