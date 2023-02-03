@@ -467,6 +467,13 @@ class OrionNode(Endpoint):
                 to down interfaces or full-capacity storage volumes. In most normal cases, imports
                 take about 60-120 seconds. But high latency nodes with many OIDs can take upwards of
                 5 minutes, hence the 10 minute (600s) default value.
+
+        Returns:
+            True if successful
+
+        Raises:
+            SWObjectPropertyError if polling_method is not 'snmp', or if no SNMP
+                credentials were provided.
         """
         logger.info(f"{self}: Importing and monitoring all available SNMP resources...")
         if self.polling_method != "snmp":
