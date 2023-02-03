@@ -305,9 +305,6 @@ class OrionNode(Endpoint):
         snmp_version = self.snmp_version
         if snmp_version == 3:
             self.snmp_version = 2
-            import ipdb
-
-            ipdb.set_trace()
         created = super().create()
         if created:
             if self.pollers._enabled_pollers:
