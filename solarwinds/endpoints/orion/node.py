@@ -553,25 +553,40 @@ class OrionNode(Endpoint):
             return False
 
     def unmanage(
-        self, start: Union[datetime, None] = None, end: Union[datetime, None] = None
+        self,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        duration: timedelta = timedelta(days=1),
     ) -> bool:
+        """
+        Un-manages node with optional start and end times, or duration.
+
+        Args:
+            start: optional datetime object, in UTC, at which to start unmanaging the node.
+                If not provided, defaults to now minus 10 minutes to account for small variances
+                in clock synchronization between the local system and SolarWinds server. This provides
+                greater assurance that a call to `unmanage` will have the expected effect of immediate
+                un-management of the node.
+            end: optional datetime object, in UTC, at which the node will automatically re-manage
+                iteslf. If not provided, defaults to 1 day (86,400 seconds) from start.
+            duration: timedelta object representing how long node should remain unmanaged. Defaults
+                to 1 day (86,400 seconds).
+        """
         if self.exists():
             now = datetime.utcnow()
-            if start is None:
-                # accounts for variance in clock synchronization
+            if not start:
                 start = now - timedelta(minutes=10)
-            if end is None:
-                end = now + timedelta(days=1)
+            if not end:
+                end = now + duration
             self._get_swdata(data="properties")
             self.api.invoke(
                 "Orion.Nodes", "Unmanage", f"N:{self.id}", start, end, False
             )
-            logger.info(f"{self.name}: unmanaged until {end}")
+            logger.info(f"{self}: Unmanaged until {end}")
             self._get_swdata(data="properties", refresh=True)
             return True
-
         else:
-            logger.warning(f"{self.name}: does not exist, nothing to unmanage")
+            logger.warning(f"{self}: Does not exist; nothing to unmanage")
             return False
 
     def enforce_icmp_status_polling(self) -> None:
