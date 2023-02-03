@@ -275,7 +275,9 @@ class OrionNode(Endpoint):
             return self.polling_method
 
     def _get_snmp_version(self) -> int:
-        if self.snmpv2_ro_community or self.snmpv2_rw_community:
+        if self.snmp_version:
+            return self.snmp_version
+        elif self.snmpv2_ro_community or self.snmpv2_rw_community:
             return 2
         elif self.snmpv3_ro_cred or self.snmpv3_rw_cred:
             return 3
@@ -303,6 +305,9 @@ class OrionNode(Endpoint):
         snmp_version = self.snmp_version
         if snmp_version == 3:
             self.snmp_version = 2
+            import ipdb
+
+            ipdb.set_trace()
         created = super().create()
         if created:
             if self.pollers._enabled_pollers:

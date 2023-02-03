@@ -345,10 +345,11 @@ class Endpoint:
         swargs = {"properties": None, "custom_properties": None}
         properties = {}
         custom_properties = {}
-        for attr, swarg in self._swargs_attrs.items():
+        for attr in self._swargs_attrs:
             value = getattr(self, attr)
+            swarg = self._attr_map[attr]
             properties[swarg] = value
-            logger.debug(f'_swargs["properties"]["{attr}"] = {value}')
+            logger.debug(f'_swargs["properties"]["{swarg}"] = {value}')
 
         extra_swargs = self._get_extra_swargs()
         if extra_swargs:
