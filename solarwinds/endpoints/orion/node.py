@@ -612,6 +612,16 @@ class OrionNode(Endpoint):
         """
         Imports and monitors SNMP resources.
 
+        WARNING: Take care and test thoroughly if running against a node with *any* of these
+        conditions, and *especially* nodes that meet more than one condition:
+            - High-latency (300ms+ RTT)
+            - Many interfaces (300+)
+            - Uses a secondary polling engine (i.e., does not use the main SolarWinds server
+              for polling)
+        The ListResources verbs that import_resources use have produced unpredictable results
+        when testing against nodes that meet any or all of the above conditions (see details
+        below)
+
         SNMP resources include:
         1. SolarWinds pollers, which roughly correspond to system health OIDs such as CPU,
            RAM, routing tables, hardware health stats, etc. Available pollers vary by device
@@ -638,8 +648,10 @@ class OrionNode(Endpoint):
                  is impossible to tell if the verbs have succeeded or failed. This could leave
                  a node in a state that may generate alerts, or may not have system resources
                  monitored, without raising any exception. Testing suggests the best mitigation
-                 is to limit concurrent invocations of ListResources to about 10 at a time. Further
-                 testing is warranted.
+                 is to limit concurrent invocations of ListResources to about 5-10 at a time. Further
+                 testing suggests this condition also arises when running ListResources against
+                 a high latency node with many interfaces, which is assigned a secondary polling
+                 engine (i.e., not using the primary SolarWinds server for polling)
 
         Args:
             enable_pollers: which pollers to enable. May be a list of poller names, or these values:
