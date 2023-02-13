@@ -633,6 +633,7 @@ class OrionNode(Endpoint):
         unmanage_node_timeout: Union[timedelta, Integer] = timedelta(
             days=d.IMPORT_RESOURCES_UNMANAGE_NODE_DAYS
         ),
+        remanage_delay: Optional[Union[timedelta, Integer]] = None,
         import_timeout: int = d.IMPORT_RESOURCES_TIMEOUT,
     ) -> None:
         """
@@ -716,6 +717,17 @@ class OrionNode(Endpoint):
                 cases, the node will be re-managed as soon as resource import has completed.
                 This timeout is a failsafe to ensure that a node does not stay unmanaged
                 indefinitely if the resource monitoring process fails before re-managing the node.
+            remanage_delay: after successful resource import, delay re-managing node for this
+                length of time. May be a datetime.timedelta object, or an integer for seconds. Defaults
+                to None, i.e., after successful resource import node will re-manage immediately.
+                Delaying re-management may be helpful in corner cases, such as when importing resources
+                for high-latency nodes with many interfaces polled by secondary polling engines. In
+                testing, this combination of factors was shown to cause a condition where SWIS reported
+                that down interfaces were deleted, but a propagation delay (or similar issue) caused
+                the main SolarWinds engine to raise false positive alerts on those interfaces. Even though
+                SWIS reported the interfaces were deleted, they existed in a transient state long
+                enough to trigger down interface alerts. Delaying re-management of the node works around
+                this by giving SolarWinds time to settle into its desired state before resuming alerts.
             import_timeout: maximum time in seconds to wait for SNMP resources to import. Generous timeouts
                 are recommended in virtually all cases, because allowing pysolarwinds to time out will
                 almost certainly leave the node in a state that will generate warnings or alerts due
@@ -898,8 +910,18 @@ class OrionNode(Endpoint):
             self.volumes.delete(volumes_to_delete)
 
         if unmanage_node and not already_unmanaged:
-            logger.info(f"{self}: re-managing node...")
-            self.remanage()
+            if remanage_delay:
+                if isinstance(remanage_delay, int):
+                    delta = timedelta(seconds=remanage_delay)
+                    msg = f"setting node to re-manage in {remanage_delay}sec..."
+                else:
+                    delta = remanage_delay
+                    msg = f"delaying re-manage by {remanage_delay}..."
+                logger.info(f"{self}: {msg}")
+                self.unmanage(end=(datetime.utcnow() + delta))
+            else:
+                logger.info(f"{self}: re-managing node...")
+                self.remanage()
 
         if enforce_icmp_status_polling:
             self.enforce_icmp_status_polling()
