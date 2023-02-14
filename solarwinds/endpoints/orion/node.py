@@ -822,7 +822,7 @@ class OrionNode(Endpoint):
         else:
             raise ValueError(
                 f"{self}: Unexpected value for pollers: {enable_pollers}. "
-                'Must be a list of poller names, "all", or "none"'
+                'Must be a list of poller names, "all", or None'
             )
 
         logger.info(f"{self}: Getting imported interfaces...")
@@ -850,7 +850,7 @@ class OrionNode(Endpoint):
             raise ValueError(
                 f"Unexpected value for monitor_interfaces: {monitor_interfaces}. "
                 "Must be a list of interface names, a callable, or one of these values: "
-                '"existing", "up", "all", or "none"'
+                '"existing", "up", "all", or None'
             )
         if delete_interfaces:
             if isinstance(delete_interfaces, re.Pattern):
@@ -891,7 +891,7 @@ class OrionNode(Endpoint):
             raise ValueError(
                 f"Unexpected value for monitor_volumes: {monitor_volumes}. "
                 "Must be a list of volume names, a callable, or one of these values: "
-                '"existing", "all", or "none"'
+                '"existing", "all", None'
             )
         if delete_volumes:
             if isinstance(delete_volumes, re.Pattern):
