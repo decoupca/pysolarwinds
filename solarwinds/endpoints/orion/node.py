@@ -618,15 +618,15 @@ class OrionNode(Endpoint):
 
     def import_resources(
         self,
-        enable_pollers: Union[List[str], Literal["all", "none"]] = "all",
+        enable_pollers: Union[None, List[str], Literal["all"]] = "all",
         purge_existing_pollers: bool = False,
         enforce_icmp_status_polling: bool = True,
         monitor_volumes: Union[
-            List[str], Literal["existing", "all", "none"], Callable
+            None, List[str], Literal["existing", "all"], Callable
         ] = "existing",
         delete_volumes: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
         monitor_interfaces: Union[
-            List[str], Literal["existing", "up", "all", "none"], Callable
+            None, List[str], Literal["existing", "up", "all"], Callable
         ] = "existing",
         delete_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
         unmanage_node: bool = True,
@@ -683,24 +683,25 @@ class OrionNode(Endpoint):
         Args:
             enable_pollers: which pollers to enable. May be a list of poller names, or these values:
                 all: enable all discovered pollers (default)
-                none: disable all discovered pollers
+                None: disable all discovered pollers (i.e., delete all discovered pollers)
             purge_existing_pollers: whether or not to delete all existing pollers before discovering/
                 enabling all available pollers. Useful if existing pollers might be incorrect. Use
                 caution when enabling this in a concurrent/threaded scenario; see warning above.
             monitor_interfaces: which interfaces to monitor. May be a list of interface names,
-                a callable object, or these strings:
+                None, a callable object, or one of: 'existing', 'up', 'all'.
                 existing (default): preserves existing interfaces (no net change)
-                up: monitor all interfaces that are operationally and administratively up
-                all: monitor all interfaces, regardless of their operational or
+                up: Monitor all interfaces that SolarWinds reports are operationally and
+                    administratively up
+                all: Monitor all interfaces, regardless of their operational or
                     administrative status
-                none: delete all imported interfaces
+                None: Do not monitor any interfaces (i.e., delete all imported interfaces)
                 If a callable is provided, the interface will be provided as the only argument and
                 the interface will be monitored if it returns a truthy response.
             monitor_volumes: which volumes to monitor. May be a list of volume names, a callable
-                object, or these strings:
+                object, or one of: 'existing', 'all':
                 existing (default): preserves existing volumes (no net change)
-                all: monitor all available volumes
-                none: delete all imported volumes
+                all: Monitor all available volumes
+                None: Do not monitor any volumes (i.e., delete all imported volumes)
                 If a callable is provided, the volume will be provided as the only argument and
                 the volume will be monitored if it returns a truthy response.
             unmanange_node: whether or not to unmanage (unmonitor) the node during
@@ -805,7 +806,7 @@ class OrionNode(Endpoint):
         logger.info(f"{self}: Found {len(self.pollers)} imported pollers")
         if enable_pollers == "all":
             pass  # all imported pollers are enabled by default
-        elif enable_pollers == "none":
+        elif enable_pollers is None:
             self.pollers.disable_all()
         elif isinstance(enable_pollers, list):
             for poller in self.pollers:
@@ -835,7 +836,7 @@ class OrionNode(Endpoint):
             interfaces_to_delete = [x for x in self.interfaces if not x.up]
         elif monitor_interfaces == "all":
             interfaces_to_delete = []
-        elif monitor_interfaces == "none":
+        elif monitor_interfaces is None:
             interfaces_to_delete = [x for x in self.interfaces]
         elif isinstance(monitor_interfaces, List):
             interfaces_to_delete = [
@@ -878,7 +879,7 @@ class OrionNode(Endpoint):
             ]
         elif monitor_volumes == "all":
             volumes_to_delete = []
-        elif monitor_volumes == "none":
+        elif monitor_volumes is None:
             volumes_to_delete = [x for x in self.volumes]
         elif isinstance(monitor_volumes, list):
             volumes_to_delete = [
