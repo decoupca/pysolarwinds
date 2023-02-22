@@ -315,7 +315,37 @@ class OrionNode(Endpoint):
                 self.save()
         return created
 
-    def discover(self, retries=None, timeout=None, protocol="snmp") -> bool:
+    def discover(
+        self,
+        retries: Integer = 3,
+        timeout: Integer = 600,
+        protocol: Literal["snmp", "wmi"] = "snmp",
+        import_interfaces: Optional[list] = ["up"],
+    ) -> bool:
+        """
+        Runs discovery on node.
+
+        If node does not exist, will discover node with provided IP address and SNMP
+        credential(s). Optionally, will also discover pollers, volumes, and interfaces.
+
+        Args:
+            retries: Number of SNMP queries to attempt before giving up.
+            timeout: Seconds to wait for discovery to complete.
+            protocol: Which protocol to use, either snmp or wmi. Only snmp is implemented.
+            import_interfaces: NOTE: Currently only works for 'up' or None.
+                List of types of interfaces to import. If None is provided,
+                no interfaces will be imported. Available options are:
+                - up: all up interfaces
+                - down: all down interfaces
+                - shutdown: all shutdown (administratively disabled) interfaces
+                - virtual: all virtual interfaces
+                - physical: all physical interfaces
+                - trunk: all trunked (802.1q-enabled) interfaces
+                - access: all interfaces in standard access mode (not 802.1q-enabled)
+                - unknown: all interfaces in unknown status
+
+        Reference: https://github.com/solarwinds/OrionSDK/wiki/Discovery
+        """
         if protocol != "snmp":
             raise NotImplementedError("Only SNMP-based discovery is implemented")
         if not self.ip_address:
@@ -334,10 +364,6 @@ class OrionNode(Endpoint):
             self.polling_engine = OrionEngine(
                 api=self.api, id=DEFAULT_POLLING_ENGINE_ID
             )
-        if retries is None:
-            retries = d.NODE_DISCOVERY_SNMP_RETRIES
-        if timeout is None:
-            timeout = d.NODE_DISCOVERY_JOB_TIMEOUT_SECONDS
         self._resolve_endpoint_attrs()
 
         credentials = []
@@ -385,12 +411,34 @@ class OrionNode(Endpoint):
         core_plugin_config = self.api.invoke(
             "Orion.Discovery", "CreateCorePluginConfiguration", core_plugin_context
         )
+        interface_type_map = {
+            "up": "AutoImportStatus",
+            "down": "AutoImportStatus",
+            "shutdown": "AutoImportStatus",
+            "virtual": "AutoImportVirtualTypes",
+            "physical": "AutoImportVirtualTypes",
+            "trunk": "AutoImportVlanPortTypes",
+            "access": "AutoImportVlanPortTypes",
+            "unknown": "AutoImportVlanPortTypes",
+        }
         interfaces_plugin_context = {
             "AutoImportStatus": [],
             "AutoImportVirtualTypes": [],
             "AutoImportVlanPortTypes": [],
             "UseDefaults": False,
         }
+        if import_interfaces is None:
+            # No changes to interfaces_plugin_context are needed if not importing
+            # any interfaces
+            pass
+        elif len(import_interfaces) == 1 and "up" in import_interfaces:
+            interfaces_plugin_context["UseDefaults"] = True
+        else:
+            for type in import_interfaces:
+                interfaces_plugin_context[interface_type_map[type]].append(
+                    type.capitalize()
+                )
+
         interfaces_plugin_config = self.api.invoke(
             "Orion.NPM.Interfaces",
             "CreateInterfacesPluginConfiguration",
