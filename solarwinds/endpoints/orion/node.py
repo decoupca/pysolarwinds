@@ -385,6 +385,17 @@ class OrionNode(Endpoint):
         core_plugin_config = self.api.invoke(
             "Orion.Discovery", "CreateCorePluginConfiguration", core_plugin_context
         )
+        interfaces_plugin_context = {
+            "AutoImportStatus": [],
+            "AutoImportVirtualTypes": [],
+            "AutoImportVlanPortTypes": [],
+            "UseDefaults": False,
+        }
+        interfaces_plugin_config = self.api.invoke(
+            "Orion.NPM.Interfaces",
+            "CreateInterfacesPluginConfiguration",
+            interfaces_plugin_context,
+        )
         discovery_profile = {
             # N.B.: "milliseconds" is misspelled in keys below
             "Name": f"Discover {self.name}",
@@ -403,6 +414,7 @@ class OrionNode(Endpoint):
             "IsHidden": d.NODE_DISCOVERY_IS_HIDDEN,
             "PluginConfigurations": [
                 {"PluginConfigurationItem": core_plugin_config},
+                {"PluginConfigurationItem": interfaces_plugin_config},
             ],
         }
         self._discovery_id = self.api.invoke(
@@ -447,6 +459,12 @@ class OrionNode(Endpoint):
             logger.info(
                 f"{self}: Discovered and imported {len(self._discovered_items)} items"
             )
+            # if node didn't exist before discovery, get node uri/id
+            if not self.uri:
+                self._get_uri()
+                self._get_swdata()
+                self._get_id()
+
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
             error_message = self._discovery_result[0]["ErrorMessage"]
