@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Union
 
 from solarwinds.api import API
-from solarwinds.endpoint import NewEndpoint
+from solarwinds.endpoint import MonitoredEndpoint
 from solarwinds.exceptions import SWObjectExists
 from solarwinds.list import BaseList
 from solarwinds.logging import get_logger
@@ -9,7 +9,7 @@ from solarwinds.logging import get_logger
 logger = get_logger(__name__)
 
 
-class OrionVolume(NewEndpoint):
+class OrionVolume(MonitoredEndpoint):
     _entity_type = "Orion.Volumes"
     _write_attr_map = {}
 

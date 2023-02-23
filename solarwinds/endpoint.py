@@ -593,6 +593,38 @@ class NewEndpoint:
         return self.data.get("InstanceType")
 
     @property
+    def name(self) -> str:
+        """Override in subclass"""
+        return ""
+
+    def delete(self) -> bool:
+        self.api.delete(self.uri)
+        return True
+
+    def disable(self) -> bool:
+        raise NotImplementedError()
+
+    def enable(self) -> bool:
+        raise NotImplementedError()
+
+    def read(self) -> bool:
+        self._data = self._read()
+        return True
+
+    def save(self) -> bool:
+        updates = {}
+        for attr, prop in self._write_attr_map.items():
+            updates.update({prop: getattr(self, attr)})
+        self.api.update(self.uri, **updates)
+        logger.debug(f"{self.node}: {self}: updated properties: {updates}")
+        return True
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class MonitoredEndpoint(NewEndpoint):
+    @property
     def is_unmanaged(self) -> bool:
         return self.data.get("UnManaged")
 
@@ -605,11 +637,6 @@ class NewEndpoint:
     @property
     def minutes_since_last_sync(self) -> Optional[int]:
         return self.data.get("MinutesSinceLastSync")
-
-    @property
-    def name(self) -> str:
-        """Override in subclass"""
-        return ""
 
     @property
     def next_poll(self) -> Optional[datetime]:
@@ -670,28 +697,3 @@ class NewEndpoint:
         unmanage_to = self.data.get("UnManageUntil")
         if unmanage_to:
             return datetime.strptime(unmanage_to, DATE_FORMATTER)
-
-    def delete(self) -> bool:
-        self.api.delete(self.uri)
-        return True
-
-    def disable(self) -> bool:
-        raise NotImplementedError()
-
-    def enable(self) -> bool:
-        raise NotImplementedError()
-
-    def read(self) -> bool:
-        self._data = self._read()
-        return True
-
-    def save(self) -> bool:
-        updates = {}
-        for attr, prop in self._write_attr_map.items():
-            updates.update({prop: getattr(self, attr)})
-        self.api.update(self.uri, **updates)
-        logger.debug(f"{self.node}: {self}: updated properties: {updates}")
-        return True
-
-    def __str__(self) -> str:
-        return self.name
