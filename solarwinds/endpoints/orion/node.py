@@ -668,6 +668,7 @@ class OrionNode(Endpoint):
             "N.ResponseTime.SNMP.Native",
         ]
         logger.info(f"{self}: Enforcing ICMP-based status and response time pollers...")
+        self.pollers.fetch()
         for poller_name in enable_pollers:
             poller = self.pollers.get(poller_name)
             if poller:
