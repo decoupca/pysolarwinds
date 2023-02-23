@@ -321,6 +321,7 @@ class OrionNode(Endpoint):
         timeout: Integer = 600,
         protocol: Literal["snmp", "wmi"] = "snmp",
         import_interfaces: Optional[list] = ["up"],
+        import_volumes: Optional[bool] = True,
     ) -> bool:
         """
         Runs discovery on node.
@@ -343,6 +344,11 @@ class OrionNode(Endpoint):
                 - trunk: all trunked (802.1q-enabled) interfaces
                 - access: all interfaces in standard access mode (not 802.1q-enabled)
                 - unknown: all interfaces in unknown status
+            import_volumes: Whether or not to keep discovered volumes. By default, the discovery
+                verb imports all available volumes, with no known way to tune or filter which
+                volumes are imported. This arg provides a convenience to delete all discovered
+                volumes after import. TODO: update this arg to allow more options, following the
+                example of import_resources()
 
         Reference: https://github.com/solarwinds/OrionSDK/wiki/Discovery
         """
@@ -507,6 +513,9 @@ class OrionNode(Endpoint):
             logger.info(
                 f"{self}: Discovered and imported {len(self._discovered_items)} items"
             )
+            if not import_volumes:
+                self.volumes.delete_all()
+
             # if node didn't exist before discovery, get node uri/id
             if not self.uri:
                 self._get_uri()
