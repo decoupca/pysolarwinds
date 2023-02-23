@@ -1,6 +1,8 @@
+from datetime import datetime
 from typing import Any, Dict, Optional, Union
 
 from solarwinds.api import API
+from solarwinds.constants import DATE_FORMATTER
 from solarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from solarwinds.exceptions import (
     SWIDNotFound,
@@ -576,6 +578,98 @@ class NewEndpoint:
     @property
     def caption(self) -> str:
         return self.data.get("Caption")
+
+    @property
+    def id(self) -> int:
+        """Override in subclass"""
+        pass
+
+    @property
+    def instance_site_id(self) -> Optional[str]:
+        return self.data.get("instanceSiteId")
+
+    @property
+    def instance_type(self) -> Optional[str]:
+        return self.data.get("InstanceType")
+
+    @property
+    def is_unmanaged(self) -> bool:
+        return self.data.get("UnManaged")
+
+    @property
+    def last_sync(self) -> Optional[datetime]:
+        last_sync = self.data.get("LastSync")
+        if last_sync:
+            return datetime.strptime(last_sync, DATE_FORMATTER)
+
+    @property
+    def minutes_since_last_sync(self) -> Optional[int]:
+        return self.data.get("MinutesSinceLastSync")
+
+    @property
+    def name(self) -> str:
+        """Override in subclass"""
+        return ""
+
+    @property
+    def next_poll(self) -> Optional[datetime]:
+        next_poll = self.data.get("NextPoll")
+        if next_poll:
+            return datetime.strptime(next_poll, DATE_FORMATTER)
+
+    @property
+    def next_rediscovery(self) -> Optional[datetime]:
+        next_rediscovery = self.data.get("NextRediscovery")
+        if next_rediscovery:
+            return datetime.strptime(next_rediscovery, DATE_FORMATTER)
+
+    @property
+    def poll_interval(self) -> Optional[int]:
+        return self.data.get("PollInterval")
+
+    @property
+    def rediscovery_interval(self) -> Optional[int]:
+        return self.data.get("RediscoveryInterval")
+
+    @property
+    def skipped_polling_cycles(self) -> Optional[int]:
+        return self.data.get("SkippedPollingCycles")
+
+    @property
+    def stat_collection(self) -> Optional[int]:
+        return self.data.get("StatCollection")
+
+    @property
+    def status(self) -> int:
+        return self.data.get("Status")
+
+    @property
+    def status_description(self) -> Optional[str]:
+        return self.data.get("StatusDescription")
+
+    @property
+    def status_icon(self) -> Optional[str]:
+        return self.data.get("StatusIcon")
+
+    @property
+    def status_icon_hint(self) -> Optional[str]:
+        return self.data.get("StatusIconHint")
+
+    @property
+    def status_led(self) -> Optional[str]:
+        return self.data.get("StatusLED")
+
+    @property
+    def unmanage_from(self) -> Optional[datetime]:
+        unmanage_from = self.data.get("UnManageFrom")
+        if unmanage_from:
+            return datetime.strptime(unmanage_from, DATE_FORMATTER)
+
+    @property
+    def unmanage_until(self) -> Optional[datetime]:
+        unmanage_to = self.data.get("UnManageUntil")
+        if unmanage_to:
+            return datetime.strptime(unmanage_to, DATE_FORMATTER)
 
     def delete(self) -> bool:
         self.api.delete(self.uri)
