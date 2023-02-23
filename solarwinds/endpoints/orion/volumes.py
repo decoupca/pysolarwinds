@@ -255,8 +255,10 @@ class OrionVolumes(BaseList):
         if volume_count:
             self.api.delete([x.uri for x in self.volumes])
             logger.info(f"{self}: Deleted all volumes ({volume_count})")
+            return True
         else:
-            logger.warning(f"{self}: No volumes to delete")
+            logger.info(f"{self}: No volumes to delete")
+            return False
 
     def fetch(self) -> None:
         query = f"""
