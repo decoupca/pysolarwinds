@@ -250,10 +250,10 @@ class OrionVolumes(BaseList):
         return True
 
     def delete_all(self) -> bool:
-        self.volumes.fetch()
-        volume_count = len(self.volumes)
+        self.fetch()
+        volume_count = len(self)
         if volume_count:
-            self.api.delete([x.uri for x in self.volumes])
+            self.api.delete([x.uri for x in self])
             logger.info(f"{self}: Deleted all volumes ({volume_count})")
             return True
         else:
