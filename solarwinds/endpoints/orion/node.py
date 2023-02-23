@@ -513,14 +513,15 @@ class OrionNode(Endpoint):
             logger.info(
                 f"{self}: Discovered and imported {len(self._discovered_items)} items"
             )
-            if not import_volumes:
-                self.volumes.delete_all()
 
             # if node didn't exist before discovery, get node uri/id
             if not self.uri:
                 self._get_uri()
                 self._get_swdata()
                 self._get_id()
+
+            if not import_volumes:
+                self.volumes.delete_all()
 
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
