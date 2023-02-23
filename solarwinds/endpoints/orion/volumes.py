@@ -114,6 +114,16 @@ class OrionVolume(NewEndpoint):
         return self.data.get("OrionIdPrefix") or ""
 
     @property
+    def percent_available(self) -> Optional[float]:
+        """Convenience alias"""
+        return self.volume_percent_available
+
+    @property
+    def percent_used(self) -> Optional[float]:
+        """Convenience alias"""
+        return self.volume_percent_used
+
+    @property
     def scsi_controller_id(self) -> str:
         return self.data.get("SCSIControllerId") or ""
 
@@ -136,6 +146,16 @@ class OrionVolume(NewEndpoint):
     @property
     def size(self) -> Optional[float]:
         return self.data.get("Size")
+
+    @property
+    def space_available(self) -> Optional[float]:
+        """Convenience alias"""
+        return self.volume_space_available
+
+    @property
+    def space_used(self) -> Optional[float]:
+        """Convenience alias"""
+        return self.volume_space_used
 
     @property
     def total_disk_iops(self) -> Optional[float]:
@@ -196,6 +216,10 @@ class OrionVolume(NewEndpoint):
     @property
     def volume_type(self) -> str:
         return self.data.get("VolumeType") or ""
+
+    @property
+    def volume_type_id(self) -> Optional[int]:
+        return self.data.get("VolumeTypeID")
 
     @property
     def volume_type_icon(self) -> str:
