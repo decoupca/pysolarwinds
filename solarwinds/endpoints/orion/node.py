@@ -474,7 +474,7 @@ class OrionNode(Endpoint):
         self._discovery_id = self.api.invoke(
             "Orion.Discovery", "StartDiscovery", discovery_profile
         )
-        logger.info(f"{self}: Running discovery...")
+        logger.info(f"{self}: Discovering node...")
         logger.debug(f"{self.name}: Discovery job ID: {self._discovery_id}")
         self._get_discovery_status()
         seconds_waited = 0
@@ -488,7 +488,7 @@ class OrionNode(Endpoint):
                 f"status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_status]}"
             )
 
-        if self._discovery_status == 2:
+        if self._discovery_status in (2, 8):
             query = (
                 "SELECT Result, ResultDescription, ErrorMessage, BatchID "
                 f"FROM Orion.DiscoveryLogs WHERE ProfileID = {self._discovery_id}"
@@ -526,8 +526,10 @@ class OrionNode(Endpoint):
         else:
             error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
             error_message = self._discovery_result[0]["ErrorMessage"]
+            result_description = self._discovery_result[0]["ResultDescription"]
             raise SWDiscoveryError(
-                f"{self}: Discovery failed. Status: {error_status}, error: {error_message}"
+                f"{self}: Discovery failed. Status: {error_status}, "
+                f"error: {error_message or result_description}"
             )
 
     def import_all_resources(self, timeout=d.IMPORT_RESOURCES_TIMEOUT) -> bool:
