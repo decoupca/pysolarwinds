@@ -601,12 +601,6 @@ class NewEndpoint:
         self.api.delete(self.uri)
         return True
 
-    def disable(self) -> bool:
-        raise NotImplementedError()
-
-    def enable(self) -> bool:
-        raise NotImplementedError()
-
     def read(self) -> bool:
         self._data = self._read()
         return True

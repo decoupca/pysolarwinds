@@ -106,6 +106,11 @@ class OrionVolume(MonitoredEndpoint):
         return self.data.get("Responding") == "Y"
 
     @property
+    def iops(self) -> bool:
+        """Convenience alias"""
+        return self.total_disk_iops
+
+    @property
     def orion_id_colum(self) -> str:
         return self.data.get("OrionIdColumn") or ""
 
