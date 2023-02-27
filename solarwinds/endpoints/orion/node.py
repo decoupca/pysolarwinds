@@ -513,9 +513,16 @@ class OrionNode(Endpoint):
             logger.info(
                 f"{self}: Discovered and imported {len(self._discovered_items)} items"
             )
-
-            # if node didn't exist before discovery, get node uri/id
-            if not self.uri:
+            if not self.exists():
+                raise SWDiscoveryError(
+                    f"{self}: Discovery completed but node does not exist. "
+                    "Check that the provided SNMP credentials are correct, and "
+                    "SNMP is reachable from the polling engine "
+                    f"({self.polling_engine.ip_address}) to the node "
+                    f"({self.ip_address})"
+                )
+            else:
+                # if node didn't exist before discovery, get node uri/id
                 self._get_uri()
                 self._get_swdata()
                 self._get_id()
