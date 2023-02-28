@@ -1,3 +1,7 @@
+class SWAlertSuppressionError(Exception):
+    pass
+
+
 class SWDiscoveryError(Exception):
     pass
 

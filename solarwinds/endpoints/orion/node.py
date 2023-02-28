@@ -13,6 +13,7 @@ from solarwinds.endpoints.orion.pollers import OrionPoller, OrionPollers
 from solarwinds.endpoints.orion.volumes import OrionVolume, OrionVolumes
 from solarwinds.endpoints.orion.worldmap import WorldMapPoint
 from solarwinds.exceptions import (
+    SWAlertSuppressionError,
     SWDiscoveryError,
     SWObjectPropertyError,
     SWResourceImportError,
@@ -676,36 +677,38 @@ class OrionNode(Endpoint):
             logger.warning(f"{self}: Does not exist; nothing to unmanage")
             return False
 
+    def _get_alert_suppression_state(self) -> Dict:
+        return self.api.invoke(
+            "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri]
+        )[0]
+
     @property
     def alerts_are_suppressed(self) -> bool:
         """Whether or not alerts are currently suppressed on node."""
-        return bool(
+        return (
             self.api.invoke(
                 "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri]
             )[0]["SuppressionMode"]
+            == 1
         )
 
     @property
     def alerts_suppressed_from(self) -> Optional[datetime]:
         """Date/time from when alerts will be suppressed."""
-        suppression_state = self.api.invoke(
-            "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri]
-        )[0]
+        suppression_state = self._get_alert_suppression_state()
         suppressed_from = suppression_state["SuppressedFrom"]
         if suppressed_from:
-            return datetime.strptime(suppressed_from, "%Y-%m-%dT%H:%M:%S.%f")
+            return datetime.strptime(suppressed_from, "%Y-%m-%dT%H:%M:%S")
         else:
             return None
 
     @property
     def alerts_suppressed_until(self) -> Optional[datetime]:
         """Date/time from when alerts will be resumed."""
-        suppression_state = self.api.invoke(
-            "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri]
-        )[0]
+        suppression_state = self._get_alert_suppression_state()
         suppressed_until = suppression_state["SuppressedUntil"]
         if suppressed_until:
-            return datetime.strptime(suppressed_until, "%Y-%m-%dT%H:%M:%S.%f")
+            return datetime.strptime(suppressed_until, "%Y-%m-%dT%H:%M:%S")
         else:
             return None
 
@@ -732,29 +735,46 @@ class OrionNode(Endpoint):
 
         Returns: bool
 
-        Raises: none
+        Raises:
+            SWAlertSuppressionError if there was an unspecified problem suppressing alerts.
+            Under normal conditions, invalid arguments will raise SWISError with details.
         """
         if start is None:
-            start = datetime.utcnow()
-        # This call returns nothing if successful.
+            start = datetime.utcnow() - timedelta(hours=1)
+        # If you provide datetime objects directly to this call, SWIS will
+        # erroneously convert it to UTC, so we need to explicitly pass a datetime
+        # string in this format: 2023-02-28T16:40:00Z. The trailing "Z" causes
+        # SWIS to properly recognize the datetime is in UTC already, and makes
+        # no erroneous conversion.
         self.api.invoke(
-            "Orion.AlertSuppression", "SuppressAlerts", [self.uri], start, end
+            "Orion.AlertSuppression",
+            "SuppressAlerts",
+            [self.uri],
+            datetime.strftime(start, "%Y-%m-%dT%H:%M:%SZ"),
+            datetime.strftime(end, "%Y-%m-%dT%H:%M:%SZ") if end else None,
         )
+        # The call above returns nothing on success or failure, so we need
+        # to validate.
+        suppression_state = self._get_alert_suppression_state()
+        if end:
+            if not suppression_state["SuppressedUntil"]:
+                msg = (
+                    f"{self}: Alert suppression failed, but SWIS didn't provide any error."
+                    "Check that start and end times are valid."
+                )
+                raise SWAlertSuppressionError(msg)
         return True
 
     def resume_alerts(self) -> bool:
         """
-        Resume alerts on node immediately.
+        Resume alerts on node immediately. Also cancels planned alert
+        suppression, if any.
 
         Node resumes normal alerting.
         """
-        if self.alerts_are_suppressed:
-            # This call returns nothing if successful.
-            self.api.invoke("Orion.AlertSuppression", "ResumeAlerts", [self.uri])
-            return True
-        else:
-            logger.warning(f"{self}: Alerts not suppressed; doing nothing.")
-            return False
+        # This call returns nothing if successful.
+        self.api.invoke("Orion.AlertSuppression", "ResumeAlerts", [self.uri])
+        return True
 
     def mute_alerts(
         self, start: Optional[datetime] = None, end: Optional[datetime] = None
