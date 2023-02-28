@@ -684,13 +684,20 @@ class OrionNode(Endpoint):
 
     @property
     def alerts_are_suppressed(self) -> bool:
-        """Whether or not alerts are currently suppressed on node."""
-        return (
-            self.api.invoke(
-                "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri]
-            )[0]["SuppressionMode"]
-            == 1
-        )
+        """
+        Whether or not alerts are currently suppressed on node.
+
+        """
+        return self._get_alert_suppression_state()["SuppressionMode"] == 1
+
+    @property
+    def alerts_will_be_suppressed(self) -> bool:
+        """
+        Whether or not alerts are scheduled to be suppressed at a future
+        date/time.
+
+        """
+        return self._get_alert_suppression_state()["SuppressionMode"] == 3
 
     @property
     def alerts_suppressed_from(self) -> Optional[datetime]:
