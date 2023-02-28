@@ -724,6 +724,11 @@ class OrionNode(Endpoint):
         """Convenience alias"""
         return self.alerts_are_suppressed()
 
+    @property
+    def alerts_will_be_muted(self) -> bool:
+        """Convenience alias"""
+        return self.alerts_will_be_suppressed()
+
     def suppress_alerts(
         self, start: Optional[datetime] = None, end: Optional[datetime] = None
     ) -> bool:
@@ -740,7 +745,7 @@ class OrionNode(Endpoint):
             end: datetime object (in UTC) for when to resume normal alerting. If
                 omitted, alerts will remain suppressed indefinitely.
 
-        Returns: bool
+        Returns: True if successful
 
         Raises:
             SWAlertSuppressionError if there was an unspecified problem suppressing alerts.
@@ -763,12 +768,14 @@ class OrionNode(Endpoint):
         # The call above returns nothing on success or failure, so we need
         # to validate.
         suppression_state = self._get_alert_suppression_state()
+        msg = (
+            f"{self}: Alert suppression failed, but SWIS didn't provide any error."
+            "Check that start and end times are valid."
+        )
+        if not suppression_state["SuppressedFrom"]:
+            raise SWAlertSuppressionError(msg)
         if end:
             if not suppression_state["SuppressedUntil"]:
-                msg = (
-                    f"{self}: Alert suppression failed, but SWIS didn't provide any error."
-                    "Check that start and end times are valid."
-                )
                 raise SWAlertSuppressionError(msg)
         return True
 
