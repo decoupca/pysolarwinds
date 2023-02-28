@@ -676,6 +676,96 @@ class OrionNode(Endpoint):
             logger.warning(f"{self}: Does not exist; nothing to unmanage")
             return False
 
+    @property
+    def alerts_are_suppressed(self) -> bool:
+        """Whether or not alerts are currently suppressed on node."""
+        return bool(
+            self.api.invoke(
+                "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri]
+            )[0]["SuppressionMode"]
+        )
+
+    @property
+    def alerts_suppressed_from(self) -> Optional[datetime]:
+        """Date/time from when alerts will be suppressed."""
+        suppression_state = self.api.invoke(
+            "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri]
+        )[0]
+        suppressed_from = suppression_state["SuppressedFrom"]
+        if suppressed_from:
+            return datetime.strptime(suppressed_from, "%Y-%m-%dT%H:%M:%S.%f")
+        else:
+            return None
+
+    @property
+    def alerts_suppressed_until(self) -> Optional[datetime]:
+        """Date/time from when alerts will be resumed."""
+        suppression_state = self.api.invoke(
+            "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri]
+        )[0]
+        suppressed_until = suppression_state["SuppressedUntil"]
+        if suppressed_until:
+            return datetime.strptime(suppressed_until, "%Y-%m-%dT%H:%M:%S.%f")
+        else:
+            return None
+
+    @property
+    def alerts_are_muted(self) -> bool:
+        """Convenience alias"""
+        return self.alerts_are_suppressed()
+
+    def suppress_alerts(
+        self, start: Optional[datetime] = None, end: Optional[datetime] = None
+    ) -> bool:
+        """
+        Suppress alerts on node.
+
+        Any alerts that would normally be triggered by any condition(s) on the node
+        or its child objects (such as volumes or interfaces), will not be triggered.
+        As soon as alerts are resumed, normal alerting behavior resumes.
+
+        Args:
+            start: datetime object (in UTC) for when to begin suppressing alerts.
+                If omitted, suppression begins immediately.
+            end: datetime object (in UTC) for when to resume normal alerting. If
+                omitted, alerts will remain suppressed indefinitely.
+
+        Returns: bool
+
+        Raises: none
+        """
+        if start is None:
+            start = datetime.utcnow()
+        # This call returns nothing if successful.
+        self.api.invoke(
+            "Orion.AlertSuppression", "SuppressAlerts", [self.uri], start, end
+        )
+        return True
+
+    def resume_alerts(self) -> bool:
+        """
+        Resume alerts on node immediately.
+
+        Node resumes normal alerting.
+        """
+        if self.alerts_are_suppressed:
+            # This call returns nothing if successful.
+            self.api.invoke("Orion.AlertSuppression", "ResumeAlerts", [self.uri])
+            return True
+        else:
+            logger.warning(f"{self}: Alerts not suppressed; doing nothing.")
+            return False
+
+    def mute_alerts(
+        self, start: Optional[datetime] = None, end: Optional[datetime] = None
+    ) -> bool:
+        """Convenience alias"""
+        return self.suppress_alerts(start=start, end=end)
+
+    def unmute_alerts(self) -> bool:
+        """Convenience alias"""
+        return self.resume_alerts()
+
     def enforce_icmp_status_polling(self) -> None:
         """ensures that node uses ICMP for up/down status and response time"""
         enable_pollers = [
