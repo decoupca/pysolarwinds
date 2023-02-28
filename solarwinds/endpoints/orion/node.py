@@ -777,6 +777,11 @@ class OrionNode(Endpoint):
         if end:
             if not suppression_state["SuppressedUntil"]:
                 raise SWAlertSuppressionError(msg)
+        if end:
+            msg = f"{self}: Suppressed alerts from {start} until {end}."
+        else:
+            msg = f"{self}: Suppressed alerts indefinitely."
+        logger.info(msg)
         return True
 
     def resume_alerts(self) -> bool:
@@ -788,6 +793,7 @@ class OrionNode(Endpoint):
         """
         # This call returns nothing if successful.
         self.api.invoke("Orion.AlertSuppression", "ResumeAlerts", [self.uri])
+        logger.info(f"{self}: Resumed alerts.")
         return True
 
     def mute_alerts(
