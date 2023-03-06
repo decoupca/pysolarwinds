@@ -806,6 +806,127 @@ class OrionNode(Endpoint):
         """Convenience alias"""
         return self.resume_alerts()
 
+    @property
+    def agent_port(self) -> Optional[int]:
+        """Agent port, presumably for SNMP polling."""
+        return self._swp.get("AgentPort")
+
+    @property
+    def allow_64bit_counters(self) -> bool:
+        """Whether or not 64-bit counters are allowed."""
+        return self._swp.get("Allow64BitCounters")
+
+    @property
+    def avg_response_time(self) -> Optional[int]:
+        """Average response time in milliseconds."""
+        return self._swp.get("AvgResponseTime")
+
+    @property
+    def block_until(self) -> Optional[datetime]:
+        """Unknown meaning."""
+        block_until = self._swp.get("BlockUntil")
+        if block_until:
+            return datetime.strptime(block_until, "%Y-%m-%dT%H:%M:%S")
+
+    @property
+    def buffer_big_misses_this_hour(self) -> float:
+        """Big buffer misses this hour."""
+        return self._swp["BufferBgMissThisHour"]
+
+    @property
+    def buffer_big_misses_today(self) -> float:
+        """Big buffer misses today."""
+        return self._swp["BufferBgMissToday"]
+
+    @property
+    def buffer_huge_misses_this_hour(self) -> float:
+        """Huge buffer misses this hour."""
+        return self._swp["BufferHgMissThisHour"]
+
+    @property
+    def buffer_huge_misses_today(self) -> float:
+        """Huge buffer misses today."""
+        return self._swp["BufferHgMissToday"]
+
+    @property
+    def buffer_large_misses_this_hour(self) -> float:
+        """Large buffer misses this hour."""
+        return self._swp["BufferLgMissThisHour"]
+
+    @property
+    def buffer_large_misses_today(self) -> float:
+        """Large buffer misses today."""
+        return self._swp["BufferLgMissToday"]
+
+    @property
+    def buffer_medium_misses_this_hour(self) -> float:
+        """Medium buffer misses today."""
+        return self._swp["BufferMdMissThisHour"]
+
+    @property
+    def buffer_medium_misses_today(self) -> float:
+        """Medium buffer misses today."""
+        return self._swp["BufferMdMissToday"]
+
+    @property
+    def buffer_no_memory_this_hour(self) -> float:
+        """Buffer no memory errors this hour."""
+        return self._swp["BufferNoMemThisHour"]
+
+    @property
+    def buffer_no_memory_today(self) -> float:
+        """Buffer no memory errors today."""
+        return self._swp["BufferNoMemToday"]
+
+    @property
+    def buffer_small_misses_this_hour(self) -> float:
+        """Small buffer misses this hour."""
+        return self._swp["BufferSmMissThisHour"]
+
+    @property
+    def buffer_small_misses_today(self) -> float:
+        """Small buffer misses today."""
+        return self._swp["BufferSmMissToday"]
+
+    @property
+    def cpu_count(self) -> int:
+        """Number of CPUs detected on node."""
+        return self._swp["CPUCount"]
+
+    @property
+    def cpu_load(self) -> int:
+        """
+        Integer representation of CPU load.
+
+        I would expect this to be a float, but :shrug:
+        """
+        return self._swp["CPULoad"]
+
+    @property
+    def caption(self) -> str:
+        """In most cases, this is its hostname."""
+        return self._swp["Caption"]
+
+    @property
+    def category(self) -> int:
+        """Category ID."""
+        return self._swp["Category"]
+
+    @property
+    def child_status(self) -> int:
+        """Child status code."""
+        return self._swp["ChildStatus"]
+
+    @property
+    def contact(self) -> str:
+        """SNMP contact."""
+        return self._swp["Contact"]
+
+    @property
+    def is_cmts(self) -> bool:
+        """Presumably, whether or not node is a cable modem termination system (CMTS)."""
+        return self._swp["CMTS"] == "Y"
+
     def enforce_icmp_status_polling(self) -> None:
         """ensures that node uses ICMP for up/down status and response time"""
         enable_pollers = [
