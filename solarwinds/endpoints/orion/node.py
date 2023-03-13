@@ -132,10 +132,6 @@ class OrionNode(Endpoint):
         return self.caption
 
     @property
-    def int(self) -> OrionInterfaces:
-        return self.interfaces
-
-    @property
     def ints(self) -> OrionInterfaces:
         return self.interfaces
 
