@@ -899,11 +899,6 @@ class OrionNode(Endpoint):
         return self._swp["CPULoad"]
 
     @property
-    def caption(self) -> str:
-        """In most cases, this is its hostname."""
-        return self._swp["Caption"]
-
-    @property
     def category(self) -> int:
         """Category ID."""
         return self._swp["Category"]
