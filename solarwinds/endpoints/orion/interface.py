@@ -229,7 +229,17 @@ class OrionInterfaces(object):
                 )
                 raise SWDiscoveryError(msg)
 
-    def monitor(self, interfaces=None) -> None:
+    def monitor(self, interfaces=None, delete_extraneous: bool = False) -> None:
+        """
+        Monitor interfaces on node.
+
+        If interfaces is not provided, all discovered up interfaces will be monitored.
+        If interfaces is provided, only interfaces matching the names of those provided
+        will be monitored.
+        If delete_extraneous is True, the provided interface list will be considered
+        authoritative, and any interfaces currently monitored that are not in the provided
+        list will be deleted.
+        """
         if not self._existing:
             self.get()
 
@@ -254,12 +264,13 @@ class OrionInterfaces(object):
                 if to_add:
                     self.add(to_add)
 
-            if extraneous:
-                logger.info(
-                    f"{self.node.name}: found {len(extraneous)} interfaces to delete"
-                )
-                for intf in extraneous:
-                    intf.delete()
+            if delete_extraneous:
+                if extraneous:
+                    logger.info(
+                        f"{self.node.name}: found {len(extraneous)} interfaces to delete"
+                    )
+                    for intf in extraneous:
+                        intf.delete()
 
             if not missing and not extraneous:
                 logger.info(
