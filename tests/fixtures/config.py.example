@@ -1,3 +1,0 @@
-host = 'solarwinds.example.net'
-username = 'my_user'
-password = 'my_pass'

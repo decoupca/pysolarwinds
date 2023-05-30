@@ -1,17 +1,17 @@
 from datetime import datetime
 from typing import Any, Dict, Optional, Union
 
-from solarwinds.api import API
-from solarwinds.constants import DATE_FORMATTER
-from solarwinds.defaults import EXCLUDE_CUSTOM_PROPS
-from solarwinds.exceptions import (
+from pysolarwinds.api import API
+from pysolarwinds.constants import DATE_FORMATTER
+from pysolarwinds.defaults import EXCLUDE_CUSTOM_PROPS
+from pysolarwinds.exceptions import (
     SWIDNotFound,
     SWObjectDoesNotExist,
     SWObjectExists,
     SWObjectPropertyError,
 )
-from solarwinds.logging import get_logger
-from solarwinds.utils import print_dict, sanitize_swdata
+from pysolarwinds.logging import get_logger
+from pysolarwinds.utils import print_dict, sanitize_swdata
 
 logger = get_logger(__name__)
 
@@ -69,7 +69,7 @@ class Endpoint:
 
     @property
     def _schema_doc_url(self) -> str:
-        base_url = f"http://solarwinds.github.io/OrionSDK/{self._schema_version}/schema"
+        base_url = f"http://pysolarwinds.github.io/OrionSDK/{self._schema_version}/schema"
         if self.endpoint:
             return f"{base_url}/{self.endpoint}.html"
         else:
@@ -155,7 +155,7 @@ class Endpoint:
 
     def _get_swdata(self, refresh: bool = False, data: str = "both") -> None:
         """
-        Caches solarwinds data
+        Caches pysolarwinds data
         """
         if not self.exists():
             raise SWObjectDoesNotExist()
@@ -165,7 +165,7 @@ class Endpoint:
                 and not self._swdata.get("custom_properties")
             ) or refresh:
                 swdata = {"properties": None, "custom_properties": None}
-                logger.debug("getting object data from solarwinds...")
+                logger.debug("getting object data from pysolarwinds...")
                 if data == "both" or data == "properties":
                     swdata["properties"] = sanitize_swdata(self.api.read(self.uri))
                 if data == "both" or data == "custom_properties":
@@ -461,7 +461,7 @@ class Endpoint:
         if sw_id:
             self.id = sw_id
             setattr(self, self._id_attr, sw_id)
-            logger.debug(f"got solarwinds object id {self.id}")
+            logger.debug(f"got pysolarwinds object id {self.id}")
         else:
             raise SWIDNotFound(
                 f'could not find id value in _swdata["properties"]["{self._swid_key}"]'
@@ -514,7 +514,7 @@ class Endpoint:
         return self.save()
 
     def save(self) -> bool:
-        """Update object in solarwinds with local object's properties"""
+        """Update object in pysolarwinds with local object's properties"""
         self._resolve_endpoint_attrs()
         self._build_swargs()
         if self.exists():

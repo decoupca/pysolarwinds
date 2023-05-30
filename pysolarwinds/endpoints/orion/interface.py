@@ -1,14 +1,14 @@
 import re
 from typing import Dict, List, Union, Optional
 
-from solarwinds.endpoint import Endpoint
-from solarwinds.endpoints.orion.engines import OrionEngine
-from solarwinds.exceptions import (
+from pysolarwinds.endpoint import Endpoint
+from pysolarwinds.endpoints.orion.engines import OrionEngine
+from pysolarwinds.exceptions import (
     SWDiscoveryError,
     SWObjectDoesNotExist,
     SWObjectPropertyError,
 )
-from solarwinds.logging import get_logger
+from pysolarwinds.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -217,7 +217,7 @@ class OrionInterfaces(object):
                 raise SWDiscoveryError(msg)
         else:
             msg = f"{self.node}: Interface discovery failed. "
-            # https://thwack.solarwinds.com/product-forums/the-orion-platform/f/orion-sdk/40430/data-returned-from-discoverinterfacesonnode-question/159593#159593
+            # https://thwack.pysolarwinds.com/product-forums/the-orion-platform/f/orion-sdk/40430/data-returned-from-discoverinterfacesonnode-question/159593#159593
             if self._discovery_response_code == 1:
                 # should never get this due to checks above
                 msg += "Check that the node exists and is set to SNMP polling method."

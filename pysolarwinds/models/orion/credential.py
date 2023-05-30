@@ -1,11 +1,11 @@
 from typing import Literal, Optional
 
-from solarwinds.endpoints.orion.credential import (
+from pysolarwinds.endpoints.orion.credential import (
     OrionSNMPv2Credential,
     OrionSNMPv3Credential,
     OrionUserPassCredential,
 )
-from solarwinds.model import BaseModel
+from pysolarwinds.model import BaseModel
 
 
 class Credential(BaseModel):

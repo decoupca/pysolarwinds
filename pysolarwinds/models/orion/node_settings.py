@@ -1,10 +1,10 @@
 from typing import Union
 
-from solarwinds.endpoint import Endpoint
-from solarwinds.endpoints.orion.credential import OrionCredential
-from solarwinds.exceptions import SWObjectCreationError, SWObjectNotFound
-from solarwinds.logging import get_logger
-from solarwinds.models.orion.credential import (
+from pysolarwinds.endpoint import Endpoint
+from pysolarwinds.endpoints.orion.credential import OrionCredential
+from pysolarwinds.exceptions import SWObjectCreationError, SWObjectNotFound
+from pysolarwinds.logging import get_logger
+from pysolarwinds.models.orion.credential import (
     Credential as CredentialModel,  # TODO: need undo this
 )
 

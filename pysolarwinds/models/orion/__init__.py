@@ -1,10 +1,10 @@
 from typing import Dict, List, Optional, Union
 
-from solarwinds.endpoints.orion.credential import OrionCredential
-from solarwinds.endpoints.orion.engines import OrionEngine
-from solarwinds.endpoints.orion.node import OrionNode
-from solarwinds.models.orion.credential import Credential
-from solarwinds.models.orion.worldmap import WorldMap
+from pysolarwinds.endpoints.orion.credential import OrionCredential
+from pysolarwinds.endpoints.orion.engines import OrionEngine
+from pysolarwinds.endpoints.orion.node import OrionNode
+from pysolarwinds.models.orion.credential import Credential
+from pysolarwinds.models.orion.worldmap import WorldMap
 
 
 class Orion:

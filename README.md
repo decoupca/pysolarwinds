@@ -1,3 +1,4 @@
-# solarwinds
+# pysolarwinds
 
-An ergonomic wrapper for OrionSDK
+An ergonomic, object-based interface for the SolarWinds SWIS API.
+

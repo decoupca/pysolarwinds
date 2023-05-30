@@ -1,10 +1,10 @@
 from typing import List, Union
 
-from solarwinds.api import API
-from solarwinds.models.orion import Orion
+from pysolarwinds.api import API
+from pysolarwinds.models.orion import Orion
 
 
-class SolarWinds:
+class pysolarwinds:
     def __init__(
         self,
         hostname: str,
@@ -33,7 +33,7 @@ def api(
     verify: Union[bool, str] = False,
     timeout: int = 60,
 ):
-    return SolarWinds(
+    return pysolarwinds(
         hostname=hostname,
         username=username,
         password=password,
@@ -42,4 +42,4 @@ def api(
     )
 
 
-__all__ = ["SolarWinds"]
+__all__ = ["pysolarwinds"]

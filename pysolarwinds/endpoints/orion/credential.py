@@ -1,8 +1,8 @@
 from typing import Dict, Literal, Optional
 
-from solarwinds.api import API
-from solarwinds.endpoint import Endpoint
-from solarwinds.exceptions import SWObjectExists
+from pysolarwinds.api import API
+from pysolarwinds.endpoint import Endpoint
+from pysolarwinds.exceptions import SWObjectExists
 
 
 class OrionCredential(Endpoint):

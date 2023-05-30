@@ -3,24 +3,24 @@ from datetime import datetime, timedelta
 from time import sleep
 from typing import Callable, Dict, List, Literal, NewType, Optional, Union
 
-import solarwinds.defaults as d
-from solarwinds.api import API
-from solarwinds.endpoint import Endpoint
-from solarwinds.endpoints.orion.credential import OrionCredential, OrionSNMPv2Credential
-from solarwinds.endpoints.orion.engines import OrionEngine
-from solarwinds.endpoints.orion.interface import OrionInterfaces
-from solarwinds.endpoints.orion.pollers import OrionPoller, OrionPollers
-from solarwinds.endpoints.orion.volumes import OrionVolume, OrionVolumes
-from solarwinds.endpoints.orion.worldmap import WorldMapPoint
-from solarwinds.exceptions import (
+import pysolarwinds.defaults as d
+from pysolarwinds.api import API
+from pysolarwinds.endpoint import Endpoint
+from pysolarwinds.endpoints.orion.credential import OrionCredential, OrionSNMPv2Credential
+from pysolarwinds.endpoints.orion.engines import OrionEngine
+from pysolarwinds.endpoints.orion.interface import OrionInterfaces
+from pysolarwinds.endpoints.orion.pollers import OrionPoller, OrionPollers
+from pysolarwinds.endpoints.orion.volumes import OrionVolume, OrionVolumes
+from pysolarwinds.endpoints.orion.worldmap import WorldMapPoint
+from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
     SWDiscoveryError,
     SWObjectPropertyError,
     SWResourceImportError,
 )
-from solarwinds.logging import get_logger
-from solarwinds.maps import NODE_DISCOVERY_STATUS_MAP
-from solarwinds.models.orion.node_settings import OrionNodeSettings
+from pysolarwinds.logging import get_logger
+from pysolarwinds.maps import NODE_DISCOVERY_STATUS_MAP
+from pysolarwinds.models.orion.node_settings import OrionNodeSettings
 
 logger = get_logger(__name__)
 
@@ -347,7 +347,7 @@ class OrionNode(Endpoint):
                 volumes after import. TODO: update this arg to allow more options, following the
                 example of import_resources()
 
-        Reference: https://github.com/solarwinds/OrionSDK/wiki/Discovery
+        Reference: https://github.com/pysolarwinds/OrionSDK/wiki/Discovery
         """
         if protocol != "snmp":
             raise NotImplementedError("Only SNMP-based discovery is implemented")
@@ -546,7 +546,7 @@ class OrionNode(Endpoint):
 
         Args:
             timeout: maximum time in seconds to wait for SNMP resources to import. Generous timeouts
-                are recommended in virtually all cases, because allowing pysolarwinds to time out will
+                are recommended in virtually all cases, because allowing pypysolarwinds to time out will
                 almost certainly leave the node in a state that will generate warnings or alerts due
                 to down interfaces or full-capacity storage volumes. In most normal cases, imports
                 take about 60-120 seconds. But high latency nodes with many OIDs can take upwards of
@@ -648,7 +648,7 @@ class OrionNode(Endpoint):
         Args:
             start: optional datetime object, in UTC, at which to start unmanaging the node.
                 If not provided, defaults to now minus 10 minutes to account for small variances
-                in clock synchronization between the local system and SolarWinds server. This provides
+                in clock synchronization between the local system and pysolarwinds server. This provides
                 greater assurance that a call to `unmanage` will have the expected effect of immediate
                 un-management of the node.
             end: optional datetime object, in UTC, at which the node will automatically re-manage
@@ -971,14 +971,14 @@ class OrionNode(Endpoint):
         conditions, and *especially* nodes that meet more than one condition:
             - High-latency (300ms+ RTT)
             - Many interfaces (300+)
-            - Uses a secondary polling engine (i.e., does not use the main SolarWinds server
+            - Uses a secondary polling engine (i.e., does not use the main pysolarwinds server
               for polling)
         The ListResources verbs that import_resources use have produced unpredictable results
         when testing against nodes that meet any or all of the above conditions (see details
         below)
 
         SNMP resources include:
-        1. SolarWinds pollers, which roughly correspond to system health OIDs such as CPU,
+        1. pysolarwinds pollers, which roughly correspond to system health OIDs such as CPU,
            RAM, routing tables, hardware health stats, etc. Available pollers vary by device
            type and platform version.
         2. Storage volumes, i.e. any persistent storage device that has a SNMP OID. Consider that
@@ -1006,7 +1006,7 @@ class OrionNode(Endpoint):
                  is to limit concurrent invocations of ListResources to about 5-10 at a time. Further
                  testing suggests this condition also arises when running ListResources against
                  a high latency node with many interfaces, which is assigned a secondary polling
-                 engine (i.e., not using the primary SolarWinds server for polling)
+                 engine (i.e., not using the primary pysolarwinds server for polling)
 
         Args:
             enable_pollers: which pollers to enable. May be a list of poller names, or these values:
@@ -1018,7 +1018,7 @@ class OrionNode(Endpoint):
             monitor_interfaces: which interfaces to monitor. May be a list of interface names,
                 None, a callable object, or one of: 'existing', 'up', 'all'.
                 existing (default): preserves existing interfaces (no net change)
-                up: Monitor all interfaces that SolarWinds reports are operationally and
+                up: Monitor all interfaces that pysolarwinds reports are operationally and
                     administratively up
                 all: Monitor all interfaces, regardless of their operational or
                     administrative status
@@ -1053,17 +1053,17 @@ class OrionNode(Endpoint):
                 for high-latency nodes with many interfaces polled by secondary polling engines. In
                 testing, this combination of factors was shown to cause a condition where SWIS reported
                 that down interfaces were deleted, but a propagation delay (or similar issue) caused
-                the main SolarWinds engine to raise false positive alerts on those interfaces. Even though
+                the main pysolarwinds engine to raise false positive alerts on those interfaces. Even though
                 SWIS reported the interfaces were deleted, they existed in a transient state long
                 enough to trigger down interface alerts. Delaying re-management of the node works around
-                this by giving SolarWinds time to settle into its desired state before resuming alerts.
+                this by giving pysolarwinds time to settle into its desired state before resuming alerts.
             import_timeout: maximum time in seconds to wait for SNMP resources to import. Generous timeouts
-                are recommended in virtually all cases, because allowing pysolarwinds to time out will
+                are recommended in virtually all cases, because allowing pypysolarwinds to time out will
                 almost certainly leave the node in a state that will generate warnings or alerts due
                 to down interfaces or full-capacity storage volumes. In most normal cases, imports
                 take about 60-120 seconds. But high latency nodes with many OIDs can take upwards of
                 5 minutes, hence the 10 minute (600s) default value.
-            enforce_icmp_status_polling: SolarWinds recommends using ICMP to monitor status
+            enforce_icmp_status_polling: pysolarwinds recommends using ICMP to monitor status
                 (up/down) and response time, which is faster than using SNMP. The ListResources
                 verbs, however, automatically enable SNMP-based status and response time pollers.
                 To override this and use the recommended ICMP-based status and response time pollers,

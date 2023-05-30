@@ -1,4 +1,4 @@
-from solarwinds.endpoint import Endpoint
+from pysolarwinds.endpoint import Endpoint
 
 
 class WorldMapPoint(Endpoint):

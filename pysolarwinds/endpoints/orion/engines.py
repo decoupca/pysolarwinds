@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Dict, Optional
 
-from solarwinds.api import API
-from solarwinds.endpoint import Endpoint
-from solarwinds.utils import parse_datetime
+from pysolarwinds.api import API
+from pysolarwinds.endpoint import Endpoint
+from pysolarwinds.utils import parse_datetime
 
 
 class OrionEngine(Endpoint):

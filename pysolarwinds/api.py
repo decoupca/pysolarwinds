@@ -4,8 +4,8 @@ from typing import Dict, List, Optional, Union
 
 import httpx
 
-from solarwinds.exceptions import SWISError
-from solarwinds.utils import parse_response
+from pysolarwinds.exceptions import SWISError
+from pysolarwinds.utils import parse_response
 
 
 def _json_serial(obj):
@@ -35,7 +35,7 @@ class API:
 
     @property
     def url(self) -> str:
-        return f"https://{self.hostname}:17778/SolarWinds/InformationService/v3/Json/"
+        return f"https://{self.hostname}:17778/pysolarwinds/InformationService/v3/Json/"
 
     def query(self, query: str, **params) -> List:
         return parse_response(
@@ -65,7 +65,7 @@ class API:
 
     def sql(self, statement: str) -> bool:
         """
-        Workaround API to execute arbitrary SQL against Solarwinds DB
+        Workaround API to execute arbitrary SQL against pysolarwinds DB
         **NOTE**: This method takes raw TSQL syntax, *NOT* SWQL syntax
         Returns empty data structure if successful
         """

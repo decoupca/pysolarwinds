@@ -1,10 +1,10 @@
 from typing import Dict, List, Optional, Union
 
-from solarwinds.api import API
-from solarwinds.endpoint import MonitoredEndpoint
-from solarwinds.exceptions import SWObjectExists
-from solarwinds.list import BaseList
-from solarwinds.logging import get_logger
+from pysolarwinds.api import API
+from pysolarwinds.endpoint import MonitoredEndpoint
+from pysolarwinds.exceptions import SWObjectExists
+from pysolarwinds.list import BaseList
+from pysolarwinds.logging import get_logger
 
 logger = get_logger(__name__)
 
