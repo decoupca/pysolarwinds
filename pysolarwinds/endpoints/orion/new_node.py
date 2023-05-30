@@ -32,7 +32,9 @@ class OrionNode(MonitoredEndpoint):
         self.ip_address: str = self.data.get("IPAddress", "")
         # self.latitude = latitude
         # self.longitude = longitude
-        self.polling_engine = OrionEngine(swis=swis, id=self.data["EngineID"])
+        self.polling_engine: OrionEngine = OrionEngine(
+            swis=swis, id=self.data["EngineID"]
+        )
         self.snmp_version: int = self.data.get("SNMPVersion", 0)
         self.snmpv2_ro_community: str = self.data.get("Community", "")
         self.snmpv2_rw_community: str = self.data.get("RWCommunity", "")
@@ -140,7 +142,7 @@ class OrionNode(MonitoredEndpoint):
     @property
     def contact(self) -> str:
         """SNMP contact."""
-        return self._swp["Contact"]
+        return self.data["Contact"]
 
     @property
     def custom_status(self) -> bool:
@@ -270,6 +272,11 @@ class OrionNode(MonitoredEndpoint):
     def total_memory(self) -> float:
         """Total system memory, most likely in bytes."""
         return self.data["TotalMemory"]
+
+    @property
+    def uptime(self) -> datetime.timedelta:
+        """Time since last boot."""
+        return datetime.datetime.utcnow() - self.last_boot
 
     @property
     def vendor(self) -> str:
