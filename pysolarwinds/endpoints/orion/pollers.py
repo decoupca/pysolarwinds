@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Union
 
-from pysolarwinds.client import SWISClient
+from pysolarwinds.swis import SWISClient
 from pysolarwinds.endpoint import NewEndpoint
 from pysolarwinds.exceptions import SWObjectExists
 from pysolarwinds.list import BaseList
@@ -17,12 +17,12 @@ class OrionPoller(NewEndpoint):
 
     def __init__(
         self,
-        client: SWISClient,
+        swis: SWISClient,
         node,
         data: Optional[Dict] = None,
         uri: Optional[str] = None,
     ) -> None:
-        super().__init__(client=client, data=data, uri=uri)
+        super().__init__(swis=swis, data=data, uri=uri)
         self.node = node
         self.is_enabled = self.data.get("Enabled")
 

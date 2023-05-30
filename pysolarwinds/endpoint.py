@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, Optional, Union
 
-from pysolarwinds.client import SWISClient
+from pysolarwinds.swis import SWISClient
 from pysolarwinds.constants import DATE_FORMATTER
 from pysolarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from pysolarwinds.exceptions import (

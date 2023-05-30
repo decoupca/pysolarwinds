@@ -1,29 +1,30 @@
 from typing import List, Union
 
-from pysolarwinds.client import SWISClient
+from pysolarwinds.swis import SWISClient
 from pysolarwinds.models.orion import Orion
+from httpx._types import VerifyTypes
 
 
-class pysolarwinds:
+class SolarWindsClient:
     def __init__(
         self,
         hostname: str,
         username: str,
         password: str,
-        verify: Union[bool, str] = False,
-        timeout: int = 60,
+        verify: VerifyTypes = True,
+        timeout: float = 30.0,
     ):
-        self.client = SWISClient(
+        self.swis = SWISClient(
             hostname=hostname,
             username=username,
             password=password,
             verify=verify,
             timeout=timeout,
         )
-        self.orion = Orion(self.client)
+        self.orion = Orion(self.swis)
 
     def query(self, query: str) -> List:
-        return self.client.query(query)
+        return self.swis.query(query)
 
 
 def api(
@@ -33,7 +34,7 @@ def api(
     verify: Union[bool, str] = False,
     timeout: int = 60,
 ):
-    return pysolarwinds(
+    return SolarWindsClient(
         hostname=hostname,
         username=username,
         password=password,
@@ -42,4 +43,4 @@ def api(
     )
 
 
-__all__ = ["pysolarwinds"]
+__all__ = ["SolarWindsClient"]

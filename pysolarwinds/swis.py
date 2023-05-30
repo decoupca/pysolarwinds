@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Union
 
 import httpx
+from httpx._types import VerifyTypes
 
 from pysolarwinds.exceptions import SWISError
 from pysolarwinds.utils import parse_response
@@ -21,8 +22,8 @@ class SWISClient:
         hostname: str,
         username: str,
         password: str,
-        verify: Union[bool, str] = True,
-        timeout: int = 60,
+        verify: VerifyTypes = True,
+        timeout: float = 30.0,
     ):
         self.hostname = hostname
         self.client = httpx.Client(
@@ -35,7 +36,7 @@ class SWISClient:
 
     @property
     def url(self) -> str:
-        return f"https://{self.hostname}:17778/pysolarwinds/InformationService/v3/Json/"
+        return f"https://{self.hostname}:17778/SolarWinds/InformationService/v3/Json/"
 
     def query(self, query: str, **params) -> List:
         return parse_response(
@@ -66,8 +67,8 @@ class SWISClient:
     def sql(self, statement: str) -> bool:
         """
         Workaround API to execute arbitrary SQL against pysolarwinds DB
-        **NOTE**: This method takes raw TSQL syntax, *NOT* SWQL syntax
-        Returns empty data structure if successful
+        **NOTE**: This method takes raw TSQL syntax, *NOT* SWQL syntax.
+        Returns empty data structure if successful.
         """
         self.invoke("Orion.Reporting", "ExecuteSQL", statement)
         return True

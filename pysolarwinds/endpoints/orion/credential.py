@@ -1,6 +1,6 @@
 from typing import Dict, Literal, Optional
 
-from pysolarwinds.client import SWISClient
+from pysolarwinds.swis import SWISClient
 from pysolarwinds.endpoint import Endpoint
 from pysolarwinds.exceptions import SWObjectExists
 
@@ -45,7 +45,7 @@ class OrionSNMPv3Credential(OrionCredential):
 
     def __init__(
         self,
-        client: SWISClient,
+        swis: SWISClient,
         id: Optional[int] = None,
         name: str = "",
         owner: str = "Orion",
@@ -59,7 +59,7 @@ class OrionSNMPv3Credential(OrionCredential):
         priv_password: str = "",
         priv_key_is_password: bool = False,
     ) -> None:
-        self.client = client
+        self.swis = swis
         self.id = id
         self.name = name
         self.owner = owner
@@ -132,13 +132,13 @@ class OrionSNMPv3Credential(OrionCredential):
 class OrionSNMPv2Credential(OrionCredential):
     def __init__(
         self,
-        client: SWISClient,
+        swis: SWISClient,
         id: Optional[int] = None,
         name: str = "",
         community: str = "",
         owner: str = "Orion",
     ) -> None:
-        self.client = client
+        self.swis = swis
         self.id = id
         self.name = name
         self.community = community
@@ -186,14 +186,14 @@ class OrionSNMPv2Credential(OrionCredential):
 class OrionUserPassCredential(OrionCredential):
     def __init__(
         self,
-        client: SWISClient,
+        swis: SWISClient,
         id: Optional[int] = None,
         name: str = "",
         owner: str = "Orion",
         username: str = "",
         password: str = "",
     ) -> None:
-        self.client = client
+        self.swis = swis
         self.id = id
         self.name = name
         self.owner = owner
