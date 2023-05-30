@@ -27,7 +27,7 @@ class SolarWindsClient:
         return self.swis.query(query)
 
 
-def api(
+def init(
     hostname: str,
     username: str,
     password: str,
