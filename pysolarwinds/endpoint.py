@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from typing import Any, Dict, Optional, Union
 
 from pysolarwinds.swis import SWISClient
@@ -69,7 +69,7 @@ class Endpoint:
     @property
     def _schema_doc_url(self) -> str:
         base_url = (
-            f"http://pysolarwinds.github.io/OrionSDK/{self._schema_version}/schema"
+            f"http://solarwinds.github.io/OrionSDK/{self._schema_version}/schema"
         )
         if self.endpoint:
             return f"{base_url}/{self.endpoint}.html"
@@ -562,12 +562,14 @@ class NewEndpoint:
         swis: SWISClient,
         data: Optional[Dict] = None,
         uri: Optional[str] = None,
+        id: Optional[int] = None,
     ) -> None:
         if not uri and not data:
-            raise ValueError("must provide URI or data")
+            raise ValueError("Must provide URI, data dict, or SolarWinds object ID.")
         self.swis = swis
-        self.uri = uri
         self.data = data
+        self.uri = uri  # Not yet implemented
+        self.id = id
         if not self.uri:
             self.uri = self.data.get("Uri")
         if not self.data:
@@ -582,7 +584,7 @@ class NewEndpoint:
 
     @property
     def id(self) -> int:
-        """Override in subclass"""
+        """Override in subclass."""
         pass
 
     @property
@@ -595,7 +597,7 @@ class NewEndpoint:
 
     @property
     def name(self) -> str:
-        """Override in subclass"""
+        """Override in subclass."""
         return ""
 
     def delete(self) -> bool:
@@ -624,7 +626,7 @@ class MonitoredEndpoint(NewEndpoint):
         return self.data.get("UnManaged")
 
     @property
-    def last_sync(self) -> Optional[datetime]:
+    def last_sync(self) -> Optional[datetime.datetime]:
         last_sync = self.data.get("LastSync")
         if last_sync:
             return datetime.strptime(last_sync, DATE_FORMATTER)
@@ -634,13 +636,13 @@ class MonitoredEndpoint(NewEndpoint):
         return self.data.get("MinutesSinceLastSync")
 
     @property
-    def next_poll(self) -> Optional[datetime]:
+    def next_poll(self) -> Optional[datetime.datetime]:
         next_poll = self.data.get("NextPoll")
         if next_poll:
             return datetime.strptime(next_poll, DATE_FORMATTER)
 
     @property
-    def next_rediscovery(self) -> Optional[datetime]:
+    def next_rediscovery(self) -> Optional[datetime.datetime]:
         next_rediscovery = self.data.get("NextRediscovery")
         if next_rediscovery:
             return datetime.strptime(next_rediscovery, DATE_FORMATTER)
@@ -682,13 +684,13 @@ class MonitoredEndpoint(NewEndpoint):
         return self.data.get("StatusLED")
 
     @property
-    def unmanage_from(self) -> Optional[datetime]:
+    def unmanage_from(self) -> Optional[datetime.datetime]:
         unmanage_from = self.data.get("UnManageFrom")
         if unmanage_from:
             return datetime.strptime(unmanage_from, DATE_FORMATTER)
 
     @property
-    def unmanage_until(self) -> Optional[datetime]:
+    def unmanage_until(self) -> Optional[datetime.datetime]:
         unmanage_to = self.data.get("UnManageUntil")
         if unmanage_to:
             return datetime.strptime(unmanage_to, DATE_FORMATTER)
