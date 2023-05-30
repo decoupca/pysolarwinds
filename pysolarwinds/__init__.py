@@ -31,8 +31,8 @@ def init(
     hostname: str,
     username: str,
     password: str,
-    verify: Union[bool, str] = False,
-    timeout: int = 60,
+    verify: VerifyTypes = True,
+    timeout: float = 30.0,
 ):
     return SolarWindsClient(
         hostname=hostname,
