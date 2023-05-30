@@ -231,7 +231,7 @@ class OrionVolume(MonitoredEndpoint):
         return self.data.get("VolumeTypeIcon") or ""
 
     def delete(self) -> bool:
-        self.api.delete(self.uri)
+        self.swis.delete(self.uri)
         if self.node.volumes.get(self):
             self.node.volumes.items.remove(self)
         logger.info(f"{self.node}: {self}: deleted volume")
@@ -246,7 +246,7 @@ class OrionVolumes(BaseList):
 
     def delete(self, volumes: Union[OrionVolume, List[OrionVolume]]) -> bool:
         if isinstance(volumes, list):
-            self.api.delete([x.uri for x in volumes])
+            self.swis.delete([x.uri for x in volumes])
             for volume in volumes:
                 self.node.volumes.items.remove(volume)
             logger.info(f"{self.node}: deleted {len(volumes)} volumes")
@@ -258,7 +258,7 @@ class OrionVolumes(BaseList):
         self.fetch()
         volume_count = len(self)
         if volume_count:
-            self.api.delete([x.uri for x in self])
+            self.swis.delete([x.uri for x in self])
             self.items = []
             logger.info(f"{self.node}: Deleted all volumes ({volume_count})")
             return True
@@ -335,9 +335,9 @@ class OrionVolumes(BaseList):
             FROM Orion.Volumes
             WHERE NodeID = '{self.node.id}'
         """
-        results = self.api.query(query)
+        results = self.swis.query(query)
         if results:
             volumes = []
             for result in results:
-                volumes.append(OrionVolume(api=self.api, node=self.node, data=result))
+                volumes.append(OrionVolume(swis=self.swis, node=self.node, data=result))
             self.items = volumes

@@ -8,10 +8,10 @@ from pysolarwinds.models.orion.worldmap import WorldMap
 
 
 class Orion:
-    def __init__(self, api):
-        self.api = api
-        self.worldmap = WorldMap(api=api)
-        self.credential = Credential(api=api)
+    def __init__(self, swis):
+        self.swis = swis
+        self.worldmap = WorldMap(swis=swis)
+        self.credential = Credential(swis=swis)
 
     def engine(
         self,
@@ -19,7 +19,7 @@ class Orion:
         ip_address: Optional[str] = None,
         name: Optional[str] = None,
     ) -> OrionEngine:
-        return OrionEngine(api=self.api, id=id, ip_address=ip_address, name=name)
+        return OrionEngine(swis=self.swis, id=id, ip_address=ip_address, name=name)
 
     def node(
         self,
@@ -39,7 +39,7 @@ class Orion:
         snmpv3_rw_cred: Optional[OrionCredential] = None,
     ) -> OrionNode:
         return OrionNode(
-            api=self.api,
+            swis=self.swis,
             ip_address=ip_address,
             caption=caption,
             custom_properties=custom_properties,

@@ -88,7 +88,7 @@ class OrionSNMPv3Credential(OrionCredential):
         if self.exists():
             raise SWObjectExists
         self._validate()
-        self.id = self.api.invoke(
+        self.id = self.swis.invoke(
             self.endpoint,
             "CreateSNMPv3Credentials",
             self.name,
@@ -109,7 +109,7 @@ class OrionSNMPv3Credential(OrionCredential):
             return self.create()
         else:
             self._validate()
-            self.api.invoke(
+            self.swis.invoke(
                 self.endpoint,
                 "UpdateSNMPv3Credentials",
                 self.id,
@@ -156,7 +156,7 @@ class OrionSNMPv2Credential(OrionCredential):
             raise SWObjectExists()
         self._validate()
 
-        self.id = self.api.invoke(
+        self.id = self.swis.invoke(
             self.endpoint,
             "CreateSNMPCredentials",
             self.name,
@@ -170,7 +170,7 @@ class OrionSNMPv2Credential(OrionCredential):
             return self.create()
         else:
             self._validate()
-            self.api.invoke(
+            self.swis.invoke(
                 self.endpoint,
                 "UpdateSNMPCredentials",
                 self.id,
@@ -214,7 +214,7 @@ class OrionUserPassCredential(OrionCredential):
             raise SWObjectExists
         else:
             self._validate()
-            self.id = self.api.invoke(
+            self.id = self.swis.invoke(
                 self.endpoint,
                 "CreateUsernamePasswordCredentials",
                 self.name,
@@ -229,7 +229,7 @@ class OrionUserPassCredential(OrionCredential):
             return self.create()
         else:
             self._validate()
-            self.api.invoke(
+            self.swis.invoke(
                 self.endpoint,
                 "UpdateUsernamePasswordCredentials",
                 self.id,

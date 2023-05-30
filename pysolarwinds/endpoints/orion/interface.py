@@ -19,7 +19,7 @@ class OrionInterface(Endpoint):
 
     def __init__(self, node, data: Dict) -> None:
         self.node = node
-        self.api = node.api
+        self.swis = node.swis
         self.data = data
         self.uri = data.get("uri")
         self._id = None
@@ -86,7 +86,7 @@ class OrionInterfaces(object):
 
     def __init__(self, node) -> None:
         self.node = node
-        self.api = node.api
+        self.swis = node.swis
         self._existing = []
         self._discovered = []
         self._discovery_response_code = None
@@ -114,7 +114,7 @@ class OrionInterfaces(object):
 
     def add(self, interfaces):
         logger.info(f"{self.node.name}: monitoring {len(interfaces)} interfaces...")
-        return self.api.invoke(
+        return self.swis.invoke(
             "Orion.NPM.Interfaces",
             "AddInterfacesOnNode",
             self.node.id,
@@ -145,7 +145,7 @@ class OrionInterfaces(object):
             WHERE
                 N.NodeID = '{self.node.id}'
         """
-        result = self.api.query(query)
+        result = self.swis.query(query)
         if result:
             self._existing = [OrionInterface(self.node, data=data) for data in result]
         logger.info(
@@ -157,7 +157,7 @@ class OrionInterfaces(object):
             interfaces = [interfaces]
 
         uris = [x.uri for x in interfaces]
-        self.api.delete(uris)
+        self.swis.delete(uris)
         for interface in interfaces:
             if interface in self._existing:
                 self._existing.remove(interface)
@@ -166,7 +166,7 @@ class OrionInterfaces(object):
 
     def delete_all(self) -> bool:
         interface_count = len(self._existing)
-        self.api.delete([x.uri for x in self._existing])
+        self.swis.delete([x.uri for x in self._existing])
         self._existing = []
         logger.info(f"{self.node}: deleted {interface_count} interfaces")
         return True
@@ -193,12 +193,12 @@ class OrionInterfaces(object):
         # will hang at "unknown" status
         if not isinstance(self.node.polling_engine, OrionEngine):
             self._resolve_endpoint_attrs()
-        api_hostname = self.api.hostname
-        self.api.hostname = self.node.polling_engine.ip_address
-        result = self.api.invoke(
+        swis_hostname = self.swis.hostname
+        self.swis.hostname = self.node.polling_engine.ip_address
+        result = self.swis.invoke(
             "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.node.id
         )
-        self.api.hostname = api_hostname
+        self.swis.hostname = swis_hostname
         self._discovery_response_code = result["Result"]
         if self._discovery_response_code == 0:
             results = result["DiscoveredInterfaces"]

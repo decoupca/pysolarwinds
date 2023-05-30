@@ -198,7 +198,7 @@ class OrionNode(Endpoint):
             "ip_address": swdata["IPAddress"],
             "snmpv2_ro_community": swdata["Community"],
             "snmpv2_rw_community": swdata["RWCommunity"],
-            "polling_engine": OrionEngine(api=self.api, id=swdata["EngineID"]),
+            "polling_engine": OrionEngine(swis=self.swis, id=swdata["EngineID"]),
             "polling_method": self._get_polling_method(),
             "snmp_version": swdata["SNMPVersion"],
         }
@@ -238,12 +238,12 @@ class OrionNode(Endpoint):
             "SELECT Status FROM Orion.DiscoveryProfiles "
             f"WHERE ProfileID = {self._discovery_id}"
         )
-        self._discovery_status = self.api.query(query)[0]["Status"]
+        self._discovery_status = self.swis.query(query)[0]["Status"]
 
     def _get_import_status(self) -> None:
         if not self._import_job_id:
             return None
-        self._import_status = self.api.invoke(
+        self._import_status = self.swis.invoke(
             "Orion.Nodes",
             "GetScheduledListResourcesStatus",
             self._import_job_id,
@@ -289,12 +289,12 @@ class OrionNode(Endpoint):
             raise SWObjectPropertyError(f"must provide IP address to create node")
         if not self.polling_engine:
             self.polling_engine = OrionEngine(
-                api=self.api, id=DEFAULT_POLLING_ENGINE_ID
+                swis=self.swis, id=DEFAULT_POLLING_ENGINE_ID
             )
         if isinstance(self.polling_engine, int):
-            self.polling_engine = OrionEngine(api=self.api, id=self.polling_engine)
+            self.polling_engine = OrionEngine(swis=self.swis, id=self.polling_engine)
         if isinstance(self.polling_engine, str):
-            self.polling_engine = OrionEngine(api=self.api, name=self.polling_engine)
+            self.polling_engine = OrionEngine(swis=self.swis, name=self.polling_engine)
         if not self.polling_engine.exists():
             raise SWObjectPropertyError(
                 f"polling engine {self.polling_engine} does not exist"
@@ -368,7 +368,7 @@ class OrionNode(Endpoint):
             )
         if not self.polling_engine:
             self.polling_engine = OrionEngine(
-                api=self.api, id=DEFAULT_POLLING_ENGINE_ID
+                swis=self.swis, id=DEFAULT_POLLING_ENGINE_ID
             )
         self._resolve_endpoint_attrs()
 
@@ -377,14 +377,14 @@ class OrionNode(Endpoint):
         if self.snmp_version == 2:
             if self.snmpv2_rw_community:
                 cred = OrionSNMPv2Credential(
-                    api=self.api, name=self.snmpv2_rw_community
+                    swis=self.swis, name=self.snmpv2_rw_community
                 )
                 if cred.exists():
                     credentials.append({"CredentialID": cred.id, "Order": order})
                     order += 1
             if self.snmpv2_ro_community:
                 cred = OrionSNMPv2Credential(
-                    api=self.api, name=self.snmpv2_ro_community
+                    swis=self.swis, name=self.snmpv2_ro_community
                 )
                 if cred.exists():
                     credentials.append({"CredentialID": cred.id, "Order": order})
@@ -414,7 +414,7 @@ class OrionNode(Endpoint):
             "WmiRetriesCount": 0,
             "WmiRetryIntervalMiliseconds": 1000,
         }
-        core_plugin_config = self.api.invoke(
+        core_plugin_config = self.swis.invoke(
             "Orion.Discovery", "CreateCorePluginConfiguration", core_plugin_context
         )
         interface_type_map = {
@@ -445,7 +445,7 @@ class OrionNode(Endpoint):
                     type.capitalize()
                 )
 
-        interfaces_plugin_config = self.api.invoke(
+        interfaces_plugin_config = self.swis.invoke(
             "Orion.NPM.Interfaces",
             "CreateInterfacesPluginConfiguration",
             interfaces_plugin_context,
@@ -471,7 +471,7 @@ class OrionNode(Endpoint):
                 {"PluginConfigurationItem": interfaces_plugin_config},
             ],
         }
-        self._discovery_id = self.api.invoke(
+        self._discovery_id = self.swis.invoke(
             "Orion.Discovery", "StartDiscovery", discovery_profile
         )
         logger.info(f"{self}: Discovering node...")
@@ -493,7 +493,7 @@ class OrionNode(Endpoint):
                 "SELECT Result, ResultDescription, ErrorMessage, BatchID "
                 f"FROM Orion.DiscoveryLogs WHERE ProfileID = {self._discovery_id}"
             )
-            self._discovery_result = self.api.query(query)
+            self._discovery_result = self.swis.query(query)
             result_code = self._discovery_result[0]["Result"]
         else:
             raise SWDiscoveryError(
@@ -509,7 +509,7 @@ class OrionNode(Endpoint):
                 "SELECT EntityType, DisplayName, NetObjectID FROM "
                 f"Orion.DiscoveryLogItems WHERE BatchID = '{batch_id}'"
             )
-            self._discovered_items = self.api.query(query) or []
+            self._discovered_items = self.swis.query(query) or []
             logger.info(
                 f"{self}: Discovered and imported {len(self._discovered_items)} items"
             )
@@ -584,10 +584,10 @@ class OrionNode(Endpoint):
         # will hang at "unknown" status
         if not isinstance(self.polling_engine, OrionEngine):
             self._resolve_endpoint_attrs()
-        api_hostname = self.api.hostname
-        self.api.hostname = self.polling_engine.ip_address
+        swis_hostname = self.swis.hostname
+        self.swis.hostname = self.polling_engine.ip_address
 
-        self._import_job_id = self.api.invoke(
+        self._import_job_id = self.swis.invoke(
             "Orion.Nodes", "ScheduleListResources", self.id
         )
         logger.debug(f"{self}: Resource import job ID: {self._import_job_id}")
@@ -603,23 +603,23 @@ class OrionNode(Endpoint):
                 f"timeout {timeout}sec, status: {self._import_status}"
             )
         if self._import_status == "ReadyForImport":
-            self._import_response = self.api.invoke(
+            self._import_response = self.swis.invoke(
                 "Orion.Nodes", "ImportListResourcesResult", self._import_job_id, self.id
             )
             if self._import_response:
                 logger.info(f"{self}: Imported and monitored all SNMP resources")
-                self.api.hostname = api_hostname
+                self.swis.hostname = swis_hostname
                 # discovery causes new pollers to be added automatically; let's fetch them
                 self.pollers.fetch()
                 return True
             else:
-                self.api.hostname = api_hostname
+                self.swis.hostname = swis_hostname
                 raise SWResourceImportError(
                     f"{self}: SNMP resource import failed. "
                     "SWIS does not provide any further info, sorry :("
                 )
         else:
-            self.api.hostname = api_hostname
+            self.swis.hostname = swis_hostname
             raise SWResourceImportError(
                 f"{self.name}: timed out waiting for SNMP resources ({timeout}sec)"
             )
@@ -628,7 +628,7 @@ class OrionNode(Endpoint):
         if self.exists():
             self._get_swdata(data="properties")
             if self._swdata["properties"]["UnManaged"]:
-                self.api.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
+                self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
                 logger.info(f"{self.name}: re-managed node")
                 self._get_swdata(data="properties", refresh=True)
                 return True
@@ -666,7 +666,7 @@ class OrionNode(Endpoint):
             if not end:
                 end = now + duration
             self._get_swdata(data="properties")
-            self.api.invoke(
+            self.swis.invoke(
                 "Orion.Nodes", "Unmanage", f"N:{self.id}", start, end, False
             )
             logger.info(f"{self}: Unmanaged until {end}")
@@ -677,7 +677,7 @@ class OrionNode(Endpoint):
             return False
 
     def _get_alert_suppression_state(self) -> Dict:
-        return self.api.invoke(
+        return self.swis.invoke(
             "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri]
         )[0]
 
@@ -757,7 +757,7 @@ class OrionNode(Endpoint):
         # string in this format: 2023-02-28T16:40:00Z. The trailing "Z" causes
         # SWIS to properly recognize the datetime is in UTC already, and makes
         # no erroneous conversion.
-        self.api.invoke(
+        self.swis.invoke(
             "Orion.AlertSuppression",
             "SuppressAlerts",
             [self.uri],
@@ -791,7 +791,7 @@ class OrionNode(Endpoint):
         Node resumes normal alerting.
         """
         # This call returns nothing if successful.
-        self.api.invoke("Orion.AlertSuppression", "ResumeAlerts", [self.uri])
+        self.swis.invoke("Orion.AlertSuppression", "ResumeAlerts", [self.uri])
         logger.info(f"{self}: Resumed alerts.")
         return True
 
@@ -1269,7 +1269,7 @@ class OrionNode(Endpoint):
                 )
         if not self.polling_engine:
             self.polling_engine = OrionEngine(
-                api=self.api, id=DEFAULT_POLLING_ENGINE_ID
+                swis=self.swis, id=DEFAULT_POLLING_ENGINE_ID
             )
         self.settings.save()
         return super().save()

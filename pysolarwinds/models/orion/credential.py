@@ -16,12 +16,12 @@ class Credential(BaseModel):
             query = f"SELECT ID, Name, Description, CredentialType, CredentialOwner FROM Orion.Credential WHERE ID = '{id}'"
         if name:
             query = f"SELECT ID, Name, Description, CredentialType, CredentialOwner FROM Orion.Credential WHERE Name = '{name}'"
-        result = self.api.query(query)[0]
+        result = self.swis.query(query)[0]
 
         if result:
             if result["CredentialType"].endswith("SnmpCredentialsV3"):
                 return OrionSNMPv3Credential(
-                    api=self.api,
+                    swis=self.swis,
                     id=id,
                     name=name,
                     owner=result["CredentialOwner"],
@@ -29,7 +29,7 @@ class Credential(BaseModel):
                 )
             if result["CredentialType"].endswith("SnmpCredentialsV2"):
                 return OrionSNMPv2Credential(
-                    api=self.api,
+                    swis=self.swis,
                     id=id,
                     name=name,
                     owner=result["CredentialOwner"],
@@ -44,7 +44,7 @@ class Credential(BaseModel):
         owner: str = "Orion",
     ) -> OrionSNMPv2Credential:
         return OrionSNMPv2Credential(
-            api=self.api, id=id, name=name, community=community, owner=owner
+            swis=self.swis, id=id, name=name, community=community, owner=owner
         )
 
     def snmpv3(
@@ -63,7 +63,7 @@ class Credential(BaseModel):
         priv_key_is_password: bool = False,
     ) -> OrionSNMPv3Credential:
         return OrionSNMPv3Credential(
-            api=self.api,
+            swis=self.swis,
             id=id,
             name=name,
             description=description,
@@ -87,7 +87,7 @@ class Credential(BaseModel):
         owner: str = "Orion",
     ) -> OrionUserPassCredential:
         return OrionUserPassCredential(
-            api=self.api,
+            swis=self.swis,
             id=id,
             name=name,
             username=username,

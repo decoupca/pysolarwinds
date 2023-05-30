@@ -67,7 +67,7 @@ class OrionPoller(NewEndpoint):
         return self.data.get("InstanceSiteId")
 
     def delete(self) -> bool:
-        self.api.delete(self.uri)
+        self.swis.delete(self.uri)
         if self.node.pollers.get(self):
             self.node.pollers.items.remove(self)
         logger.info(f"{self.node}: {self}: deleted poller")
@@ -102,7 +102,7 @@ class OrionPollers(BaseList):
 
     def __init__(self, node, enabled_pollers: Optional[List[str]] = None) -> None:
         self.node = node
-        self.api = self.node.api
+        self.swis = self.node.swis
         self._enabled_pollers = enabled_pollers
         self.items = []
         if self.node.exists():
@@ -132,9 +132,9 @@ class OrionPollers(BaseList):
                 "NetObjectID": self.node.id,
                 "Enabled": enabled,
             }
-            uri = self.api.create("Orion.Pollers", **kwargs)
-            data = self.api.read(uri)
-            new_poller = OrionPoller(api=self.api, node=self.node, data=data)
+            uri = self.swis.create("Orion.Pollers", **kwargs)
+            data = self.swis.read(uri)
+            new_poller = OrionPoller(swis=self.swis, node=self.node, data=data)
             self.items.append(new_poller)
             logger.info(
                 f"{self.node}: {new_poller}: created new poller "
@@ -151,7 +151,7 @@ class OrionPollers(BaseList):
     def delete_all(self) -> bool:
         pollers = self.items
         if pollers:
-            self.api.delete([x.uri for x in self.items])
+            self.swis.delete([x.uri for x in self.items])
             self.items = []
             logger.info(f"{self.node}: Deleted all {len(pollers)} pollers")
         else:
@@ -186,9 +186,9 @@ class OrionPollers(BaseList):
             "Enabled, DisplayName, Description, InstanceType, Uri, InstanceSiteId "
             f"FROM Orion.Pollers WHERE NetObjectID='{self.node.id}'"
         )
-        results = self.api.query(query)
+        results = self.swis.query(query)
         if results:
             pollers = []
             for result in results:
-                pollers.append(OrionPoller(api=self.api, node=self.node, data=result))
+                pollers.append(OrionPoller(swis=self.swis, node=self.node, data=result))
             self.items = pollers

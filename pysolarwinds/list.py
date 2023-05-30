@@ -6,7 +6,7 @@ class BaseList:
 
     def __init__(self, node) -> None:
         self.node = node
-        self.api = self.node.api
+        self.swis = self.node.swis
         self.items = []
 
     def get(self, item: Any) -> Any:

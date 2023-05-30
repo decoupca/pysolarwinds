@@ -6,4 +6,4 @@ class WorldMap(BaseModel):
     name = "WorldMap"
 
     def point(self, **kwargs):
-        return WorldMapPoint(self.api, **kwargs)
+        return WorldMapPoint(self.swis, **kwargs)

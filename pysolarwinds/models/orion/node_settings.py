@@ -19,7 +19,7 @@ class OrionNodeSetting:
         self, node, name: str, value: Union[str, int], node_setting_id: int = None
     ) -> None:
         self.node = node
-        self.api = node.api
+        self.swis = node.swis
         self.node_setting_id = node_setting_id
         self.name = name
         self.value = value
@@ -43,7 +43,7 @@ class OrionNodeSetting:
 
 class SNMPCredentialSetting(OrionNodeSetting):
     def build(self) -> None:
-        model = CredentialModel(api=self.api)
+        model = CredentialModel(swis=self.swis)
         cred = model.get(id=self.value)
         mode = self.name[:2]
         version = int(cred.type[-1:])
@@ -67,7 +67,7 @@ class OrionNodeSettings(object):
 
     def __init__(self, node):
         self.node = node
-        self.api = node.api
+        self.swis = node.swis
         self._settings = []
 
     def fetch(self) -> None:
@@ -76,7 +76,7 @@ class OrionNodeSettings(object):
             "SELECT SettingName, SettingValue, NodeSettingID "
             f"FROM Orion.NodeSettings WHERE NodeID = '{self.node.id}'"
         )
-        settings = self.api.query(query)
+        settings = self.swis.query(query)
         if settings:
             for setting in settings:
                 name = setting["SettingName"]
@@ -110,7 +110,7 @@ class OrionNodeSettings(object):
             "INSERT INTO NodeSettings (NodeID, SettingName, SettingValue) VALUES "
             f"('{setting.node.id}', '{setting.name}', '{setting.value}')"
         )
-        self.api.sql(statement)
+        self.swis.sql(statement)
         # raw SQL statements don't return anything, so we need to pull the
         # node_setting_id from a separate query
         query = (
@@ -118,7 +118,7 @@ class OrionNodeSettings(object):
             f"FROM Orion.NodeSettings WHERE NodeID = '{self.node.id}' "
             f"AND SettingName = '{setting.name}'"
         )
-        result = self.api.query(query)
+        result = self.swis.query(query)
         if result:
             setting.node_setting_id = result[0]["NodeSettingID"]
         else:
@@ -131,7 +131,7 @@ class OrionNodeSettings(object):
 
     def delete(self, setting: OrionNodeSetting) -> bool:
         statement = f"DELETE FROM NodeSettings WHERE NodeSettingID = '{setting.node_setting_id}'"
-        self.api.sql(statement)
+        self.swis.sql(statement)
         self._settings.remove(setting)
         return True
 
