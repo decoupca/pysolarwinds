@@ -59,7 +59,7 @@ class OrionSNMPv3Credential(OrionCredential):
         priv_password: str = "",
         priv_key_is_password: bool = False,
     ) -> None:
-        self.api = api
+        self.client = client
         self.id = id
         self.name = name
         self.owner = owner
