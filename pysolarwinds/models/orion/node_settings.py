@@ -12,7 +12,6 @@ logger = get_logger(__name__)
 
 
 class OrionNodeSetting:
-
     node_attr = None
     node_attr_value = None
 
@@ -53,7 +52,6 @@ class SNMPCredentialSetting(OrionNodeSetting):
 
 
 class OrionNodeSettings(object):
-
     SETTING_MAP = {
         "ROSNMPCredentialID": {
             "class": SNMPCredentialSetting,

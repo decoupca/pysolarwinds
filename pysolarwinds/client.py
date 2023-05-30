@@ -15,7 +15,7 @@ def _json_serial(obj):
         return serial
 
 
-class API:
+class SWISClient:
     def __init__(
         self,
         hostname: str,

@@ -1,6 +1,6 @@
 from typing import List, Union
 
-from pysolarwinds.api import API
+from pysolarwinds.client import SWISClient
 from pysolarwinds.models.orion import Orion
 
 
@@ -13,17 +13,17 @@ class pysolarwinds:
         verify: Union[bool, str] = False,
         timeout: int = 60,
     ):
-        self.api = API(
+        self.client = SWISClient(
             hostname=hostname,
             username=username,
             password=password,
             verify=verify,
             timeout=timeout,
         )
-        self.orion = Orion(self.api)
+        self.orion = Orion(self.client)
 
     def query(self, query: str) -> List:
-        return self.api.query(query)
+        return self.client.query(query)
 
 
 def api(

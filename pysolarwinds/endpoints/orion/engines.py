@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Dict, Optional
 
-from pysolarwinds.api import API
+from pysolarwinds.client import SWISClient
 from pysolarwinds.endpoint import Endpoint
 from pysolarwinds.utils import parse_datetime
 
@@ -21,12 +21,12 @@ class OrionEngine(Endpoint):
 
     def __init__(
         self,
-        api: API,
+        client: SWISClient,
         id: Optional[int] = None,
         ip_address: Optional[str] = None,
         name: Optional[str] = None,
     ) -> None:
-        self.api = api
+        self.client = client
         self.id = id
         self.ip_address = ip_address
         self.name = name

@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Union
 
-from pysolarwinds.api import API
+from pysolarwinds.client import SWISClient
 from pysolarwinds.endpoint import MonitoredEndpoint
 from pysolarwinds.exceptions import SWObjectExists
 from pysolarwinds.list import BaseList
@@ -15,12 +15,12 @@ class OrionVolume(MonitoredEndpoint):
 
     def __init__(
         self,
-        api: API,
+        client: SWISClient,
         node,
         data: Optional[Dict] = None,
         uri: Optional[str] = None,
     ) -> None:
-        super().__init__(api=api, data=data, uri=uri)
+        super().__init__(client=client, data=data, uri=uri)
         self.node = node
 
     @property

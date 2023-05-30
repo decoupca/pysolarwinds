@@ -1,6 +1,6 @@
 from typing import Dict, Literal, Optional
 
-from pysolarwinds.api import API
+from pysolarwinds.client import SWISClient
 from pysolarwinds.endpoint import Endpoint
 from pysolarwinds.exceptions import SWObjectExists
 
@@ -45,7 +45,7 @@ class OrionSNMPv3Credential(OrionCredential):
 
     def __init__(
         self,
-        api: API,
+        client: SWISClient,
         id: Optional[int] = None,
         name: str = "",
         owner: str = "Orion",
@@ -96,10 +96,10 @@ class OrionSNMPv3Credential(OrionCredential):
             self.context,
             self.auth_method.upper() if self.auth_method else "None",
             self.auth_password,
-            not self.auth_key_is_password,  # AFAICT, the SWIS API has this flag inverted
+            not self.auth_key_is_password,  # AFAICT, the SWIS SWISClient has this flag inverted
             self.priv_method.upper() if self.priv_method else "None",
             self.priv_password,
-            not self.priv_key_is_password,  # AFAICT, the SWIS API has this flag inverted
+            not self.priv_key_is_password,  # AFAICT, the SWIS SWISClient has this flag inverted
             self.owner,
         )
         return True
@@ -118,10 +118,10 @@ class OrionSNMPv3Credential(OrionCredential):
                 self.context,
                 self.auth_method.upper() if self.auth_method else "None",
                 self.auth_password,
-                not self.auth_key_is_password,  # AFAICT, the SWIS API has this flag inverted
+                not self.auth_key_is_password,  # AFAICT, the SWIS SWISClient has this flag inverted
                 self.priv_method.upper() if self.priv_method else "None",
                 self.priv_password,
-                not self.priv_key_is_password,  # AFAICT, the SWIS API has this flag inverted
+                not self.priv_key_is_password,  # AFAICT, the SWIS SWISClient has this flag inverted
             )
             return True
 
@@ -132,13 +132,13 @@ class OrionSNMPv3Credential(OrionCredential):
 class OrionSNMPv2Credential(OrionCredential):
     def __init__(
         self,
-        api: API,
+        client: SWISClient,
         id: Optional[int] = None,
         name: str = "",
         community: str = "",
         owner: str = "Orion",
     ) -> None:
-        self.api = api
+        self.client = client
         self.id = id
         self.name = name
         self.community = community
@@ -186,14 +186,14 @@ class OrionSNMPv2Credential(OrionCredential):
 class OrionUserPassCredential(OrionCredential):
     def __init__(
         self,
-        api: API,
+        client: SWISClient,
         id: Optional[int] = None,
         name: str = "",
         owner: str = "Orion",
         username: str = "",
         password: str = "",
     ) -> None:
-        self.api = api
+        self.client = client
         self.id = id
         self.name = name
         self.owner = owner

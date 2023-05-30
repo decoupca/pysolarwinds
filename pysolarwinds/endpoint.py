@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, Optional, Union
 
-from pysolarwinds.api import API
+from pysolarwinds.client import SWISClient
 from pysolarwinds.constants import DATE_FORMATTER
 from pysolarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from pysolarwinds.exceptions import (
@@ -17,7 +17,6 @@ logger = get_logger(__name__)
 
 
 class Endpoint:
-
     endpoint = None
     _attr_map = None
     _endpoint_attrs = None
@@ -69,7 +68,9 @@ class Endpoint:
 
     @property
     def _schema_doc_url(self) -> str:
-        base_url = f"http://pysolarwinds.github.io/OrionSDK/{self._schema_version}/schema"
+        base_url = (
+            f"http://pysolarwinds.github.io/OrionSDK/{self._schema_version}/schema"
+        )
         if self.endpoint:
             return f"{base_url}/{self.endpoint}.html"
         else:
@@ -558,7 +559,7 @@ class NewEndpoint:
 
     def __init__(
         self,
-        api: API,
+        api: SWISClient,
         data: Optional[Dict] = None,
         uri: Optional[str] = None,
     ) -> None:

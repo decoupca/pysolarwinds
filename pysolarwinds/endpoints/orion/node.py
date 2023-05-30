@@ -4,9 +4,12 @@ from time import sleep
 from typing import Callable, Dict, List, Literal, NewType, Optional, Union
 
 import pysolarwinds.defaults as d
-from pysolarwinds.api import API
+from pysolarwinds.client import SWISClient
 from pysolarwinds.endpoint import Endpoint
-from pysolarwinds.endpoints.orion.credential import OrionCredential, OrionSNMPv2Credential
+from pysolarwinds.endpoints.orion.credential import (
+    OrionCredential,
+    OrionSNMPv2Credential,
+)
 from pysolarwinds.endpoints.orion.engines import OrionEngine
 from pysolarwinds.endpoints.orion.interface import OrionInterfaces
 from pysolarwinds.endpoints.orion.pollers import OrionPoller, OrionPollers
@@ -69,7 +72,7 @@ class OrionNode(Endpoint):
 
     def __init__(
         self,
-        api: API,
+        client: SWISClient,
         ip_address: Optional[str] = None,
         caption: Optional[str] = None,
         custom_properties: Optional[Dict] = None,
@@ -85,7 +88,7 @@ class OrionNode(Endpoint):
         snmpv3_ro_cred: Optional[OrionCredential] = None,
         snmpv3_rw_cred: Optional[OrionCredential] = None,
     ):
-        self.api = api
+        self.client = client
         self.caption = caption
         self.custom_properties = custom_properties
         self.ip_address = ip_address

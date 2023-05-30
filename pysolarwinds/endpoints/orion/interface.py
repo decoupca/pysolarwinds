@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List, Union, Optional
+from typing import Dict, List, Optional, Union
 
 from pysolarwinds.endpoint import Endpoint
 from pysolarwinds.endpoints.orion.engines import OrionEngine
@@ -229,7 +229,9 @@ class OrionInterfaces(object):
                 )
                 raise SWDiscoveryError(msg)
 
-    def monitor(self, interfaces: Optional[list[str]] = None, delete_extraneous: bool = False) -> None:
+    def monitor(
+        self, interfaces: Optional[list[str]] = None, delete_extraneous: bool = False
+    ) -> None:
         """
         Monitor interfaces on node.
 
