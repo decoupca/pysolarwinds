@@ -21,9 +21,9 @@ class OrionNode(NewEndpoint):
         # self.latitude = latitude
         # self.longitude = longitude
         # self.polling_engine = polling_engine
-        self.snmp_version = snmp_version
-        self.snmpv2_ro_community = snmpv2_ro_community
-        self.snmpv2_rw_community = snmpv2_rw_community
-        self.snmpv3_ro_cred = snmpv3_ro_cred
-        self.snmpv3_rw_cred = snmpv3_rw_cred
-        self.polling_method = polling_method
+        self.snmp_version: int = self.data.get("SNMPVersion", "")
+        self.snmpv2_ro_community: str = self.data.get("Community", "")
+        self.snmpv2_rw_community: str = self.data.get("RWCommunity", "")
+        # self.snmpv3_ro_cred = snmpv3_ro_cred
+        # self.snmpv3_rw_cred = snmpv3_rw_cred
+        self.polling_method: str = self.data.get("ObjectSubType", "").lower()
