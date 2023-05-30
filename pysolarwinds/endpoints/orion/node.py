@@ -4,7 +4,6 @@ from time import sleep
 from typing import Callable, Dict, List, Literal, NewType, Optional, Union
 
 import pysolarwinds.defaults as d
-from pysolarwinds.swis import SWISClient
 from pysolarwinds.endpoint import Endpoint
 from pysolarwinds.endpoints.orion.credential import (
     OrionCredential,
@@ -24,6 +23,7 @@ from pysolarwinds.exceptions import (
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import NODE_DISCOVERY_STATUS_MAP
 from pysolarwinds.models.orion.node_settings import OrionNodeSettings
+from pysolarwinds.swis import SWISClient
 
 logger = get_logger(__name__)
 

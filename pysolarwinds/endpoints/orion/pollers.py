@@ -1,10 +1,10 @@
 from typing import Dict, List, Optional, Union
 
-from pysolarwinds.swis import SWISClient
 from pysolarwinds.endpoint import NewEndpoint
 from pysolarwinds.exceptions import SWObjectExists
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger
+from pysolarwinds.swis import SWISClient
 
 logger = get_logger(__name__)
 

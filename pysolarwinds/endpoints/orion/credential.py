@@ -1,8 +1,8 @@
 from typing import Dict, Literal, Optional
 
-from pysolarwinds.swis import SWISClient
 from pysolarwinds.endpoint import Endpoint
 from pysolarwinds.exceptions import SWObjectExists
+from pysolarwinds.swis import SWISClient
 
 
 class OrionCredential(Endpoint):

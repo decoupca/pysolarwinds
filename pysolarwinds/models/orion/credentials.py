@@ -8,7 +8,7 @@ from pysolarwinds.endpoints.orion.credential import (
 from pysolarwinds.model import BaseModel
 
 
-class Credential(BaseModel):
+class Credentials(BaseModel):
     name = "Credential"
 
     def get(self, id: Optional[int] = None, name: Optional[str] = None):

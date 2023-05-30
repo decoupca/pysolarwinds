@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 
 def parse_response(response: List) -> Optional[Dict]:
     """Parse a response from SWIS"""
-    if response is not None:
+    if response:
         result = response.get("results")
         if len(result) == 0:
             return None

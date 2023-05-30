@@ -1,8 +1,9 @@
 from typing import List, Union
 
-from pysolarwinds.swis import SWISClient
-from pysolarwinds.models.orion import Orion
 from httpx._types import VerifyTypes
+
+from pysolarwinds.models.orion import Orion
+from pysolarwinds.swis import SWISClient
 
 
 class SolarWindsClient:

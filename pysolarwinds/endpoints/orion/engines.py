@@ -1,232 +1,216 @@
-from datetime import datetime
+import datetime
 from typing import Dict, Optional
 
-from pysolarwinds.swis import SWISClient
-from pysolarwinds.endpoint import Endpoint
+from pysolarwinds.endpoint import NewEndpoint
 from pysolarwinds.utils import parse_datetime
 
 
-class OrionEngine(Endpoint):
-    endpoint = "Orion.Engines"
-    _type = "engine"
-    _id_attr = "id"
-    _swid_key = "EngineID"
-    _attr_map = {
-        "id": "EngineID",
-        "name": "ServerName",
-        "ip_address": "IP",
-    }
-    _swquery_attrs = ["id", "name", "ip_address"]
-    _swargs_attrs = ["id", "name", "ip_address"]
-
-    def __init__(
-        self,
-        swis: SWISClient,
-        id: Optional[int] = None,
-        ip_address: Optional[str] = None,
-        name: Optional[str] = None,
-    ) -> None:
-        self.swis = swis
-        self.id = id
-        self.ip_address = ip_address
-        self.name = name
-        super().__init__()
-
-    def _get_attr_updates(self) -> Dict:
-        swdata = self._swdata["properties"]
-        return {
-            "ip_address": swdata.get("IP"),
-            "id": swdata.get("ID"),
-            "name": swdata.get("ServerName"),
-        }
+class OrionEngine(NewEndpoint):
+    _entity_type = "Orion.Engines"
+    _uri_template = "swis://{}/Orion/Orion.Engines/EngineID={}"
+    _write_attr_map = {}
 
     @property
-    def avg_cpu_used_percent(self) -> Optional[float]:
-        return self._swp.get("AvgCPUUtil")
+    def avg_cpu_used(self) -> float:
+        """Average CPU utilization, most likely percentage."""
+        return self.data["AvgCPUUtil"]
 
     @property
-    def business_layer_port(self) -> Optional[int]:
-        return self._swp.get("BusinessLayerPort")
+    def business_layer_port(self) -> int:
+        """Port used for API data transfer."""
+        return self.data["BusinessLayerPort"]
 
     @property
-    def company_name(self) -> Optional[str]:
-        return self._swp.get("CompanyName")
+    def company_name(self) -> str:
+        """Company name."""
+        return self.data.get("CompanyName", "")
 
     @property
-    def display_name(self) -> Optional[str]:
-        return self._swp.get("DisplayName")
+    def display_name(self) -> str:
+        """Display name."""
+        return self.data.get("DisplayName", "")
 
     @property
-    def elements(self) -> Optional[int]:
-        return self._swp.get("Elements")
+    def elements(self) -> int:
+        return self.data["Elements"]
 
     @property
-    def engine_version(self) -> Optional[str]:
-        return self._swp.get("EngineVersion")
+    def engine_version(self) -> str:
+        return self.data["EngineVersion"]
 
     @property
-    def eval_days_left(self) -> Optional[int]:
-        return self._swp.get("EvalDaysLeft")
+    def eval_days_left(self) -> int:
+        return self.data["EvalDaysLeft"]
 
     @property
     def evaluation(self) -> bool:
-        return bool(self._swp.get("Evaluation"))
+        return bool(self.data.get("Evaluation"))
 
     @property
     def fips_mode_enabled(self) -> bool:
-        return bool(self._swp.get("FIPSModeEnabled"))
+        return bool(self.data["FIPSModeEnabled"])
 
     @property
     def failover_active(self) -> bool:
-        return bool(self._swp.get("FailOverActive"))
+        return bool(self.data["FailOverActive"])
 
     @property
-    def instance_site_id(self) -> Optional[int]:
-        return self._swp.get("InstanceSiteId")
+    def instance_site_id(self) -> int:
+        return self.data["InstanceSiteId"]
 
     @property
-    def interface_poll_interval(self) -> Optional[int]:
-        return self._swp.get("InterfacePollInterval")
+    def interface_poll_interval(self) -> int:
+        return self.data["InterfacePollInterval"]
 
     @property
-    def interface_stat_poll_interval(self) -> Optional[int]:
-        return self._swp.get("InterfaceStatPollInterval")
+    def interface_stat_poll_interval(self) -> int:
+        return self.data["InterfaceStatPollInterval"]
 
     @property
-    def interface_count(self) -> Optional[int]:
-        return self._swp.get("Interfaces")
+    def interface_count(self) -> int:
+        return self.data["Interfaces"]
+
+    @property
+    def ip_address(self) -> str:
+        """IP address."""
+        return self.data["IP"]
 
     @property
     def is_free(self) -> bool:
-        return bool(self._swp.get("IsFree"))
+        return self.data["IsFree"]
 
     @property
-    def keepalive(self) -> Optional[str]:
-        return self._swp.get("KeepAlive")
+    def keepalive(self) -> Optional[datetime.datetime]:
+        return parse_datetime(self.data.get("KeepAlive"))
 
     @property
-    def license_key(self) -> Optional[str]:
-        return self._swp.get("LicenseKey")
+    def license_key(self) -> str:
+        return self.data.get("LicenseKey", "")
 
     @property
-    def licensed_element_count(self) -> Optional[int]:
-        return self._swp.get("LicensedElements")
+    def licensed_element_count(self) -> int:
+        return self.data["LicensedElements"]
 
     @property
     def master_engine_id(self) -> Optional[int]:
-        return self._swp.get("MasterEngineID")
+        return self.data.get("MasterEngineID")
 
     @property
-    def max_polls_per_second(self) -> Optional[int]:
-        return self._swp.get("MaxPollsPerSecond")
+    def max_polls_per_second(self) -> int:
+        return self.data["MaxPollsPerSecond"]
 
     @property
-    def max_stat_polls_per_second(self) -> Optional[int]:
-        return self._swp.get("MaxStatPollsPerSecond")
+    def max_stat_polls_per_second(self) -> int:
+        return self.data["MaxStatPollsPerSecond"]
 
     @property
-    def memory_used_percent(self) -> Optional[float]:
-        return self._swp.get("MemoryUtil")
+    def memory_used(self) -> float:
+        return self.data["MemoryUtil"]
 
     @property
     def minutes_since_failover_active(self) -> Optional[int]:
-        return self._swp.get("MinutesSinceFailOverActive")
+        return self.data.get("MinutesSinceFailOverActive")
 
     @property
     def minutes_since_keepalive(self) -> Optional[int]:
-        return self._swp.get("MinutesSinceKeepAlive")
+        return self.data.get("MinutesSinceKeepAlive")
 
     @property
     def minutes_since_restart(self) -> Optional[int]:
-        return self._swp.get("MinutesSinceRestart")
+        return self.data.get("MinutesSinceRestart")
 
     @property
     def minutes_since_start_time(self) -> Optional[int]:
-        return self._swp.get("MinutesSinceStartTime")
+        return self.data.get("MinutesSinceStartTime")
 
     @property
     def minutes_since_syslog_keepalive(self) -> Optional[int]:
-        return self._swp.get("MinutesSinceSysLogKeepAlive")
+        return self.data.get("MinutesSinceSysLogKeepAlive")
 
     @property
     def minutes_since_trap_keepalive(self) -> Optional[int]:
-        return self._swp.get("MinutesSinceTrapsKeepAlive")
+        return self.data.get("MinutesSinceTrapsKeepAlive")
 
     @property
-    def node_poll_interval(self) -> Optional[int]:
-        return self._swp.get("NodePollInterval")
+    def name(self) -> str:
+        """Object's name."""
+        return self.display_name
 
     @property
-    def node_stat_poll_interval(self) -> Optional[int]:
-        return self._swp.get("NodeStatPollInterval")
+    def node_poll_interval(self) -> int:
+        return self.data["NodePollInterval"]
 
     @property
-    def node_count(self) -> Optional[int]:
-        return self._swp.get("Nodes")
+    def node_stat_poll_interval(self) -> int:
+        return self.data["NodeStatPollInterval"]
 
     @property
-    def package_name(self) -> Optional[int]:
-        return self._swp.get("PackageName")
+    def node_count(self) -> int:
+        return self.data["Nodes"]
 
     @property
-    def poller_count(self) -> Optional[int]:
-        return self._swp.get("Pollers")
+    def package_name(self) -> str:
+        return self.data.get("PackageName", "")
 
     @property
-    def polling_completion_percent(self) -> Optional[float]:
-        return self._swp.get("PollingCompletion")
+    def poller_count(self) -> int:
+        return self.data["Pollers"]
+
+    @property
+    def polling_completion_percent(self) -> float:
+        return self.data["PollingCompletion"]
 
     @property
     def primary_servers(self) -> Optional[str]:
-        return self._swp.get("PrimaryServers")
+        return self.data.get("PrimaryServers")
 
     @property
-    def restart_datetime(self) -> Optional[datetime]:
-        return parse_datetime(self._swp.get("Restart"))
+    def restart_datetime(self) -> Optional[datetime.datetime]:
+        return parse_datetime(self.data["Restart"])
 
     @property
     def serial_number(self) -> Optional[str]:
-        return self._swp.get("SerialNumber")
+        return self.data.get("SerialNumber")
 
     @property
     def server_name(self) -> Optional[str]:
-        return self._swp.get("ServerName")
+        return self.data.get("ServerName")
 
     @property
-    def server_type(self) -> Optional[str]:
-        return self._swp.get("ServicePack")
+    def server_type(self) -> str:
+        return self.data.get("ServicePack", "")
 
     @property
-    def start_time(self) -> Optional[datetime]:
-        return parse_datetime(self._swp.get("StartTime"))
+    def start_time(self) -> Optional[datetime.datetime]:
+        return parse_datetime(self.data.get("StartTime"))
 
     @property
     def stat_poll_interval(self) -> Optional[int]:
-        return self._swp.get("StatPollInterval")
+        return self.data.get("StatPollInterval")
 
     @property
-    def syslog_keepalive(self) -> Optional[datetime]:
-        return parse_datetime(self._swp.get("SysLogKeepAlive"))
+    def syslog_keepalive(self) -> Optional[datetime.datetime]:
+        return parse_datetime(self.data.get("SysLogKeepAlive"))
 
     @property
-    def traps_keepalive(self) -> Optional[datetime]:
-        return parse_datetime(self._swp.get("TrapsKeepAlive"))
+    def traps_keepalive(self) -> Optional[datetime.datetime]:
+        return parse_datetime(self.data.get("TrapsKeepAlive"))
 
     @property
     def volume_poll_interval(self) -> Optional[int]:
-        return self._swp.get("VolumePollInterval")
+        return self.data.get("VolumePollInterval")
 
     @property
-    def volume_stat_poll_interval(self) -> Optional[int]:
-        return self._swp.get("VolumeStatPollInterval")
+    def volume_stat_poll_interval(self) -> int:
+        return self.data["VolumeStatPollInterval"]
 
     @property
-    def volume_count(self) -> Optional[int]:
-        return self._swp.get("Volumes")
+    def volume_count(self) -> int:
+        return self.data["Volumes"]
 
     @property
-    def windows_version(self) -> Optional[str]:
-        return self._swp.get("WindowsVersion")
+    def windows_version(self) -> str:
+        return self.data["WindowsVersion"]
 
     def __repr__(self):
-        return f"<OrionEngine: {self.name or self.ip_address or self.id}>"
+        return f"OrionEngine(id={self.id})"
