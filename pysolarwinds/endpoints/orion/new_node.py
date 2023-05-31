@@ -130,7 +130,7 @@ class OrionNode(MonitoredEndpoint):
 
     @property
     def cpu_load(self) -> int:
-        """Integer representation of CPU load."""
+        """Integer representation of CPU load. This likely represents percentage, not load."""
         return self.data["CPULoad"]
 
     @property
@@ -322,12 +322,12 @@ class OrionNode(MonitoredEndpoint):
     @property
     def alerts_are_muted(self) -> bool:
         """Convenience alias"""
-        return self.alerts_are_suppressed()
+        return self.alerts_are_suppressed
 
     @property
     def alerts_will_be_muted(self) -> bool:
         """Convenience alias"""
-        return self.alerts_will_be_suppressed()
+        return self.alerts_will_be_suppressed
 
     def suppress_alerts(
         self,
