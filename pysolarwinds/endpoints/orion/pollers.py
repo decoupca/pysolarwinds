@@ -11,6 +11,7 @@ logger = get_logger(__name__)
 
 class OrionPoller(NewEndpoint):
     _entity_type = "Orion.Pollers"
+    _uri_template = "swis://{}/Orion/Orion.Pollers/PollerID={}"
     _write_attr_map = {
         "is_enabled": "Enabled",
     }
@@ -19,40 +20,37 @@ class OrionPoller(NewEndpoint):
         self,
         swis: SWISClient,
         node,
-        data: Optional[Dict] = None,
+        id: Optional[int] = None,
         uri: Optional[str] = None,
+        data: Optional[dict] = None,
     ) -> None:
-        super().__init__(swis=swis, data=data, uri=uri)
+        super().__init__(swis=swis, id=id, uri=uri, data=data)
         self.node = node
-        self.is_enabled = self.data.get("Enabled")
+        self.is_enabled: bool = self.data["Enabled"]
 
     @property
     def id(self) -> int:
         return self.poller_id
 
     @property
-    def display_name(self) -> Optional[str]:
-        return self.data.get("DisplayName")
-
-    @property
-    def description(self) -> Optional[str]:
-        return self.data.get("Description")
+    def display_name(self) -> str:
+        return self.data["DisplayName"]
 
     @property
     def poller_id(self) -> int:
-        return self.data.get("PollerID")
+        return self.data["PollerID"]
 
     @property
     def poller_type(self) -> str:
-        return self.data.get("PollerType")
+        return self.data.get("PollerType", "")
 
     @property
     def net_object(self) -> str:
-        return self.data.get("NetObject")
+        return self.data.get("NetObject", "")
 
     @property
     def net_object_type(self) -> str:
-        return self.data.get("NetObjectType")
+        return self.data.get("NetObjectType", "")
 
     @property
     def name(self) -> str:
@@ -60,38 +58,29 @@ class OrionPoller(NewEndpoint):
 
     @property
     def instance_type(self) -> str:
-        return self.data.get("InstanceType")
+        return self.data.get("InstanceType", "")
 
-    @property
-    def instance_site_id(self) -> bool:
-        return self.data.get("InstanceSiteId")
-
-    def delete(self) -> bool:
+    def delete(self) -> None:
         self.swis.delete(self.uri)
         if self.node.pollers.get(self):
             self.node.pollers.items.remove(self)
         logger.info(f"{self.node}: {self}: deleted poller")
-        return True
 
-    def disable(self) -> bool:
+    def disable(self) -> None:
         if not self.is_enabled:
             logger.debug(f"{self.node}: {self}: poller already disabled")
-            return True
         else:
             self.is_enabled = False
             self.save()
             logger.info(f"{self.node}: {self}: disabled poller")
-            return True
 
-    def enable(self) -> bool:
+    def enable(self) -> None:
         if self.is_enabled:
             logger.debug(f"{self.node}: {self}: poller already enabled")
-            return True
         else:
             self.is_enabled = True
             self.save()
             logger.info(f"{self.node}: {self}: enabled poller")
-            return True
 
     def __repr__(self) -> str:
         return f'OrionPoller("{self.name}": {"Enabled" if self.is_enabled else "Disabled"})'

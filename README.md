@@ -1,4 +1,4 @@
 # pysolarwinds
 
-An ergonomic, object-based interface for the SolarWinds API (SWIS).
+A modern Python API for the SolarWinds Information Service (SWIS).
 
