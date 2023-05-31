@@ -306,9 +306,7 @@ class OrionNode(MonitoredEndpoint):
     @property
     def alerts_suppressed_from(self) -> Optional[datetime.datetime]:
         """Date/time from when alerts will be suppressed."""
-        suppression_state = self._get_alert_suppression_state()
-        suppressed_from = suppression_state["SuppressedFrom"]
-        if suppressed_from:
+        if suppressed_from := self._get_alert_suppression_state()["SuppressedFrom"]:
             return datetime.datetime.strptime(suppressed_from, "%Y-%m-%dT%H:%M:%S")
         else:
             return None
@@ -316,9 +314,7 @@ class OrionNode(MonitoredEndpoint):
     @property
     def alerts_suppressed_until(self) -> Optional[datetime.datetime]:
         """Date/time from when alerts will be resumed."""
-        suppression_state = self._get_alert_suppression_state()
-        suppressed_until = suppression_state["SuppressedUntil"]
-        if suppressed_until:
+        if suppressed_until := self._get_alert_suppression_state()["SuppressedUntil"]:
             return datetime.datetime.strptime(suppressed_until, "%Y-%m-%dT%H:%M:%S")
         else:
             return None
