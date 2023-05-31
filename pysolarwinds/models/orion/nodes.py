@@ -26,7 +26,15 @@ class Nodes(BaseModel):
             return OrionNode(swis=self.swis, id=id)
         if uri:
             return OrionNode(swis=self.swis, uri=uri)
+        # TODO: Both of these cases need optimization. As written, they necessitate two API calls:
+        #       one to retrieve the URI, and another to fetch data. Also needs better error handling.
         if caption:
-            pass
+            uri = self.swis.query(
+                f"SELECT Uri FROM Orion.Nodes WHERE Caption = '{caption}'"
+            )[0]["Uri"]
+            return OrionNode(swis=self.swis, uri=uri)
         if ip_address:
-            pass
+            uri = self.swis.query(
+                f"SELECT Uri FROM Orion.Nodes WHERE IPAddress = '{ip_address}'"
+            )[0]["Uri"]
+            return OrionNode(swis=self.swis, uri=uri)

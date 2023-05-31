@@ -4,8 +4,12 @@ from typing import Optional
 from pysolarwinds.endpoint import MonitoredEndpoint
 from pysolarwinds.endpoints.orion.credential import OrionCredential
 from pysolarwinds.endpoints.orion.engines import OrionEngine
+from pysolarwinds.exceptions import SWAlertSuppressionError
+from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import NODE_STATUS_MAP
 from pysolarwinds.swis import SWISClient
+
+logger = get_logger(__name__)
 
 
 class OrionNode(MonitoredEndpoint):
@@ -282,3 +286,128 @@ class OrionNode(MonitoredEndpoint):
     def vendor(self) -> str:
         """System vendor."""
         return self.data["Vendor"]
+
+    def _get_alert_suppression_state(self) -> dict:
+        """Get raw alert suppression state on node."""
+        return self.swis.invoke(
+            "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri]
+        )[0]
+
+    @property
+    def alerts_are_suppressed(self) -> bool:
+        """Whether or not alerts are currently suppressed on node."""
+        return self._get_alert_suppression_state()["SuppressionMode"] == 1
+
+    @property
+    def alerts_will_be_suppressed(self) -> bool:
+        """Whether or not alerts are scheduled to be suppressed at a future date/time."""
+        return self._get_alert_suppression_state()["SuppressionMode"] == 3
+
+    @property
+    def alerts_suppressed_from(self) -> Optional[datetime.datetime]:
+        """Date/time from when alerts will be suppressed."""
+        suppression_state = self._get_alert_suppression_state()
+        suppressed_from = suppression_state["SuppressedFrom"]
+        if suppressed_from:
+            return datetime.datetime.strptime(suppressed_from, "%Y-%m-%dT%H:%M:%S")
+        else:
+            return None
+
+    @property
+    def alerts_suppressed_until(self) -> Optional[datetime.datetime]:
+        """Date/time from when alerts will be resumed."""
+        suppression_state = self._get_alert_suppression_state()
+        suppressed_until = suppression_state["SuppressedUntil"]
+        if suppressed_until:
+            return datetime.datetime.strptime(suppressed_until, "%Y-%m-%dT%H:%M:%S")
+        else:
+            return None
+
+    @property
+    def alerts_are_muted(self) -> bool:
+        """Convenience alias"""
+        return self.alerts_are_suppressed()
+
+    @property
+    def alerts_will_be_muted(self) -> bool:
+        """Convenience alias"""
+        return self.alerts_will_be_suppressed()
+
+    def suppress_alerts(
+        self,
+        start: Optional[datetime.datetime] = None,
+        end: Optional[datetime.datetime] = None,
+    ) -> bool:
+        """
+        Suppress alerts on node.
+
+        Any alerts that would normally be triggered by any condition(s) on the node,
+        or its child objects (such as volumes or interfaces), will not be triggered.
+        As soon as alerts are resumed, normal alerting behavior resumes.
+
+        Args:
+            start: `datetime.datetime` object (in UTC) for when to begin suppressing alerts.
+                If omitted, suppression begins immediately.
+            end: `datetime.datetime` object (in UTC) for when to resume normal alerting. If
+                omitted, alerts will remain suppressed indefinitely.
+
+        Returns: True if successful
+
+        Raises:
+            `SWAlertSuppressionError` if there was an unspecified problem suppressing alerts.
+            Under normal conditions, invalid arguments will raise `SWISError` with details.
+        """
+        if start is None:
+            start = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+        # If you provide datetime objects directly to this call, SWIS will
+        # erroneously convert it to UTC, so we need to explicitly pass a datetime
+        # string in this format: 2023-02-28T16:40:00Z. The trailing "Z" causes
+        # SWIS to properly recognize the datetime is in UTC already, and makes
+        # no erroneous conversion.
+        self.swis.invoke(
+            "Orion.AlertSuppression",
+            "SuppressAlerts",
+            [self.uri],
+            datetime.datetime.strftime(start, "%Y-%m-%dT%H:%M:%SZ"),
+            datetime.datetime.strftime(end, "%Y-%m-%dT%H:%M:%SZ") if end else None,
+        )
+        # The call above returns nothing on success or failure, so we need
+        # to validate.
+        suppression_state = self._get_alert_suppression_state()
+        msg = (
+            f"{self}: Alert suppression failed, but SWIS didn't provide any error."
+            "Check that start and end times are valid."
+        )
+        if not suppression_state["SuppressedFrom"]:
+            raise SWAlertSuppressionError(msg)
+        if end:
+            if not suppression_state["SuppressedUntil"]:
+                raise SWAlertSuppressionError(msg)
+        if end:
+            msg = f"{self}: Suppressed alerts from {start} until {end}."
+        else:
+            msg = f"{self}: Suppressed alerts indefinitely."
+        logger.info(msg)
+        return True
+
+    def resume_alerts(self) -> bool:
+        """Resume alerts on node immediately. Also cancels planned alert suppression, if any."""
+        # This call returns nothing if successful.
+        self.swis.invoke("Orion.AlertSuppression", "ResumeAlerts", [self.uri])
+        logger.info(f"{self}: Resumed alerts.")
+        return True
+
+    def mute_alerts(
+        self,
+        start: Optional[datetime.datetime] = None,
+        end: Optional[datetime.datetime] = None,
+    ) -> bool:
+        """Convenience alias"""
+        return self.suppress_alerts(start=start, end=end)
+
+    def unmute_alerts(self) -> bool:
+        """Convenience alias"""
+        return self.resume_alerts()
+
+    def __repr__(self) -> str:
+        return self.name

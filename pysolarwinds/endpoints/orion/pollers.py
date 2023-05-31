@@ -83,7 +83,7 @@ class OrionPoller(NewEndpoint):
             logger.info(f"{self.node}: {self}: enabled poller")
 
     def __repr__(self) -> str:
-        return f'OrionPoller(id={self.id})'
+        return f"OrionPoller(id={self.id})"
 
 
 class OrionPollers(BaseList):
