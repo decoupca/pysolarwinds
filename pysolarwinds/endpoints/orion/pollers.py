@@ -83,13 +83,13 @@ class OrionPoller(NewEndpoint):
             logger.info(f"{self.node}: {self}: enabled poller")
 
     def __repr__(self) -> str:
-        return f'OrionPoller("{self.name}": {"Enabled" if self.is_enabled else "Disabled"})'
+        return f'OrionPoller(id={self.id})'
 
 
 class OrionPollers(BaseList):
     _item_class = OrionPoller
 
-    def __init__(self, node, enabled_pollers: Optional[List[str]] = None) -> None:
+    def __init__(self, node, enabled_pollers: Optional[list[str]] = None) -> None:
         self.node = node
         self.swis = self.node.swis
         self._enabled_pollers = enabled_pollers
@@ -104,10 +104,10 @@ class OrionPollers(BaseList):
                         self.get(poller).enable()
 
     @property
-    def list(self) -> List:
+    def list(self) -> list:
         return [x.name for x in self.items]
 
-    def add(self, pollers: Union[List[str], str], enabled: bool = True) -> bool:
+    def add(self, pollers: Union[list[str], str], enabled: bool = True) -> bool:
         if isinstance(pollers, str):
             pollers = [pollers]
         for poller in pollers:
