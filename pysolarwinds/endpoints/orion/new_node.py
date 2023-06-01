@@ -44,17 +44,19 @@ class OrionNode(MonitoredEndpoint):
         )
         self.caption: str = self.data.get("Caption", "") or caption
         self.ip_address: str = self.data.get("IPAddress", "") or ip_address
-        # self.latitude = latitude
-        # self.longitude = longitude
+
         self.polling_engine: OrionEngine = OrionEngine(
             swis=swis, id=self.data["EngineID"]
         )
         self.snmp_version: int = self.data.get("SNMPVersion", 0)
         self.snmpv2_ro_community: str = self.data.get("Community", "")
         self.snmpv2_rw_community: str = self.data.get("RWCommunity", "")
+        self.polling_method: str = self.data.get("ObjectSubType", "icmp").lower()
+        # self.latitude = latitude
+        # self.longitude = longitude
         # self.snmpv3_ro_cred = snmpv3_ro_cred
         # self.snmpv3_rw_cred = snmpv3_rw_cred
-        self.polling_method: str = self.data.get("ObjectSubType", "icmp").lower()
+        # TODO: Custom properties
 
     @property
     def _id(self) -> int:
@@ -212,6 +214,11 @@ class OrionNode(MonitoredEndpoint):
     def ios_image(self) -> str:
         """Running network OS (not necessarily Cisco IOS)."""
         return self.data.get("IOSImage", "")
+
+    @property
+    def ip(self) -> str:
+        """Convenience alias."""
+        return self.ip_address
 
     @property
     def ip_address_type(self) -> str:
