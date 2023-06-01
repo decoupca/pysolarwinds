@@ -583,6 +583,13 @@ class NewEndpoint:
                 self.uri = self.data.get("Uri")
         if not self.data:
             self.read()
+        if not self.id:
+            self.id = self._id
+
+    @property
+    def _id(self) -> int:
+        """Retrieve entity ID from data dict."""
+        pass
 
     def _get_uri(self) -> Optional[str]:
         """Subclass-specific method to retrieve URI by other means."""

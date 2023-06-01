@@ -54,6 +54,11 @@ class OrionNode(MonitoredEndpoint):
         # self.snmpv3_rw_cred = snmpv3_rw_cred
         self.polling_method: str = self.data.get("ObjectSubType", "icmp").lower()
 
+    @property
+    def _id(self) -> int:
+        """Retrieve entity ID from data dict."""
+        return self.data["NodeID"]
+
     def _get_uri(self) -> Optional[str]:
         """Try to resolve URI from caption or IP address."""
         if self.caption:
