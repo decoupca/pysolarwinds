@@ -313,7 +313,7 @@ class OrionNode(MonitoredEndpoint):
         return self.data["SysObjectID"]
 
     @property
-    def system_uptime(self) -> float:
+    def uptime_sec(self) -> float:
         """System uptime in seconds."""
         return self.data["SystemUpTime"]
 
@@ -366,13 +366,23 @@ class OrionNode(MonitoredEndpoint):
 
     @property
     def alerts_are_muted(self) -> bool:
-        """Convenience alias"""
+        """Convenience alias."""
         return self.alerts_are_suppressed
 
     @property
     def alerts_will_be_muted(self) -> bool:
-        """Convenience alias"""
+        """Convenience alias."""
         return self.alerts_will_be_suppressed
+
+    @property
+    def alerts_muted_from(self) -> Optional[datetime.datetime]:
+        """Convenience alias."""
+        return self.alerts_suppressed_from
+
+    @property
+    def alerts_muted_until(self) -> Optional[datetime.datetime]:
+        """Convenience alias."""
+        return self.alerts_suppressed_until
 
     def suppress_alerts(
         self,
@@ -481,7 +491,18 @@ class OrionNode(MonitoredEndpoint):
         return True
 
     def remanage(self) -> bool:
-        """Re-manage node."""
+        """
+        Re-manage node.
+
+        Arguments:
+            None.
+
+        Returns:
+            None.
+
+        Raises:
+            `SWObjectManageError` if node is already managed.
+        """
         if self.is_unmanaged:
             self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
             logger.info("Re-managed node.")
