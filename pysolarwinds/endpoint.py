@@ -571,7 +571,7 @@ class NewEndpoint:
         self.data = data
         if not self.uri:
             if id:
-                self.uri = self._uri_template.format(self.swis.hostname, id)
+                self.uri = self._uri_template.format(self.swis.host, id)
             if data:
                 self.uri = self.data.get("Uri")
         if not self.data:
