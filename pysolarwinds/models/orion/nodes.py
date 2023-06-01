@@ -1,17 +1,53 @@
-from typing import Optional
+from typing import Optional, Union
+
+from pypika import Table
 
 from pysolarwinds.endpoints.orion.new_node import OrionNode
 from pysolarwinds.models.base import BaseModel
+from pysolarwinds.queries.orion.node import NodeQuery
 
 
 class Nodes(BaseModel):
+    table = Table("Orion.Nodes")
+
     def create(self):
         """Create a new node."""
         pass
 
-    def list(self) -> list:
+    def list(
+        self,
+        caption: Union[str, list[str], None] = None,
+        vendor: Optional[str] = None,
+        status: Union[int, str, None] = None,
+        query: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> list:
         """Retrieve a list of nodes based on filtering criteria."""
-        return []
+        if query:
+            return [
+                OrionNode(
+                    swis=self.swis,
+                    id=x.get("NodeID"),
+                    uri=x.get("Uri"),
+                    caption=x.get("Caption"),
+                    ip_address=x.get("IPAddress"),
+                )
+                for x in self.swis.query(query)
+            ]
+        else:
+            where = []
+            query = NodeQuery
+            if vendor:
+                query = query.where(self.table.vendor == vendor)
+            if status:
+                query = query.where(self.table.status == status)
+            if limit:
+                query = query.top(limit)
+            import ipdb
+
+            ipdb.set_trace()
+            result = self.swis.query(str(query))
+            return [OrionNode(swis=self.swis, data=x) for x in result]
 
     def get(
         self,
