@@ -29,6 +29,9 @@ class SolarWindsClient:
         """Run an arbitrary SWQL query."""
         return self.swis.query(query)
 
+    def __repr__(self) -> str:
+        return f"SolarWindsClient(host='{self.host}')"
+
 
 def client(
     host: str,
