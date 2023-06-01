@@ -1,5 +1,3 @@
-from typing import List, Union
-
 from httpx._types import VerifyTypes
 
 from pysolarwinds.models.orion import Orion
@@ -7,16 +5,18 @@ from pysolarwinds.swis import SWISClient
 
 
 class SolarWindsClient:
+    """Base class through which we create our SWIS client and access pysolarwinds objects."""
+
     def __init__(
         self,
-        hostname: str,
+        host: str,
         username: str,
         password: str,
         verify: VerifyTypes = True,
         timeout: float = 30.0,
-    ):
+    ) -> None:
         self.swis = SWISClient(
-            hostname=hostname,
+            host=host,
             username=username,
             password=password,
             verify=verify,
@@ -24,19 +24,30 @@ class SolarWindsClient:
         )
         self.orion = Orion(self.swis)
 
-    def query(self, query: str) -> List:
+    def query(self, query: str) -> list:
+        """Run an arbitrary SWQL query."""
         return self.swis.query(query)
 
 
-def init(
-    hostname: str,
+def client(
+    host: str,
     username: str,
     password: str,
     verify: VerifyTypes = True,
     timeout: float = 30.0,
-):
+) -> SolarWindsClient:
+    """
+    Convenience method to create SolarWindsClient objects.
+
+    Typical usage:
+
+    ```python
+    import pysolarwinds
+    sw = pysolarwinds.client(...)
+    ```
+    """
     return SolarWindsClient(
-        hostname=hostname,
+        host=host,
         username=username,
         password=password,
         verify=verify,

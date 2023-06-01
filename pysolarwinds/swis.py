@@ -19,13 +19,13 @@ def _json_serial(obj):
 class SWISClient:
     def __init__(
         self,
-        hostname: str,
+        host: str,
         username: str,
         password: str,
         verify: VerifyTypes = True,
         timeout: float = 30.0,
     ):
-        self.hostname = hostname
+        self.host = host
         self.client = httpx.Client(
             auth=(username, password),
             timeout=httpx.Timeout(timeout),

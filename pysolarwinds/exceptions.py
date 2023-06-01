@@ -1,46 +1,54 @@
-class SWAlertSuppressionError(Exception):
+class SWError(Exception):
+    """Base SolarWinds SWError."""
+
     pass
 
 
-class SWDiscoveryError(Exception):
+class SWAlertSuppressionError(SWError):
     pass
 
 
-class SWResourceImportError(Exception):
+class SWDiscoveryError(SWError):
     pass
 
 
-class SWIDNotFound(Exception):
+class SWResourceImportError(SWError):
     pass
 
 
-class SWUriNotFound(Exception):
+class SWIDNotFound(SWError):
     pass
 
 
-class SWObjectNotFound(Exception):
+class SWUriNotFound(SWError):
     pass
 
 
-class SWObjectExists(Exception):
+class SWObjectNotFound(SWError):
     pass
 
 
-class SWObjectDoesNotExist(Exception):
+class SWObjectExists(SWError):
     pass
 
 
-class SWObjectPropertyError(Exception):
+class SWObjectDoesNotExist(SWError):
     pass
 
 
-class SWNonUniqueResult(Exception):
+class SWObjectPropertyError(SWError):
     pass
 
 
-class SWObjectCreationError(Exception):
+class SWNonUniqueResultError(SWError):
     pass
 
 
-class SWISError(Exception):
+class SWObjectCreationError(SWError):
+    pass
+
+
+class SWISError(SWError):
+    """All SWIS API errors."""
+
     pass
