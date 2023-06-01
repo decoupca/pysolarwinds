@@ -589,7 +589,8 @@ class NewEndpoint:
         """Subclass-specific method to retrieve URI by other means."""
         pass
 
-    def _read(self) -> Dict:
+    def _read(self) -> dict:
+        """Retrieve SWIS info dict."""
         return self.swis.read(self.uri)
 
     @property
@@ -604,10 +605,12 @@ class NewEndpoint:
 
     @property
     def instance_site_id(self) -> Optional[str]:
+        """Unknown meaning."""
         return self.data.get("instanceSiteId")
 
     @property
     def instance_type(self) -> Optional[str]:
+        """Unknown meaning."""
         return self.data.get("InstanceType")
 
     @property
@@ -617,19 +620,24 @@ class NewEndpoint:
 
     @property
     def orion_id_column(self) -> str:
+        """Unknown meaning."""
         return self.data["OrionIdColumn"]
 
     @property
     def orion_id_prefix(self) -> str:
+        """Unknown meaning."""
         return self.data["OrionIdPrefix"]
 
     def delete(self) -> None:
+        """Delete entity."""
         self.swis.delete(self.uri)
 
     def read(self) -> None:
+        """Update locally cached data about entity."""
         self.data = self._read()
 
     def save(self) -> None:
+        """Save changes, if any, to SWIS."""
         updates = {}
         for attr, prop in self._write_attr_map.items():
             updates.update({prop: getattr(self, attr)})
@@ -643,14 +651,17 @@ class NewEndpoint:
 class MonitoredEndpoint(NewEndpoint):
     @property
     def avg_response_time(self) -> int:
+        """Average response time in milliseconds."""
         return self.data["AvgResponseTime"]
 
     @property
     def is_unmanaged(self) -> bool:
+        """Whether or not node is un-managed."""
         return self.data["UnManaged"]
 
     @property
     def last_sync(self) -> Optional[datetime.datetime]:
+        """Last synchronization with SolarWinds."""
         last_sync = self.data.get("LastSync")
         if last_sync:
             return datetime.datetime.strptime(last_sync, DATE_FORMATTER)
@@ -667,18 +678,19 @@ class MonitoredEndpoint(NewEndpoint):
 
     @property
     def minutes_since_last_sync(self) -> Optional[int]:
+        """Minutes since last synchronization with SolarWinds."""
         return self.data.get("MinutesSinceLastSync")
 
     @property
     def next_poll(self) -> Optional[datetime.datetime]:
-        next_poll = self.data.get("NextPoll")
-        if next_poll:
+        """Next polling date/time."""
+        if next_poll := self.data.get("NextPoll"):
             return datetime.datetime.strptime(next_poll, DATE_FORMATTER)
 
     @property
     def next_rediscovery(self) -> Optional[datetime.datetime]:
-        next_rediscovery = self.data.get("NextRediscovery")
-        if next_rediscovery:
+        """Next rediscovery date/time."""
+        if next_rediscovery := self.data.get("NextRediscovery"):
             return datetime.datetime.strptime(next_rediscovery, DATE_FORMATTER)
 
     @property
@@ -687,13 +699,14 @@ class MonitoredEndpoint(NewEndpoint):
         return self.data["PercentLoss"]
 
     @property
-    def poll_interval(self) -> Optional[int]:
+    def poll_interval(self) -> int:
         """Polling interval in seconds."""
-        return self.data.get("PollInterval")
+        return self.data["PollInterval"]
 
     @property
-    def rediscovery_interval(self) -> Optional[int]:
-        return self.data.get("RediscoveryInterval")
+    def rediscovery_interval(self) -> int:
+        """Rediscovery interval in seconds."""
+        return self.data["RediscoveryInterval"]
 
     @property
     def response_time(self) -> int:
@@ -702,40 +715,47 @@ class MonitoredEndpoint(NewEndpoint):
 
     @property
     def skipped_polling_cycles(self) -> Optional[int]:
+        """Number of skipped polling cycles."""
         return self.data.get("SkippedPollingCycles")
 
     @property
     def stat_collection(self) -> Optional[int]:
+        """Unknown meaning."""
         return self.data.get("StatCollection")
 
     @property
-    def status(self) -> int:
+    def status_code(self) -> int:
+        """Numeric representation of entity status."""
         return self.data.get("Status")
 
     @property
     def status_description(self) -> Optional[str]:
+        """Description of status."""
         return self.data.get("StatusDescription")
 
     @property
     def status_icon(self) -> Optional[str]:
+        """Status icon filename."""
         return self.data.get("StatusIcon")
 
     @property
     def status_icon_hint(self) -> Optional[str]:
+        """Status icon hint."""
         return self.data.get("StatusIconHint")
 
     @property
     def status_led(self) -> Optional[str]:
+        """Status LED icon filename."""
         return self.data.get("StatusLED")
 
     @property
-    def unmanage_from(self) -> Optional[datetime.datetime]:
-        unmanage_from = self.data.get("UnManageFrom")
-        if unmanage_from:
+    def unmanaged_from(self) -> Optional[datetime.datetime]:
+        """Date/time from which the entity will be un-managed."""
+        if unmanage_from := self.data.get("UnManageFrom"):
             return datetime.datetime.strptime(unmanage_from, DATE_FORMATTER)
 
     @property
-    def unmanage_until(self) -> Optional[datetime.datetime]:
-        unmanage_to = self.data.get("UnManageUntil")
-        if unmanage_to:
+    def unmanaged_until(self) -> Optional[datetime.datetime]:
+        """Date/time until which the entity will be un-managed."""
+        if unmanage_to := self.data.get("UnManageUntil"):
             return datetime.datetime.strptime(unmanage_to, DATE_FORMATTER)
