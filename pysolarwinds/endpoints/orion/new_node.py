@@ -450,16 +450,6 @@ class OrionNode(MonitoredEndpoint):
         """Convenience alias"""
         return self.resume_alerts()
 
-    def remanage(self) -> bool:
-        """Re-manage node."""
-        if self.is_unmanaged:
-            self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
-            logger.info("Re-managed node.")
-            self.read()
-            return True
-        else:
-            raise SWObjectManageError("Node already managed, doing nothing.")
-
     def unmanage(
         self,
         start: Optional[datetime.datetime] = None,
@@ -489,6 +479,16 @@ class OrionNode(MonitoredEndpoint):
         logger.info(f"Un-managed node until {end}.")
         self.read()
         return True
+
+    def remanage(self) -> bool:
+        """Re-manage node."""
+        if self.is_unmanaged:
+            self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
+            logger.info("Re-managed node.")
+            self.read()
+            return True
+        else:
+            raise SWObjectManageError("Node already managed, doing nothing.")
 
     def __repr__(self) -> str:
         if self.caption:
