@@ -1,7 +1,6 @@
 import datetime
 from typing import Dict, Optional
 
-from pysolarwinds.constants import DATE_FORMATTER
 from pysolarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from pysolarwinds.exceptions import (
     SWIDNotFound,
@@ -664,7 +663,7 @@ class MonitoredEndpoint(NewEndpoint):
         """Last synchronization with SolarWinds."""
         last_sync = self.data.get("LastSync")
         if last_sync:
-            return datetime.datetime.strptime(last_sync, DATE_FORMATTER)
+            return datetime.datetime.strptime(last_sync, "%Y-%m-%dT%H:%M:%S.%f")
 
     @property
     def max_response_time(self) -> int:
@@ -685,13 +684,13 @@ class MonitoredEndpoint(NewEndpoint):
     def next_poll(self) -> Optional[datetime.datetime]:
         """Next polling date/time."""
         if next_poll := self.data.get("NextPoll"):
-            return datetime.datetime.strptime(next_poll, DATE_FORMATTER)
+            return datetime.datetime.strptime(next_poll, "%Y-%m-%dT%H:%M:%S.%f")
 
     @property
     def next_rediscovery(self) -> Optional[datetime.datetime]:
         """Next rediscovery date/time."""
         if next_rediscovery := self.data.get("NextRediscovery"):
-            return datetime.datetime.strptime(next_rediscovery, DATE_FORMATTER)
+            return datetime.datetime.strptime(next_rediscovery, "%Y-%m-%dT%H:%M:%S.%f")
 
     @property
     def percent_loss(self) -> float:
@@ -736,7 +735,7 @@ class MonitoredEndpoint(NewEndpoint):
     @property
     def status_icon(self) -> str:
         """Status icon filename."""
-        return self.data.get("StatusIcon", "")
+        return self.data.get("StatusIcon", "").strip()
 
     @property
     def status_icon_hint(self) -> str:
@@ -746,16 +745,16 @@ class MonitoredEndpoint(NewEndpoint):
     @property
     def status_led(self) -> str:
         """Status LED icon filename."""
-        return self.data.get("StatusLED", "")
+        return self.data.get("StatusLED", "").strip()
 
     @property
     def unmanaged_from(self) -> Optional[datetime.datetime]:
         """Date/time from which the entity will be un-managed."""
         if unmanage_from := self.data.get("UnManageFrom"):
-            return datetime.datetime.strptime(unmanage_from, DATE_FORMATTER)
+            return datetime.datetime.strptime(unmanage_from, "%Y-%m-%dT%H:%M:%SZ")
 
     @property
     def unmanaged_until(self) -> Optional[datetime.datetime]:
         """Date/time until which the entity will be un-managed."""
         if unmanage_to := self.data.get("UnManageUntil"):
-            return datetime.datetime.strptime(unmanage_to, DATE_FORMATTER)
+            return datetime.datetime.strptime(unmanage_to, "%Y-%m-%dT%H:%M:%SZ")
