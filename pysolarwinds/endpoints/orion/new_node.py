@@ -6,7 +6,9 @@ from pysolarwinds.endpoints.orion.credential import OrionCredential
 from pysolarwinds.endpoints.orion.engines import OrionEngine
 from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
+    SWISError,
     SWNonUniqueResultError,
+    SWObjectManageError,
     SWObjectNotFound,
 )
 from pysolarwinds.logging import get_logger
@@ -447,6 +449,46 @@ class OrionNode(MonitoredEndpoint):
     def unmute_alerts(self) -> bool:
         """Convenience alias"""
         return self.resume_alerts()
+
+    def remanage(self) -> bool:
+        """Re-manage node."""
+        if self.is_unmanaged:
+            self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
+            logger.info("Re-managed node.")
+            self.read()
+            return True
+        else:
+            raise SWObjectManageError("Node already managed, doing nothing.")
+
+    def unmanage(
+        self,
+        start: Optional[datetime.datetime] = None,
+        end: Optional[datetime.datetime] = None,
+        duration: datetime.timedelta = datetime.timedelta(days=1),
+    ) -> bool:
+        """
+        Un-manages node with optional start and end times, or duration.
+
+        Args:
+            start: optional datetime object, in UTC, at which to start unmanaging the node.
+                If not provided, defaults to now minus 10 minutes to account for small variances
+                in clock synchronization between the local system and SolarWinds server. This provides
+                greater assurance that a call to `unmanage` will have the expected effect of immediate
+                un-management of the node.
+            end: optional datetime object, in UTC, at which the node will automatically re-manage
+                iteslf. If not provided, defaults to 1 day (86,400 seconds) from start.
+            duration: timedelta object representing how long node should remain unmanaged. Defaults
+                to 1 day (86,400 seconds).
+        """
+        now = datetime.datetime.utcnow()
+        if not start:
+            start = now - datetime.timedelta(minutes=10)
+        if not end:
+            end = now + duration
+        self.swis.invoke("Orion.Nodes", "Unmanage", f"N:{self.id}", start, end, False)
+        logger.info(f"Un-managed node until {end}.")
+        self.read()
+        return True
 
     def __repr__(self) -> str:
         if self.caption:

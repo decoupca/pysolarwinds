@@ -16,6 +16,10 @@ class SWResourceImportError(SWError):
     pass
 
 
+class SWObjectManageError(SWError):
+    pass
+
+
 class SWIDNotFound(SWError):
     pass
 
