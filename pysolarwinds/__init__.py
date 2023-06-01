@@ -1,5 +1,6 @@
 from httpx._types import VerifyTypes
 
+from pysolarwinds.endpoints.orion.new_node import OrionNode
 from pysolarwinds.models.orion import Orion
 from pysolarwinds.swis import SWISClient
 
@@ -55,4 +56,7 @@ def client(
     )
 
 
-__all__ = ["SolarWindsClient"]
+__all__ = [
+    "SolarWindsClient",
+    "OrionNode",
+]

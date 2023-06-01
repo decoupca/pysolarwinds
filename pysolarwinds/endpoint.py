@@ -562,13 +562,21 @@ class NewEndpoint:
         id: Optional[int] = None,
         uri: Optional[str] = None,
         data: Optional[dict] = None,
+        *args,
+        **kwargs,
     ) -> None:
         self.swis = swis
-        if not id and not uri and not data:
-            raise ValueError("Must provide SWIS ID, URI, or data dict.")
         self.id = id
         self.uri = uri
         self.data = data
+        if kwargs:
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+        if not id and not uri and not data:
+            if uri := self._get_uri():
+                self.uri = uri
+            else:
+                raise ValueError("Must provide SWIS ID, URI, or data dict.")
         if not self.uri:
             if id:
                 self.uri = self._uri_template.format(self.swis.host, id)
@@ -576,6 +584,10 @@ class NewEndpoint:
                 self.uri = self.data.get("Uri")
         if not self.data:
             self.read()
+
+    def _get_uri(self) -> Optional[str]:
+        """Subclass-specific method to retrieve URI by other means."""
+        pass
 
     def _read(self) -> Dict:
         return self.swis.read(self.uri)

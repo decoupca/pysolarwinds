@@ -4,7 +4,11 @@ from typing import Optional
 from pysolarwinds.endpoint import MonitoredEndpoint
 from pysolarwinds.endpoints.orion.credential import OrionCredential
 from pysolarwinds.endpoints.orion.engines import OrionEngine
-from pysolarwinds.exceptions import SWAlertSuppressionError
+from pysolarwinds.exceptions import (
+    SWAlertSuppressionError,
+    SWNonUniqueResultError,
+    SWObjectNotFound,
+)
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import NODE_STATUS_MAP
 from pysolarwinds.swis import SWISClient
@@ -27,13 +31,17 @@ class OrionNode(MonitoredEndpoint):
     def __init__(
         self,
         swis: SWISClient,
-        data: Optional[dict] = None,
-        uri: Optional[str] = None,
         id: Optional[int] = None,
-    ):
-        super().__init__(swis=swis, data=data, uri=uri, id=id)
-        self.caption: str = self.data.get("Caption", "")
-        self.ip_address: str = self.data.get("IPAddress", "")
+        uri: Optional[str] = None,
+        data: Optional[dict] = None,
+        caption: Optional[str] = None,
+        ip_address: Optional[str] = None,
+    ) -> None:
+        super().__init__(
+            swis=swis, data=data, uri=uri, id=id, caption=caption, ip_address=ip_address
+        )
+        self.caption: str = self.data.get("Caption", "") or caption
+        self.ip_address: str = self.data.get("IPAddress", "") or ip_address
         # self.latitude = latitude
         # self.longitude = longitude
         self.polling_engine: OrionEngine = OrionEngine(
@@ -44,7 +52,37 @@ class OrionNode(MonitoredEndpoint):
         self.snmpv2_rw_community: str = self.data.get("RWCommunity", "")
         # self.snmpv3_ro_cred = snmpv3_ro_cred
         # self.snmpv3_rw_cred = snmpv3_rw_cred
-        self.polling_method: str = self.data.get("ObjectSubType", "").lower()
+        self.polling_method: str = self.data.get("ObjectSubType", "icmp").lower()
+
+    def _get_uri(self) -> Optional[str]:
+        """Try to resolve URI from caption or IP address."""
+        if self.caption:
+            result = self.swis.query(
+                f"SELECT Uri FROM Orion.Nodes WHERE Caption = '{self.caption}'"
+            )
+            if result:
+                if len(result) > 1:
+                    raise SWNonUniqueResultError(
+                        f'Found {len(result)} results with caption "{self.caption}".'
+                    )
+                return result[0]["Uri"]
+            else:
+                raise SWObjectNotFound(f'Node with caption "{self.caption}" not found.')
+
+        if self.ip_address:
+            result = self.swis.query(
+                f"SELECT Uri FROM Orion.Nodes WHERE IPAddress = '{self.ip_address}'"
+            )
+            if result:
+                if len(result) > 1:
+                    raise SWNonUniqueResultError(
+                        f'Found {len(result)} results with ip_address "{self.ip_address}".'
+                    )
+                return result[0]["Uri"]
+            else:
+                raise SWObjectNotFound(
+                    f"Node with IP address {self.ip_address} not found."
+                )
 
     @property
     def agent_port(self) -> Optional[int]:
@@ -406,4 +444,9 @@ class OrionNode(MonitoredEndpoint):
         return self.resume_alerts()
 
     def __repr__(self) -> str:
-        return self.name
+        if self.caption:
+            return f"OrionNode(caption='{self.caption}')"
+        elif self.ip_address:
+            return f"OrionNode(ip_address='{self.ip_address}')"
+        else:
+            return f"OrionNode(id={self.id})"
