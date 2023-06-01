@@ -604,14 +604,14 @@ class NewEndpoint:
         return self.data.get("DetailsUrl", "")
 
     @property
-    def instance_site_id(self) -> Optional[str]:
+    def instance_site_id(self) -> str:
         """Unknown meaning."""
-        return self.data.get("instanceSiteId")
+        return self.data.get("instanceSiteId", "")
 
     @property
-    def instance_type(self) -> Optional[str]:
+    def instance_type(self) -> str:
         """Unknown meaning."""
-        return self.data.get("InstanceType")
+        return self.data.get("InstanceType", "")
 
     @property
     def name(self) -> str:
@@ -729,24 +729,24 @@ class MonitoredEndpoint(NewEndpoint):
         return self.data.get("Status")
 
     @property
-    def status_description(self) -> Optional[str]:
+    def status_description(self) -> str:
         """Description of status."""
-        return self.data.get("StatusDescription")
+        return self.data.get("StatusDescription", "")
 
     @property
-    def status_icon(self) -> Optional[str]:
+    def status_icon(self) -> str:
         """Status icon filename."""
-        return self.data.get("StatusIcon")
+        return self.data.get("StatusIcon", "")
 
     @property
-    def status_icon_hint(self) -> Optional[str]:
+    def status_icon_hint(self) -> str:
         """Status icon hint."""
-        return self.data.get("StatusIconHint")
+        return self.data.get("StatusIconHint", "")
 
     @property
-    def status_led(self) -> Optional[str]:
+    def status_led(self) -> str:
         """Status LED icon filename."""
-        return self.data.get("StatusLED")
+        return self.data.get("StatusLED", "")
 
     @property
     def unmanaged_from(self) -> Optional[datetime.datetime]:
