@@ -4,6 +4,8 @@ from typing import Optional
 from pysolarwinds.endpoint import MonitoredEndpoint
 from pysolarwinds.endpoints.orion.credential import OrionCredential
 from pysolarwinds.endpoints.orion.engines import OrionEngine
+from pysolarwinds.endpoints.orion.pollers import OrionPollers
+from pysolarwinds.endpoints.orion.volumes import OrionVolumes
 from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
     SWISError,
@@ -54,6 +56,8 @@ class OrionNode(MonitoredEndpoint):
         self.snmpv2_rw_community: str = self.data.get("RWCommunity", "")
         self.polling_method: str = self.data.get("ObjectSubType", "icmp").lower()
         self.settings = OrionNodeSettings(node=self)
+        self.pollers = OrionPollers(node=self)
+        self.volumes = OrionVolumes(node=self)
         # self.latitude = latitude
         # self.longitude = longitude
         # self.snmpv3_ro_cred = snmpv3_ro_cred

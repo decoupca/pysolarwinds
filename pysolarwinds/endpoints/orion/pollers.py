@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from pysolarwinds.endpoint import NewEndpoint
 from pysolarwinds.exceptions import SWObjectExists
@@ -29,7 +29,7 @@ class OrionPoller(NewEndpoint):
         self.is_enabled: bool = self.data["Enabled"]
 
     @property
-    def id(self) -> int:
+    def _id(self) -> int:
         return self.poller_id
 
     @property
@@ -89,22 +89,13 @@ class OrionPoller(NewEndpoint):
 class OrionPollers(BaseList):
     _item_class = OrionPoller
 
-    def __init__(self, node, enabled_pollers: Optional[list[str]] = None) -> None:
+    def __init__(self, node) -> None:
         self.node = node
         self.swis = self.node.swis
-        self._enabled_pollers = enabled_pollers
         self.items = []
-        if self.node.exists():
-            self.fetch()
-            if self._enabled_pollers:
-                for poller in self._enabled_pollers:
-                    if not self.get(poller):
-                        self.add(poller=poller, enabled=True)
-                    else:
-                        self.get(poller).enable()
 
     @property
-    def list(self) -> list:
+    def names(self) -> list:
         return [x.name for x in self.items]
 
     def add(self, pollers: Union[list[str], str], enabled: bool = True) -> bool:
@@ -175,9 +166,8 @@ class OrionPollers(BaseList):
             "Enabled, DisplayName, Description, InstanceType, Uri, InstanceSiteId "
             f"FROM Orion.Pollers WHERE NetObjectID='{self.node.id}'"
         )
-        results = self.swis.query(query)
-        if results:
-            pollers = []
-            for result in results:
-                pollers.append(OrionPoller(swis=self.swis, node=self.node, data=result))
+        if results := self.swis.query(query):
+            pollers = [
+                OrionPoller(swis=self.swis, node=self.node, data=x) for x in results
+            ]
             self.items = pollers
