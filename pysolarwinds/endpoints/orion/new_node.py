@@ -13,6 +13,7 @@ from pysolarwinds.exceptions import (
 )
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import NODE_STATUS_MAP
+from pysolarwinds.models.orion.node_settings import OrionNodeSettings
 from pysolarwinds.swis import SWISClient
 
 logger = get_logger(__name__)
@@ -52,6 +53,7 @@ class OrionNode(MonitoredEndpoint):
         self.snmpv2_ro_community: str = self.data.get("Community", "")
         self.snmpv2_rw_community: str = self.data.get("RWCommunity", "")
         self.polling_method: str = self.data.get("ObjectSubType", "icmp").lower()
+        self.settings = OrionNodeSettings(node=self)
         # self.latitude = latitude
         # self.longitude = longitude
         # self.snmpv3_ro_cred = snmpv3_ro_cred

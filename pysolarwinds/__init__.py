@@ -1,6 +1,5 @@
 from httpx._types import VerifyTypes
 
-from pysolarwinds.endpoints.orion.new_node import OrionNode
 from pysolarwinds.models.orion import Orion
 from pysolarwinds.swis import SWISClient
 

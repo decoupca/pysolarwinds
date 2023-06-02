@@ -5,7 +5,7 @@ from pysolarwinds.endpoints.orion.credential import OrionCredential
 from pysolarwinds.exceptions import SWObjectCreationError, SWObjectNotFound
 from pysolarwinds.logging import get_logger
 from pysolarwinds.models.orion.credentials import (
-    Credential as CredentialModel,  # TODO: need undo this
+    Credentials as CredentialsModel,  # TODO: need undo this
 )
 
 logger = get_logger(__name__)
@@ -43,7 +43,7 @@ class OrionNodeSetting:
 
 class SNMPCredentialSetting(OrionNodeSetting):
     def build(self) -> None:
-        model = CredentialModel(swis=self.swis)
+        model = CredentialsModel(swis=self.swis)
         cred = model.get(id=self.value)
         mode = self.name[:2]
         version = int(cred.type[-1:])
