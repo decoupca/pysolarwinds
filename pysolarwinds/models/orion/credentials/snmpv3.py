@@ -10,16 +10,16 @@ class SNMPv3Credential(BaseModel):
 
     def create(
         self,
-        name: str = "",
-        owner: str = "Orion",
-        username: str = "",
-        context: str = "",
-        auth_method: Optional[Literal["md5", "sha1", "sha256", "sha512"]] = None,
-        auth_password: str = "",
+        name: str,
+        username: str,
+        auth_method: Literal["md5", "sha1", "sha256", "sha512"],
+        auth_password: str,
+        priv_method: Literal["des56", "aes128", "aes192", "aes256"],
+        priv_password: str,
         auth_key_is_password: bool = False,
-        priv_method: Optional[Literal["des56", "aes128", "aes192", "aes256"]] = None,
-        priv_password: str = "",
         priv_key_is_password: bool = False,
+        context: str = "",
+        owner: str = "Orion",
     ) -> OrionSNMPv3Credential:
         id = self.swis.invoke(
             "Orion.Credential",
@@ -27,14 +27,10 @@ class SNMPv3Credential(BaseModel):
             name,
             username,
             context,
-            auth_method.upper()
-            if self.auth_method
-            else "None",  # Yes, literal string "None"
+            auth_method.upper() if self.auth_method else "None",
             auth_password,
             not auth_key_is_password,  # AFAICT, the SWIS SWISClient has this flag inverted
-            priv_method.upper()
-            if self.priv_method
-            else "None",  # Yes, literal string "None"
+            priv_method.upper() if self.priv_method else "None",
             priv_password,
             not priv_key_is_password,  # AFAICT, the SWIS SWISClient has this flag inverted
             owner,

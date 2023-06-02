@@ -5,20 +5,39 @@ from pysolarwinds.swis import SWISClient
 
 
 class OrionSNMPv3Credential(OrionCredential):
-    def save(self) -> bool:
+    def update(
+        self,
+        username: str,
+        auth_method: Literal["md5", "sha1", "sha256", "sha512"],
+        auth_password: str,
+        priv_method: Literal["des56", "aes128", "aes192", "aes256"],
+        priv_password: str,
+        name: Optional[str] = None,
+        context: str = "",
+        auth_key_is_password: bool = False,
+        priv_key_is_password: bool = False,
+    ) -> bool:
+        """
+        Update credential set with provided details.
+
+        Due to how the SWIS API is built, there is no way to update only one property of the
+        credential set; if you need to update any property, you must provide all properties.
+        """
+        if name is None:
+            name = self.name
         self.swis.invoke(
             "Orion.Credential",
             "UpdateSNMPv3Credentials",
             self.id,
-            self.name,
-            self.username,
-            self.context,
-            self.auth_method.upper() if self.auth_method else "None",
-            self.auth_password,
-            not self.auth_key_is_password,  # AFAICT, the SWIS API has this flag inverted
-            self.priv_method.upper() if self.priv_method else "None",
-            self.priv_password,
-            not self.priv_key_is_password,  # AFAICT, the SWIS API has this flag inverted
+            name,
+            username,
+            context,
+            auth_method.upper() if auth_method else "None",
+            auth_password,
+            not auth_key_is_password,  # AFAICT, the SWIS API has this flag inverted
+            priv_method.upper() if priv_method else "None",
+            priv_password,
+            not priv_key_is_password,  # AFAICT, the SWIS API has this flag inverted
         )
         return True
 

@@ -1,6 +1,6 @@
 from typing import Optional, Union
 
-from pysolarwinds.endpoint import MonitoredEndpoint
+from pysolarwinds.endpoints import MonitoredEndpoint
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger
 from pysolarwinds.swis import SWISClient

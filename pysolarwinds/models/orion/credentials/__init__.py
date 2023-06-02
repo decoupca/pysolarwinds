@@ -18,26 +18,17 @@ class Credentials(BaseModel):
         self.userpass = UserPassCredential(swis=swis)
 
     def get(self, id: Optional[int] = None, name: Optional[str] = None):
+        if not id and not name:
+            raise ValueError("Must provide either credential ID or name.")
         if id:
-            query = f"SELECT ID, Name, Description, CredentialType, CredentialOwner FROM Orion.Credential WHERE ID = '{id}'"
+            return OrionSNMPv3Credential(swis=self.swis, id=id)
         if name:
-            query = f"SELECT ID, Name, Description, CredentialType, CredentialOwner FROM Orion.Credential WHERE Name = '{name}'"
-        result = self.swis.query(query)[0]
-
-        if result:
-            if result["CredentialType"].endswith("SnmpCredentialsV3"):
-                return OrionSNMPv3Credential(
-                    swis=self.swis,
-                    id=id,
-                    name=name,
-                    owner=result["CredentialOwner"],
-                    description=result["Description"],
-                )
-            if result["CredentialType"].endswith("SnmpCredentialsV2"):
-                return OrionSNMPv2Credential(
-                    swis=self.swis,
-                    id=id,
-                    name=name,
-                    owner=result["CredentialOwner"],
-                    description=result["Description"],
-                )
+            query = (
+                f"SELECT ID, Name, Description, CredentialType, CredentialOwner, Uri "
+                f"FROM Orion.Credential WHERE Name = '{name}'"
+            )
+            if result := self.swis.query(query):
+                if result[0]["CredentialType"].endswith("SnmpCredentialsV3"):
+                    return OrionSNMPv3Credential(swis=self.swis, data=result[0])
+                if result[0]["CredentialType"].endswith("SnmpCredentialsV2"):
+                    return OrionSNMPv2Credential(swis=self.swis, data=result[0])
