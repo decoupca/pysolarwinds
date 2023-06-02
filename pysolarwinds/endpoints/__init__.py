@@ -620,11 +620,6 @@ class NewEndpoint:
         return self.data.get("InstanceType", "")
 
     @property
-    def name(self) -> str:
-        """Override in subclass."""
-        return ""
-
-    @property
     def orion_id_column(self) -> str:
         """Unknown meaning."""
         return self.data["OrionIdColumn"]

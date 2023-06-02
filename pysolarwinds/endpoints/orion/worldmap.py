@@ -1,4 +1,4 @@
-from pysolarwinds.endpoint import Endpoint
+from pysolarwinds.endpoints import Endpoint
 from pysolarwinds.swis import SWISClient
 
 

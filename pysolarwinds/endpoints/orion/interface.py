@@ -1,7 +1,7 @@
 import re
 from typing import Dict, List, Optional, Union
 
-from pysolarwinds.endpoint import Endpoint
+from pysolarwinds.endpoints import Endpoint
 from pysolarwinds.endpoints.orion.engines import OrionEngine
 from pysolarwinds.exceptions import (
     SWDiscoveryError,

@@ -1,7 +1,7 @@
 import datetime
 from typing import Dict, Optional
 
-from pysolarwinds.endpoint import NewEndpoint
+from pysolarwinds.endpoints import NewEndpoint
 from pysolarwinds.utils import parse_datetime
 
 

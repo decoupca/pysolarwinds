@@ -4,8 +4,8 @@ from time import sleep
 from typing import Callable, Dict, List, Literal, NewType, Optional, Union
 
 import pysolarwinds.defaults as d
-from pysolarwinds.endpoint import Endpoint
-from pysolarwinds.endpoints.orion.credential import (
+from pysolarwinds.endpoints import Endpoint
+from pysolarwinds.endpoints.orion.credentials import (
     OrionCredential,
     OrionSNMPv2Credential,
 )
@@ -549,7 +549,7 @@ class OrionNode(Endpoint):
 
         Args:
             timeout: maximum time in seconds to wait for SNMP resources to import. Generous timeouts
-                are recommended in virtually all cases, because allowing pypysolarwinds to time out will
+                are recommended in virtually all cases, because allowing pysolarwinds to time out will
                 almost certainly leave the node in a state that will generate warnings or alerts due
                 to down interfaces or full-capacity storage volumes. In most normal cases, imports
                 take about 60-120 seconds. But high latency nodes with many OIDs can take upwards of

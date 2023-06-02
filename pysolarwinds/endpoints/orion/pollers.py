@@ -1,6 +1,6 @@
 from typing import Optional, Union
 
-from pysolarwinds.endpoint import NewEndpoint
+from pysolarwinds.endpoints import NewEndpoint
 from pysolarwinds.exceptions import SWObjectExists, SWObjectNotFound
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger

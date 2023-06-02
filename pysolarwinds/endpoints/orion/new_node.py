@@ -2,7 +2,7 @@ import datetime
 from typing import Optional
 
 from pysolarwinds.endpoint import MonitoredEndpoint
-from pysolarwinds.endpoints.orion.credential import OrionCredential
+from pysolarwinds.endpoints.orion.credentials import OrionCredential
 from pysolarwinds.endpoints.orion.engines import OrionEngine
 from pysolarwinds.endpoints.orion.pollers import OrionPollers
 from pysolarwinds.endpoints.orion.volumes import OrionVolumes

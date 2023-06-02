@@ -1,7 +1,7 @@
 from typing import Union
 
-from pysolarwinds.endpoint import Endpoint
-from pysolarwinds.endpoints.orion.credential import OrionCredential
+from pysolarwinds.endpoints import Endpoint
+from pysolarwinds.endpoints.orion.credentials import OrionCredential
 from pysolarwinds.exceptions import SWObjectCreationError, SWObjectNotFound
 from pysolarwinds.logging import get_logger
 from pysolarwinds.models.orion.credentials import (

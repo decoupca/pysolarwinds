@@ -1,5 +1,5 @@
 from pysolarwinds.endpoints.orion.worldmap import WorldMapPoint
-from pysolarwinds.model import BaseModel
+from pysolarwinds.models import BaseModel
 
 
 class WorldMap(BaseModel):
