@@ -1,7 +1,7 @@
 from typing import Optional, Union
 
 from pysolarwinds.endpoint import NewEndpoint
-from pysolarwinds.exceptions import SWObjectExists
+from pysolarwinds.exceptions import SWObjectExists, SWObjectNotFound
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger
 from pysolarwinds.swis import SWISClient
@@ -23,10 +23,25 @@ class OrionPoller(NewEndpoint):
         id: Optional[int] = None,
         uri: Optional[str] = None,
         data: Optional[dict] = None,
+        poller_type: Optional[str] = None,
     ) -> None:
-        super().__init__(swis=swis, id=id, uri=uri, data=data)
         self.node = node
+        super().__init__(swis=swis, id=id, uri=uri, data=data, poller_type=poller_type)
+        self.poller_type = poller_type or self.data.get("PollerType", "")
         self.is_enabled: bool = self.data["Enabled"]
+
+    def _get_uri(self) -> str:
+        if self.poller_type:
+            query = (
+                f"SELECT Uri FROM Orion.Pollers WHERE NetObjectID='{self.node.id}' "
+                f"AND PollerType='{self.poller_type}'"
+            )
+            if result := self.swis.query(query):
+                return result[0]["Uri"]
+            else:
+                raise SWObjectNotFound(
+                    f'No poller "{self.poller_type}" on node ID {self.node.id} found.'
+                )
 
     @property
     def _id(self) -> int:
@@ -39,10 +54,6 @@ class OrionPoller(NewEndpoint):
     @property
     def poller_id(self) -> int:
         return self.data["PollerID"]
-
-    @property
-    def poller_type(self) -> str:
-        return self.data.get("PollerType", "")
 
     @property
     def net_object(self) -> str:
@@ -83,7 +94,7 @@ class OrionPoller(NewEndpoint):
             logger.info(f"{self.node}: {self}: enabled poller")
 
     def __repr__(self) -> str:
-        return f"OrionPoller(id={self.id})"
+        return f"OrionPoller(node={self.node.__repr__()}, poller_type='{self.poller_type}')"
 
 
 class OrionPollers(BaseList):
