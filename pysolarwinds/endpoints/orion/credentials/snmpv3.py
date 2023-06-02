@@ -10,12 +10,12 @@ class OrionSNMPv3Credential(OrionCredential):
         username: str,
         auth_method: Literal["md5", "sha1", "sha256", "sha512"],
         auth_password: str,
+        auth_key_is_password: bool,
         priv_method: Literal["des56", "aes128", "aes192", "aes256"],
         priv_password: str,
+        priv_key_is_password: bool,
         name: Optional[str] = None,
-        context: str = "",
-        auth_key_is_password: bool = False,
-        priv_key_is_password: bool = False,
+        context: str = '',
     ) -> bool:
         """
         Update credential set with provided details.
@@ -26,7 +26,7 @@ class OrionSNMPv3Credential(OrionCredential):
         if name is None:
             name = self.name
         self.swis.invoke(
-            "Orion.Credential",
+            'Orion.Credential',
             "UpdateSNMPv3Credentials",
             self.id,
             name,
@@ -40,6 +40,6 @@ class OrionSNMPv3Credential(OrionCredential):
             not priv_key_is_password,  # AFAICT, the SWIS API has this flag inverted
         )
         return True
-
+    
     def __repr__(self) -> str:
         return f"<OrionSNMPv3Credential: {self.name or self.id}>"
