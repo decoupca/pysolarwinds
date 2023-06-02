@@ -24,8 +24,12 @@ class SWISClient:
         password: str,
         verify: VerifyTypes = True,
         timeout: float = 30.0,
-    ):
+    ) -> None:
         self.host = host
+        self.username = username
+        self.password = password
+        self.verify = verify
+        self.timeout = timeout
         self.client = httpx.Client(
             auth=(username, password),
             timeout=httpx.Timeout(timeout),
@@ -38,27 +42,27 @@ class SWISClient:
     def url(self) -> str:
         return f"https://{self.host}:17778/SolarWinds/InformationService/v3/Json/"
 
-    def query(self, query: str, **params) -> List:
+    def query(self, query: str, **params) -> list:
         return parse_response(
             self._req("POST", "Query", {"query": query, "parameters": params}).json()
         )
 
-    def invoke(self, entity: str, verb: str, *args) -> Dict:
+    def invoke(self, entity: str, verb: str, *args) -> dict:
         return self._req("POST", f"Invoke/{entity}/{verb}", args).json()
 
-    def create(self, entity: str, **properties) -> Dict:
+    def create(self, entity: str, **properties) -> dict:
         return self._req("POST", f"Create/{entity}", properties).json()
 
-    def read(self, uri: str) -> Dict:
+    def read(self, uri: str) -> dict:
         return self._req("GET", uri).json()
 
-    def update(self, uris: Union[List[str], str], **properties):
+    def update(self, uris: Union[list[str], str], **properties):
         if isinstance(uris, list):
             self._req("POST", "BulkUpdate", {"uris": uris, "properties": properties})
         else:
             self._req("POST", uris, properties)
 
-    def delete(self, uris: Union[List[str], str]):
+    def delete(self, uris: Union[list[str], str]):
         if isinstance(uris, list):
             self._req("POST", "BulkDelete", {"uris": uris})
         else:
@@ -73,7 +77,9 @@ class SWISClient:
         self.invoke("Orion.Reporting", "ExecuteSQL", statement)
         return True
 
-    def _req(self, method: str, frag: str, data: Optional[Dict] = None):
+    def _req(
+        self, method: str, frag: str, data: Optional[dict] = None
+    ) -> httpx.Response:
         response = self.client.request(
             method, self.url + frag, data=json.dumps(data, default=_json_serial)
         )
@@ -85,3 +91,9 @@ class SWISClient:
                 msg = msg + "Full exception returned by SWIS:\n" + error_msg
             raise SWISError(msg)
         return response
+
+    def __repr__(self) -> str:
+        return (
+            f"SWISClient(host={self.host}, username={self.username}, "
+            f"password=********, verify={self.verify}, timeout={self.timeout})"
+        )
