@@ -1,6 +1,6 @@
 import json
-from datetime import datetime
-from typing import Dict, List, Optional, Union
+import datetime
+from typing import Optional, Union
 
 import httpx
 from httpx._types import VerifyTypes
@@ -11,12 +11,14 @@ from pysolarwinds.utils import parse_response
 
 def _json_serial(obj):
     """JSON serializer for objects not serializable by default json code"""
-    if isinstance(obj, datetime):
+    if isinstance(obj, datetime.datetime):
         serial = obj.isoformat()
         return serial
 
 
 class SWISClient:
+    """HTTP client wrapper for sending API requests to SWIS."""
+
     def __init__(
         self,
         host: str,
@@ -31,11 +33,11 @@ class SWISClient:
         self.verify = verify
         self.timeout = timeout
         self.client = httpx.Client(
-            auth=(username, password),
-            timeout=httpx.Timeout(timeout),
+            auth=(self.username, self.password),
+            timeout=httpx.Timeout(self.timeout),
             headers={b"Content-Type": b"application/json"},
             limits=httpx.Limits(max_keepalive_connections=None, max_connections=None),
-            verify=verify,
+            verify=self.verify,
         )
 
     @property
