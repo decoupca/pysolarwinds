@@ -248,6 +248,7 @@ class OrionNode(MonitoredEndpoint):
 
     @property
     def last_boot(self) -> datetime.datetime:
+        """Last boot date/time."""
         return datetime.datetime.strptime(self.data["LastBoot"], "%Y-%m-%dT%H:%M:%S")
 
     @property
@@ -396,6 +397,32 @@ class OrionNode(MonitoredEndpoint):
     def alerts_muted_until(self) -> Optional[datetime.datetime]:
         """Convenience alias."""
         return self.alerts_suppressed_until
+
+    def enforce_icmp_status_polling(self) -> None:
+        """Ensures that node uses ICMP for up/down status and response time."""
+        enable_pollers = [
+            "N.Status.ICMP.Native",
+            "N.ResponseTime.ICMP.Native",
+        ]
+        disable_pollers = [
+            "N.Status.SNMP.Native",
+            "N.ResponseTime.SNMP.Native",
+        ]
+        logger.info("Enforcing ICMP-based status and response time pollers...")
+        self.pollers.fetch()
+        for poller_name in enable_pollers:
+            poller = self.pollers.get(poller_name)
+            if poller:
+                if not poller.is_enabled:
+                    poller.enable()
+            else:
+                self.pollers.add(pollers=poller_name, enabled=True)
+
+        for poller_name in disable_pollers:
+            poller = self.pollers.get(poller_name)
+            if poller:
+                if poller.is_enabled:
+                    poller.disable()
 
     def suppress_alerts(
         self,
