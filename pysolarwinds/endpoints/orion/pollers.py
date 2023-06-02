@@ -171,3 +171,8 @@ class OrionPollers(BaseList):
                 OrionPoller(swis=self.swis, node=self.node, data=x) for x in results
             ]
             self.items = pollers
+
+    def __repr__(self) -> str:
+        if not self.items:
+            self.fetch()
+        return super().__repr__()
