@@ -642,13 +642,13 @@ class NewEndpoint:
         """Update locally cached data about entity."""
         self.data = self._read()
 
-    def save(self) -> None:
+    def save(self, updates: dict = {}) -> None:
         """Save changes, if any, to SWIS."""
-        updates = {}
-        for attr, prop in self._write_attr_map.items():
-            updates.update({prop: getattr(self, attr)})
+        if not updates:
+            for attr, prop in self._write_attr_map.items():
+                updates.update({prop: getattr(self, attr)})
         self.swis.update(self.uri, **updates)
-        logger.debug(f"{self.node}: {self}: updated properties: {updates}")
+        logger.debug(f"Updated properties: {updates}")
 
     def __str__(self) -> str:
         return self.name

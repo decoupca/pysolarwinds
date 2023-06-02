@@ -51,7 +51,7 @@ class SNMPCredentialSetting(OrionNodeSetting):
         self.node_attr_value = cred
 
 
-class OrionNodeSettings(object):
+class OrionNodeSettings:
     SETTING_MAP = {
         "ROSNMPCredentialID": {
             "class": SNMPCredentialSetting,
@@ -69,6 +69,7 @@ class OrionNodeSettings(object):
         self.node = node
         self.swis = node.swis
         self._settings = []
+        self.fetch()
 
     def fetch(self) -> None:
         self._settings = []

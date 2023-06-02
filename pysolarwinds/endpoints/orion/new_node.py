@@ -54,14 +54,14 @@ class OrionNode(MonitoredEndpoint):
         self.snmp_version: int = self.data.get("SNMPVersion", 0)
         self.snmpv2_ro_community: str = self.data.get("Community", "")
         self.snmpv2_rw_community: str = self.data.get("RWCommunity", "")
+        self.snmpv3_ro_cred = None
+        self.snmpv3_rw_cred = None
         self.polling_method: str = self.data.get("ObjectSubType", "icmp").lower()
         self.settings = OrionNodeSettings(node=self)
         self.pollers = OrionPollers(node=self)
         self.volumes = OrionVolumes(node=self)
         # self.latitude = latitude
         # self.longitude = longitude
-        # self.snmpv3_ro_cred = snmpv3_ro_cred
-        # self.snmpv3_rw_cred = snmpv3_rw_cred
         # TODO: Custom properties
 
     @property
@@ -550,6 +550,18 @@ class OrionNode(MonitoredEndpoint):
             return True
         else:
             raise SWObjectManageError("Node already managed, doing nothing.")
+
+    def save(self) -> None:
+        updates = {
+            "Caption": self.caption,
+            "IPAddress": self.ip_address,
+            "SNMPVersion": self.snmp_version,
+            "Community": self.snmpv2_ro_community,
+            "RWCommunity": self.snmpv2_rw_community,
+            "ObjectSubType": self.polling_method.upper(),
+        }
+        super().save(updates=updates)
+        self.settings.save()
 
     def __repr__(self) -> str:
         if self.caption:
