@@ -1,7 +1,6 @@
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from pysolarwinds.endpoint import MonitoredEndpoint
-from pysolarwinds.exceptions import SWObjectExists
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger
 from pysolarwinds.swis import SWISClient
@@ -17,27 +16,28 @@ class OrionVolume(MonitoredEndpoint):
         self,
         swis: SWISClient,
         node,
-        data: Optional[Dict] = None,
+        id: Optional[int] = None,
         uri: Optional[str] = None,
+        data: Optional[dict] = None,
     ) -> None:
-        super().__init__(swis=swis, data=data, uri=uri)
+        super().__init__(swis=swis, id=id, uri=uri, data=data)
         self.node = node
 
     @property
     def details_url(self) -> str:
-        return self.data.get("DetailsUrl") or ""
+        return self.data.get("DetailsUrl", "")
 
     @property
     def device_id(self) -> str:
-        return self.data.get("DeviceId") or ""
+        return self.data.get("DeviceId", "")
 
     @property
     def description(self) -> str:
-        return self.data.get("Description") or ""
+        return self.data.get("Description", "")
 
     @property
     def device_id(self) -> str:
-        return self.data.get("DeviceId") or ""
+        return self.data.get("DeviceId", "")
 
     @property
     def disk_queue_length(self) -> Optional[float]:
@@ -49,7 +49,7 @@ class OrionVolume(MonitoredEndpoint):
 
     @property
     def disk_serial_number(self) -> str:
-        return self.data.get("DiskSerialNumber") or ""
+        return self.data.get("DiskSerialNumber", "")
 
     @property
     def disk_transfer(self) -> Optional[float]:
@@ -61,15 +61,15 @@ class OrionVolume(MonitoredEndpoint):
 
     @property
     def display_name(self) -> str:
-        return self.data.get("DisplayName") or ""
+        return self.data.get("DisplayName", "")
 
     @property
     def full_name(self) -> str:
-        return self.data.get("FullName") or ""
+        return self.data.get("FullName", "")
 
     @property
     def icon(self) -> str:
-        return self.data.get("Icon") or ""
+        return self.data.get("Icon", "")
 
     @property
     def index(self) -> Optional[int]:
@@ -77,10 +77,10 @@ class OrionVolume(MonitoredEndpoint):
 
     @property
     def interface_type(self) -> str:
-        return self.data.get("InterfaceType") or ""
+        return self.data.get("InterfaceType", "")
 
     @property
-    def id(self) -> int:
+    def _id(self) -> int:
         return self.volume_id
 
     @property
@@ -90,12 +90,12 @@ class OrionVolume(MonitoredEndpoint):
         return self.volume_description
 
     @property
-    def node_id(self) -> Optional[int]:
-        return self.data.get("NodeID")
+    def node_id(self) -> int:
+        return self.data["NodeID"]
 
     @property
     def instance_type(self) -> str:
-        return self.data.get("InstanceType") or ""
+        return self.data.get("InstanceType", "")
 
     @property
     def instance_site_id(self) -> Optional[bool]:
@@ -112,11 +112,11 @@ class OrionVolume(MonitoredEndpoint):
 
     @property
     def orion_id_colum(self) -> str:
-        return self.data.get("OrionIdColumn") or ""
+        return self.data.get("OrionIdColumn", "")
 
     @property
     def orion_id_prefix(self) -> str:
-        return self.data.get("OrionIdPrefix") or ""
+        return self.data.get("OrionIdPrefix", "")
 
     @property
     def percent_available(self) -> Optional[float]:
@@ -130,7 +130,7 @@ class OrionVolume(MonitoredEndpoint):
 
     @property
     def scsi_controller_id(self) -> str:
-        return self.data.get("SCSIControllerId") or ""
+        return self.data.get("SCSIControllerId", "")
 
     @property
     def scsi_lun_id(self) -> Optional[int]:
@@ -168,7 +168,7 @@ class OrionVolume(MonitoredEndpoint):
 
     @property
     def type(self) -> str:
-        return self.data.get("Type") or ""
+        return self.data.get("Type", "")
 
     @property
     def volume_allocation_failures_this_hour(self) -> Optional[int]:
@@ -244,7 +244,7 @@ class OrionVolume(MonitoredEndpoint):
 class OrionVolumes(BaseList):
     _item_class = OrionVolume
 
-    def delete(self, volumes: Union[OrionVolume, List[OrionVolume]]) -> bool:
+    def delete(self, volumes: Union[OrionVolume, list[OrionVolume]]) -> bool:
         if isinstance(volumes, list):
             self.swis.delete([x.uri for x in volumes])
             for volume in volumes:
@@ -335,9 +335,13 @@ class OrionVolumes(BaseList):
             FROM Orion.Volumes
             WHERE NodeID = '{self.node.id}'
         """
-        results = self.swis.query(query)
-        if results:
-            volumes = []
-            for result in results:
-                volumes.append(OrionVolume(swis=self.swis, node=self.node, data=result))
+        if results := self.swis.query(query):
+            volumes = [
+                OrionVolume(swis=self.swis, node=self.node, data=x) for x in results
+            ]
             self.items = volumes
+
+    def __repr__(self) -> str:
+        if not self.items:
+            self.fetch()
+        return super().__repr__()
