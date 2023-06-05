@@ -1,8 +1,8 @@
 from typing import Literal, Optional
 
 from pysolarwinds.endpoints.orion.credentials.snmpv3 import OrionSNMPv3Credential
-from pysolarwinds.models import BaseModel
 from pysolarwinds.exceptions import SWObjectNotFound
+from pysolarwinds.models import BaseModel
 
 
 class SNMPv3Credential(BaseModel):
