@@ -3,6 +3,7 @@ from typing import Optional
 
 from pysolarwinds.endpoints import MonitoredEndpoint
 from pysolarwinds.endpoints.orion.credentials import OrionCredential
+from pysolarwinds.endpoints.orion.credentials.snmpv3 import OrionSNMPv3Credential
 from pysolarwinds.endpoints.orion.engines import OrionEngine
 from pysolarwinds.endpoints.orion.pollers import OrionPollers
 from pysolarwinds.endpoints.orion.volumes import OrionVolumes
@@ -51,12 +52,12 @@ class OrionNode(MonitoredEndpoint):
         self.polling_engine: OrionEngine = OrionEngine(
             swis=swis, id=self.data["EngineID"]
         )
+        self.polling_method: str = self.data.get("ObjectSubType", "icmp").lower()
         self.snmp_version: int = self.data.get("SNMPVersion", 0)
         self.snmpv2_ro_community: str = self.data.get("Community", "")
         self.snmpv2_rw_community: str = self.data.get("RWCommunity", "")
-        self.snmpv3_ro_cred = None
-        self.snmpv3_rw_cred = None
-        self.polling_method: str = self.data.get("ObjectSubType", "icmp").lower()
+        self.snmpv3_ro_cred: Optional[OrionSNMPv3Credential] = None
+        self.snmpv3_rw_cred: Optional[OrionSNMPv3Credential] = None
         self.settings = OrionNodeSettings(node=self)
         self.pollers = OrionPollers(node=self)
         self.volumes = OrionVolumes(node=self)
