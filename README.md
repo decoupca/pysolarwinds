@@ -70,7 +70,7 @@ sw.swis.client = client
 
 ### Manually construct objects
 
-The `SolarWindsClient` returned by `pysolarwinds.client()` provides a convenient way to create and retrie SolarWinds objects. This is the recommended approach, as it handles `SWISClient` creation and insertion, and more gracefully handles certain validation issues. If you prefer, you can also construct objects directly:
+The `SolarWindsClient` returned by `pysolarwinds.client()` provides a convenient way to create and retrieve SolarWinds objects. This is the recommended approach, as it handles `SWISClient` creation and insertion, and more gracefully handles certain validation issues. If you prefer, you can also construct objects directly:
 ```python
 >>> from pysolarwinds.swis import SWISClient
 >>> from pysolarwinds.endpoints.orion.nodes import OrionNode
