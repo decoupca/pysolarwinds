@@ -1,7 +1,6 @@
 from typing import Literal, Optional
 
 from pysolarwinds.endpoints.orion.credentials import OrionCredential
-from pysolarwinds.swis import SWISClient
 
 
 class OrionSNMPv3Credential(OrionCredential):
@@ -21,7 +20,8 @@ class OrionSNMPv3Credential(OrionCredential):
         Update credential set with provided details.
 
         Due to how the SWIS API is built, there is no way to update only one property of the
-        credential set; if you need to update any property, you must provide all properties.
+        credential set; if you need to update any property, you must provide all properties
+        (except name and context).
         """
         if name is None:
             name = self.name
