@@ -6,7 +6,7 @@ from pysolarwinds.models import BaseModel
 
 class SNMPv2Credential(BaseModel):
     def get(self) -> OrionSNMPv2Credential:
-        pass
+        raise NotImplemented()
 
     def create(
         self,
