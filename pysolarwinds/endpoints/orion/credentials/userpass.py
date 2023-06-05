@@ -1,60 +1,37 @@
 from typing import Optional
 
 from pysolarwinds.endpoints.orion.credentials import OrionCredential
-from pysolarwinds.swis import SWISClient
 
 
 class OrionUserPassCredential(OrionCredential):
-    def __init__(
+    def update(
         self,
-        swis: SWISClient,
-        id: Optional[int] = None,
-        name: str = "",
-        owner: str = "Orion",
-        username: str = "",
-        password: str = "",
+        username: str,
+        password: str,
+        name: Optional[str] = None,
     ) -> None:
-        self.swis = swis
-        self.id = id
-        self.name = name
-        self.owner = owner
-        self.username = username
-        self.password = password
-        super().__init__()
+        """
+        Update username/password credential set.
 
-    def _validate(self) -> None:
-        if not self.name:
-            raise ValueError("Must provide credential name.")
-        if not self.username:
-            raise ValueError("Must provide username.")
-        if not self.password:
-            raise ValueError("Must provide password.")
+        The way the SWIS API is built, it is not possible to update only one attribute;
+        if you want to update any attribute, you must provide all.
 
-    def create(self) -> bool:
-        self._validate()
-        self.id = self.swis.invoke(
-            self.endpoint,
-            "CreateUsernamePasswordCredentials",
-            self.name,
-            self.username,
-            self.password,
-            self.owner,
+        Arguments:
+            username: The username to update.
+            password: The password to update.
+            name: The credential set name to update.
+
+        """
+        if name is None:
+            name = self.name
+        self.swis.invoke(
+            "Orion.Credential",
+            "UpdateUsernamePasswordCredentials",
+            self.id,
+            name,
+            username,
+            password,
         )
-        return True
-
-    def save(self) -> bool:
-        if not self.exists():
-            return self.create()
-        else:
-            self._validate()
-            self.swis.invoke(
-                self.endpoint,
-                "UpdateUsernamePasswordCredentials",
-                self.id,
-                self.name,
-                self.username,
-                self.password,
-            )
 
     def __repr__(self) -> str:
-        return f"<OrionUserPassCredential: {self.name or self.id}>"
+        return f"OrionUserPassCredential(id={self.id})"
