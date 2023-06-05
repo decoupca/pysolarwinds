@@ -28,7 +28,7 @@ class Credentials(BaseModel):
         if name:
             query = (
                 f"SELECT ID, Name, Description, CredentialType, CredentialOwner, Uri "
-                f"FROM Orion.Credential WHERE Name = '{name}'"
+                f"FROM Orion.Credential WHERE Name='{name}'"
             )
             if result := self.swis.query(query):
                 cred_type = result[0]["CredentialType"]
