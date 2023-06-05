@@ -1,26 +1,26 @@
 from typing import Optional
 
 from pysolarwinds.endpoints.orion.credentials import OrionCredential
-from pysolarwinds.swis import SWISClient
 
 
 class OrionSNMPv2Credential(OrionCredential):
-    def _validate(self) -> None:
-        if not self.name:
-            raise ValueError("Must provide credential name.")
-        if not self.community:
-            raise ValueError("Must provide community string.")
+    def update(self, community: str, name: Optional[str] = None) -> None:
+        """
+        Update SNMPv1/2 credential community and optionally name.
 
-    def save(self) -> bool:
-        self._validate()
+        The way the SWIS API is built, it is not possible to only update the
+        name without also providing the community string. When updating the name only,
+        passing the community is required, but it need not be different.
+
+        Arguments:
+            community: Community string to update.
+            name: Credential name to update. If omitted, will use current name.
+        """
+        if name is None:
+            name = self.name
         self.swis.invoke(
-            self._entity_type,
-            "UpdateSNMPCredentials",
-            self.id,
-            self.name,
-            self.community,
+            "Orion.Credential", "UpdateSNMPCredentials", self.id, name, community
         )
-        return True
 
     def __repr__(self) -> str:
-        return f"<OrionSNMPv2Credential: {self.name or self.id}>"
+        return f"OrionSNMPv2Credential(name='{self.name}')"

@@ -618,6 +618,9 @@ class NewEndpoint:
             for attr, prop in self._write_attr_map.items():
                 updates.update({prop: getattr(self, attr)})
         self.swis.update(self.uri, **updates)
+        for attr, key in self._write_attr_map.items():
+            value = getattr(self, attr)
+            self.data[key] = value
         logger.debug(f"Updated properties: {updates}")
 
     def __str__(self) -> str:

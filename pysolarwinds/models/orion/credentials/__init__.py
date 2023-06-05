@@ -2,7 +2,7 @@ from typing import Optional, Union
 
 from pysolarwinds.endpoints.orion.credentials.snmpv2 import OrionSNMPv2Credential
 from pysolarwinds.endpoints.orion.credentials.snmpv3 import OrionSNMPv3Credential
-from pysolarwinds.exceptions import SWError, SWObjectNotFound
+from pysolarwinds.exceptions import SWError, SWNonUniqueResultError, SWObjectNotFound
 from pysolarwinds.models import BaseModel
 from pysolarwinds.models.orion.credentials.snmpv2 import SNMPv2Credential
 from pysolarwinds.models.orion.credentials.snmpv3 import SNMPv3Credential
@@ -31,6 +31,10 @@ class Credentials(BaseModel):
                 f"FROM Orion.Credential WHERE Name='{name}'"
             )
             if result := self.swis.query(query):
+                if len(result) > 1:
+                    raise SWNonUniqueResultError(
+                        f'More than one credential found with name "{name}".'
+                    )
                 cred_type = result[0]["CredentialType"]
                 if cred_type.endswith("SnmpCredentialsV3"):
                     return OrionSNMPv3Credential(swis=self.swis, data=result[0])

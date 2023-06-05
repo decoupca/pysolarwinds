@@ -1,12 +1,38 @@
 from typing import Optional
 
 from pysolarwinds.endpoints.orion.credentials.snmpv2 import OrionSNMPv2Credential
+from pysolarwinds.exceptions import SWObjectNotFound
 from pysolarwinds.models import BaseModel
 
 
 class SNMPv2Credential(BaseModel):
-    def get(self) -> OrionSNMPv2Credential:
-        raise NotImplemented()
+    def get(
+        self, name: Optional[str], id: Optional[int] = None
+    ) -> OrionSNMPv2Credential:
+        if not id and not name:
+            raise ValueError("Must provide either credential ID or name.")
+        if id:
+            query = (
+                f"SELECT ID, Name, Description, CredentialType, CredentialOwner, Uri "
+                f"FROM Orion.Credential WHERE CredentialType='SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV2' "
+                f"AND ID={id}"
+            )
+            if result := self.swis.query(query):
+                return OrionSNMPv2Credential(swis=self.swis, data=result[0])
+            else:
+                raise SWObjectNotFound(f"SNMPv2 credential with ID {id} not found.")
+        elif name:
+            query = (
+                f"SELECT ID, Name, Description, CredentialType, CredentialOwner, Uri "
+                f"FROM Orion.Credential WHERE CredentialType='SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV2' "
+                f"AND Name='{name}'"
+            )
+            if result := self.swis.query(query):
+                return OrionSNMPv2Credential(swis=self.swis, data=result[0])
+            else:
+                raise SWObjectNotFound(
+                    f'SNMPv2 credential with name "{name}" not found.'
+                )
 
     def create(
         self,
