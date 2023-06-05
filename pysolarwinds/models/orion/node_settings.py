@@ -1,6 +1,6 @@
 from typing import Union
 
-from pysolarwinds.endpoints import Endpoint
+from pysolarwinds.endpoints import Endpoint, NewEndpoint
 from pysolarwinds.endpoints.orion.credentials import OrionCredential
 from pysolarwinds.exceptions import SWObjectCreationError, SWObjectNotFound
 from pysolarwinds.logging import get_logger
@@ -155,18 +155,13 @@ class OrionNodeSettings:
                     old_setting.delete()
             else:
                 setting_value = getattr(node_attr_value, setting_value_attr)
-                if isinstance(node_attr_value, Endpoint):
-                    if node_attr_value.exists() is False:
-                        raise SWObjectNotFound(
-                            f'{node_attr_value.endpoint} "{node_attr_value.name}" does not exist'
-                        )
 
                 if old_setting:
                     if old_setting.name == setting_name and str(
                         old_setting.value
                     ) == str(setting_value):
                         logger.debug(
-                            f'setting "{setting_name}" with value "{setting_value}" already set'
+                            f'Setting "{setting_name}" with value "{setting_value}" already set.'
                         )
                     else:
                         new_setting = self.create(
