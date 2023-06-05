@@ -46,10 +46,7 @@ class OrionCredential(NewEndpoint):
         return self.data.get("CredentialType", "")
 
     def __repr__(self):
-        if self.name:
-            return f"OrionCredential(name='{self.name}')"
-        else:
-            return f"OrionCredential(id={self.id})>"
+        return f"OrionCredential(name='{self.name}')"
 
     def __str__(self) -> str:
         return self.name

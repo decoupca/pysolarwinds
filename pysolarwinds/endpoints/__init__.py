@@ -604,31 +604,6 @@ class NewEndpoint:
         """Description of entity."""
         return self.data.get("Description", "")
 
-    @property
-    def details_url(self) -> str:
-        """URL for further details."""
-        return self.data.get("DetailsUrl", "")
-
-    @property
-    def instance_site_id(self) -> str:
-        """Unknown meaning."""
-        return self.data.get("instanceSiteId", "")
-
-    @property
-    def instance_type(self) -> str:
-        """Unknown meaning."""
-        return self.data.get("InstanceType", "")
-
-    @property
-    def orion_id_column(self) -> str:
-        """Unknown meaning."""
-        return self.data["OrionIdColumn"]
-
-    @property
-    def orion_id_prefix(self) -> str:
-        """Unknown meaning."""
-        return self.data["OrionIdPrefix"]
-
     def delete(self) -> None:
         """Delete entity."""
         self.swis.delete(self.uri)
@@ -654,6 +629,21 @@ class MonitoredEndpoint(NewEndpoint):
     def avg_response_time(self) -> int:
         """Average response time in milliseconds."""
         return self.data["AvgResponseTime"]
+
+    @property
+    def details_url(self) -> str:
+        """URL for further details."""
+        return self.data.get("DetailsUrl", "")
+
+    @property
+    def instance_site_id(self) -> str:
+        """Unknown meaning."""
+        return self.data.get("instanceSiteId", "")
+
+    @property
+    def instance_type(self) -> str:
+        """Unknown meaning."""
+        return self.data.get("InstanceType", "")
 
     @property
     def is_unmanaged(self) -> bool:
@@ -693,6 +683,16 @@ class MonitoredEndpoint(NewEndpoint):
         """Next rediscovery date/time."""
         if next_rediscovery := self.data.get("NextRediscovery"):
             return datetime.datetime.strptime(next_rediscovery, "%Y-%m-%dT%H:%M:%S.%f")
+
+    @property
+    def orion_id_column(self) -> str:
+        """Unknown meaning."""
+        return self.data.get("OrionIdColumn", "")
+
+    @property
+    def orion_id_prefix(self) -> str:
+        """Unknown meaning."""
+        return self.data.get("OrionIdPrefix", "")
 
     @property
     def percent_loss(self) -> float:
