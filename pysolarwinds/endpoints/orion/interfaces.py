@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 class OrionInterface(NewEndpoint):
     _entity_type = "Orion.NPM.Interfaces"
-    _uri_template = "swis://{}/Orion/Orion.NPM.Interfaces/InterfaceID={}"
+    _uri_template = "swis://{}/Orion/Orion.Nodes/NodeID={}/Interfaces/InterfaceID={}"
 
     def __init__(
         self,
@@ -384,6 +384,24 @@ class OrionInterface(NewEndpoint):
         return self.name
 
 
+class DiscoveredInterface:
+    def __init__(self, data: dict) -> None:
+        self.data: dict = data
+        self.caption: str = data["Caption"]
+        self.name: str = re.split(r"\s(\-|\·)\s", self.caption)[0]
+        self.id: int = data["InterfaceID"]
+        self.is_manageable: bool = data["Manageable"]
+        self.admin_status: int = data["ifAdminStatus"]
+        self.index: int = data["ifIndex"]
+        self.oper_status: int = data["ifOperStatus"]
+        self.speed: float = data["ifSpeed"]
+        self.subtype: int = data["ifSubType"]
+        self.type: int = data["ifType"]
+
+    def __repr__(self) -> str:
+        return f"DiscoveredInterface(name='{self.name}')"
+
+
 class OrionInterfaces:
     def __init__(self, node) -> None:
         self.node = node
@@ -392,11 +410,10 @@ class OrionInterfaces:
         self._discovered = []
         self._discovery_response_code = None
 
-    def _get_iface_by_abbr(self, abbr):
+    def _get_iface_by_abbr(self, abbr: str) -> OrionInterface:
         abbr = abbr.lower()
         abbr_pattern = r"^([a-z\-]+)([\d\/\:]+)$"
-        match = re.match(abbr_pattern, abbr)
-        if match:
+        if match := re.match(abbr_pattern, abbr):
             begin = match.group(1)
             end = match.group(2)
             full_pattern = re.compile(f"^{begin}[a-z\-]+{end}$", re.I)
@@ -405,33 +422,49 @@ class OrionInterfaces:
                 if re.match(full_pattern, iface.name):
                     matches.append(iface)
             if len(matches) == 0:
-                raise IndexError(f"no matches found: {abbr}")
+                raise IndexError(f"No matches found: {abbr}")
             if len(matches) == 1:
                 return matches[0]
             if len(matches) > 1:
-                raise IndexError(f"ambiguous reference: {abbr}")
+                raise IndexError(f"Ambiguous reference: {abbr}")
         else:
             raise IndexError()
 
-    def add(self, interfaces):
-        """Adds a discovered interface to node."""
+    def add(
+        self, interfaces: Union[DiscoveredInterface, list[DiscoveredInterface]]
+    ) -> None:
+        """
+        Adds one or more discovered interfaces to node, as a managed/monitored interface.
+
+        Arguments:
+            interfaces: A DiscoveredInterface, or list of DiscoveredInterface objects.
+
+        Returns:
+            None.
+
+        Raises:
+            None.
+
+        """
+        if isinstance(interfaces, DiscoveredInterface):
+            interfaces = [interfaces]
         logger.info(f"Monitoring {len(interfaces)} interfaces...")
-        return self.swis.invoke(
+        self.swis.invoke(
             "Orion.NPM.Interfaces",
             "AddInterfacesOnNode",
             self.node.id,
-            interfaces,
+            [x.data for x in interfaces],
             "AddDefaultPollers",
         )
 
     def fetch(self) -> None:
-        """
-        Retrieves interfaces that have already been discovered and assigned to node.
-        """
+        """Retrieves interfaces that have already been discovered and monitored."""
         logger.info(f"Fetching existing interfaces...")
         query = QUERY.where(TABLE.NodeID == self.node.id)
         if results := self.swis.query(query.get_sql()):
-            self._existing = [OrionInterface(self.node, data=data) for data in results]
+            self._existing = [
+                OrionInterface(node=self.node, data=data) for data in results
+            ]
         logger.info(f"Found {len(self._existing)} existing interfaces.")
 
     def delete(self, interfaces: Union[OrionInterface, list[OrionInterface]]) -> None:
@@ -480,7 +513,7 @@ class OrionInterfaces:
         """
         if self.node.polling_method != "snmp":
             raise SWObjectPropertyError(
-                f"Interface discovery requires SNMP polling method; "
+                "Interface discovery requires SNMP polling method; "
                 f'node polling method is currently "{self.node.polling_method}".'
             )
         logger.info("Discovering interfaces via SNMP...")
@@ -489,16 +522,18 @@ class OrionInterfaces:
         # node's assigned polling engine. If they are directed at the main SWIS
         # server and the node uses a different polling engine, the process
         # will hang at "unknown" status.
-        swis_hostname = self.swis.hostname
-        self.swis.hostname = self.node.polling_engine.ip_address
+        swis_host = self.swis.host
+        self.swis.host = self.node.polling_engine.ip_address
         result = self.swis.invoke(
             "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.node.id
         )
-        self.swis.hostname = swis_hostname
+        self.swis.host = swis_host
         self._discovery_response_code = result["Result"]
         if self._discovery_response_code == 0:
             if results := result["DiscoveredInterfaces"]:
-                self._discovered = results
+                self._discovered = [
+                    DiscoveredInterface(data=result) for result in results
+                ]
                 logger.info(f"Discovered {len(results)} interfaces.")
             else:
                 msg = (
@@ -529,12 +564,20 @@ class OrionInterfaces:
         """
         Monitor discovered interfaces on node.
 
-        If interfaces is not provided, all discovered up interfaces will be monitored.
-        If interfaces is provided, only interfaces matching the names of those provided
-        will be monitored.
-        If delete_extraneous is True, the provided interface list will be considered
-        authoritative, and any interfaces currently monitored that are not in the provided
-        list will be deleted.
+        Arguments:
+            interfaces: Optional list of interface names to monitor.
+                If None, all discovered up/up interfaces will be monitored.
+                If provided, only interfaces matching the names of those provided will be monitored.
+            delete_extraneous: Whether or not to remove interfaces that are not in the list provided.
+                If True, the provided interface list will be considered authoritative, and any interfaces
+                currently monitored that are not in the provided list will be deleted.
+
+        Returns:
+            None.
+
+        Raises:
+            None.
+
         """
         if not self._existing:
             self.fetch()
@@ -548,30 +591,20 @@ class OrionInterfaces:
             extraneous = [x for x in self._existing if x.name not in interfaces]
 
             if missing:
-                logger.info(
-                    f"{self.node.name}: found {len(missing)} missing interfaces"
-                )
+                logger.info(f"Found {len(missing)} missing interfaces.")
                 self.discover()
-                to_add = [
-                    x
-                    for x in self._discovered
-                    if x["Caption"].split(" ")[0] in interfaces
-                ]
+                to_add = [x.data for x in self._discovered if x.name in interfaces]
                 if to_add:
                     self.add(to_add)
 
             if delete_extraneous:
                 if extraneous:
-                    logger.info(
-                        f"{self.node.name}: found {len(extraneous)} interfaces to delete"
-                    )
-                    for intf in extraneous:
-                        intf.delete()
+                    logger.info(f"Found {len(extraneous)} interfaces to delete.")
+                    self.swis.delete([x.uri for x in extraneous])
 
             if not missing and not extraneous:
                 logger.info(
-                    f"{self.node.name}: all {len(interfaces)} provided interfaces "
-                    "already monitored, doing nothing"
+                    f"All {len(interfaces)} provided interfaces already monitored; doing nothing."
                 )
 
     def __len__(self) -> int:
@@ -590,6 +623,6 @@ class OrionInterfaces:
             return result
 
     def __repr__(self) -> str:
-        if self._existing is None:
-            self.get()
+        if not self._existing:
+            self.fetch()
         return str(self._existing)
