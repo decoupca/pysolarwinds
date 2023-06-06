@@ -978,14 +978,14 @@ class OrionNode(Endpoint):
         conditions, and *especially* nodes that meet more than one condition:
             - High-latency (300ms+ RTT)
             - Many interfaces (300+)
-            - Uses a secondary polling engine (i.e., does not use the main pysolarwinds server
+            - Uses a secondary polling engine (i.e., does not use the main SolarWinds server
               for polling)
         The ListResources verbs that import_resources use have produced unpredictable results
         when testing against nodes that meet any or all of the above conditions (see details
-        below)
+        below).
 
         SNMP resources include:
-        1. pysolarwinds pollers, which roughly correspond to system health OIDs such as CPU,
+        1. SolarWinds pollers, which roughly correspond to system health OIDs such as CPU,
            RAM, routing tables, hardware health stats, etc. Available pollers vary by device
            type and platform version.
         2. Storage volumes, i.e. any persistent storage device that has a SNMP OID. Consider that
@@ -1001,7 +1001,7 @@ class OrionNode(Endpoint):
         all available resources from all three classes above. These verbs offer no granularity
         whatsoever--they don't even return a list of imported items. There is no way to select
         which resources, volumes, or interfaces you want--you can only import everything,
-        then remove any pollers, volumes or interfaces you don't want.
+        then remove any pollers, volumes or interfaces you don't want after import.
 
         WARNING: The ListResources verbs are also dishonest under certain conditions, such as
                  heavy system load (as a result of, say, running many resource imports at the
@@ -1013,7 +1013,7 @@ class OrionNode(Endpoint):
                  is to limit concurrent invocations of ListResources to about 5-10 at a time. Further
                  testing suggests this condition also arises when running ListResources against
                  a high latency node with many interfaces, which is assigned a secondary polling
-                 engine (i.e., not using the primary pysolarwinds server for polling)
+                 engine (i.e., not using the primary SolarWinds server for polling)
 
         Args:
             enable_pollers: which pollers to enable. May be a list of poller names, or these values:
@@ -1024,8 +1024,8 @@ class OrionNode(Endpoint):
                 caution when enabling this in a concurrent/threaded scenario; see warning above.
             monitor_interfaces: which interfaces to monitor. May be a list of interface names,
                 None, a callable object, or one of: 'existing', 'up', 'all'.
-                existing (default): preserves existing interfaces (no net change)
-                up: Monitor all interfaces that pysolarwinds reports are operationally and
+                existing (default): preserves existing interfaces (no net change to interfaces)
+                up: Monitor all interfaces that SolarWinds reports as operationally and
                     administratively up
                 all: Monitor all interfaces, regardless of their operational or
                     administrative status
@@ -1055,22 +1055,22 @@ class OrionNode(Endpoint):
                 indefinitely if the resource monitoring process fails before re-managing the node.
             remanage_delay: after successful resource import, delay re-managing node for this
                 length of time. May be a datetime.timedelta object, or an integer for seconds. Defaults
-                to None, i.e., after successful resource import node will re-manage immediately.
+                to None, i.e., after successful resource import, node will re-manage immediately.
                 Delaying re-management may be helpful in corner cases, such as when importing resources
                 for high-latency nodes with many interfaces polled by secondary polling engines. In
                 testing, this combination of factors was shown to cause a condition where SWIS reported
                 that down interfaces were deleted, but a propagation delay (or similar issue) caused
-                the main pysolarwinds engine to raise false positive alerts on those interfaces. Even though
+                the main SolarWinds engine to raise false positive alerts on those interfaces. Even though
                 SWIS reported the interfaces were deleted, they existed in a transient state long
                 enough to trigger down interface alerts. Delaying re-management of the node works around
-                this by giving pysolarwinds time to settle into its desired state before resuming alerts.
+                this by giving SolarWinds time to settle into its desired state before resuming alerts.
             import_timeout: maximum time in seconds to wait for SNMP resources to import. Generous timeouts
-                are recommended in virtually all cases, because allowing pypysolarwinds to time out will
+                are recommended in virtually all cases, because allowing SolarWinds to time out will
                 almost certainly leave the node in a state that will generate warnings or alerts due
                 to down interfaces or full-capacity storage volumes. In most normal cases, imports
                 take about 60-120 seconds. But high latency nodes with many OIDs can take upwards of
                 5 minutes, hence the 10 minute (600s) default value.
-            enforce_icmp_status_polling: pysolarwinds recommends using ICMP to monitor status
+            enforce_icmp_status_polling: SolarWinds recommends using ICMP to monitor status
                 (up/down) and response time, which is faster than using SNMP. The ListResources
                 verbs, however, automatically enable SNMP-based status and response time pollers.
                 To override this and use the recommended ICMP-based status and response time pollers,
