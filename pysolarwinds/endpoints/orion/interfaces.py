@@ -18,7 +18,7 @@ class OrionInterface(NewEndpoint):
 
     def __init__(
         self,
-        node: "OrionNode",
+        node,
         id: Optional[int] = None,
         uri: Optional[str] = None,
         data: Optional[dict] = None,
