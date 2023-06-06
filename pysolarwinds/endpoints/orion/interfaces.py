@@ -584,7 +584,7 @@ class OrionInterfaces:
 
         if interfaces is None:
             self.discover()
-            self.add(self._discovered)
+            self.add([x for x in self._discovered if x.oper_status == 1])
         else:
             existing = [x.name for x in self._existing]
             missing = [x for x in interfaces if x not in existing]
