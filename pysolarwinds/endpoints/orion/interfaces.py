@@ -5,12 +5,7 @@ from typing import Literal, Optional, Union
 import netaddr
 
 from pysolarwinds.endpoints import NewEndpoint
-from pysolarwinds.endpoints.orion.engines import OrionEngine
-from pysolarwinds.exceptions import (
-    SWDiscoveryError,
-    SWObjectNotFound,
-    SWObjectPropertyError,
-)
+from pysolarwinds.exceptions import SWDiscoveryError, SWObjectPropertyError
 from pysolarwinds.logging import get_logger
 from pysolarwinds.queries.orion.interfaces import QUERY, TABLE
 
@@ -389,9 +384,7 @@ class OrionInterface(NewEndpoint):
         return self.name
 
 
-class OrionInterfaces(object):
-    endpoint = "Orion.NPM.Interfaces"
-
+class OrionInterfaces:
     def __init__(self, node) -> None:
         self.node = node
         self.swis = node.swis
@@ -418,10 +411,11 @@ class OrionInterfaces(object):
             if len(matches) > 1:
                 raise IndexError(f"ambiguous reference: {abbr}")
         else:
-            raise IndexError
+            raise IndexError()
 
     def add(self, interfaces):
-        logger.info(f"{self.node.name}: monitoring {len(interfaces)} interfaces...")
+        """Adds a discovered interface to node."""
+        logger.info(f"Monitoring {len(interfaces)} interfaces...")
         return self.swis.invoke(
             "Orion.NPM.Interfaces",
             "AddInterfacesOnNode",
@@ -432,52 +426,69 @@ class OrionInterfaces(object):
 
     def fetch(self) -> None:
         """
-        Queries for interfaces that have already been discovered and assigned
-        to node
+        Retrieves interfaces that have already been discovered and assigned to node.
         """
-        logger.info(f"Getting existing interfaces...")
+        logger.info(f"Fetching existing interfaces...")
         query = QUERY.where(TABLE.NodeID == self.node.id)
         if results := self.swis.query(query.get_sql()):
             self._existing = [OrionInterface(self.node, data=data) for data in results]
         logger.info(f"Found {len(self._existing)} existing interfaces.")
 
-    def delete(self, interfaces: Union[OrionInterface, list[OrionInterface]]) -> bool:
+    def delete(self, interfaces: Union[OrionInterface, list[OrionInterface]]) -> None:
+        """
+        Delete one or more currently monitored interfaces.
+
+        Arguments:
+            interfaces: An OrionInterface object or list of OrionInterface objects to delete.
+
+        Returns:
+            None.
+
+        Raises:
+            None.
+        """
         if isinstance(interfaces, OrionInterface):
             interfaces = [interfaces]
-
-        uris = [x.uri for x in interfaces]
-        self.swis.delete(uris)
+        self.swis.delete([x.uri for x in interfaces])
         for interface in interfaces:
             if interface in self._existing:
                 self._existing.remove(interface)
-        logger.info(f"deleted {len(interfaces)} interfaces")
-        return True
+        logger.info(f"Deleted {len(interfaces)} interfaces.")
 
-    def delete_all(self) -> bool:
-        interface_count = len(self._existing)
-        self.swis.delete([x.uri for x in self._existing])
-        self._existing = []
-        logger.info(f"{self.node}: deleted {interface_count} interfaces")
-        return True
+    def delete_all(self) -> None:
+        """Delete all currently discovered and monitored interfaces."""
+        if self._existing:
+            self.swis.delete([x.uri for x in self._existing])
+            self._existing = []
+            logger.info(f"Deleted all {len(self._existing)} interfaces.")
+        else:
+            logger.warning("No interfaces to delete.")
 
-    def discover(self) -> bool:
+    def discover(self) -> None:
         """
-        Runs SNMP discovery of all available interfaces. This can take a while
-        depending on network conditions and number of interfaces on node
+        Discover all available interfaces via SNMP.
+
+        Arguments:
+            None.
+
+        Returns:
+            None.
+
+        Raises:
+            - SWObjectPropertyError if polling method is not 'snmp'.
+            - SWDiscoveryError if there was a problem discovering interfaces.
         """
         if self.node.polling_method != "snmp":
             raise SWObjectPropertyError(
-                f"{self.node}: interface discovery requires SNMP polling method; "
-                f'node polling method is currently "{self.node.polling_method}"'
+                f"Interface discovery requires SNMP polling method; "
+                f'node polling method is currently "{self.node.polling_method}".'
             )
-        logger.info(f"{self.node.name}: discovering interfaces via SNMP...")
+        logger.info("Discovering interfaces via SNMP...")
 
-        # the verbs associated with this method need to be pointed at this
+        # The verbs associated with this method need to be pointed at this
         # node's assigned polling engine. If they are directed at the main SWIS
         # server and the node uses a different polling engine, the process
-        # will hang at "unknown" status
-        if not isinstance(self.node.polling_engine, OrionEngine):
-            self._resolve_endpoint_attrs()
+        # will hang at "unknown" status.
         swis_hostname = self.swis.hostname
         self.swis.hostname = self.node.polling_engine.ip_address
         result = self.swis.invoke(
@@ -486,31 +497,29 @@ class OrionInterfaces(object):
         self.swis.hostname = swis_hostname
         self._discovery_response_code = result["Result"]
         if self._discovery_response_code == 0:
-            results = result["DiscoveredInterfaces"]
-            if results:
-                logger.info(f"{self.node.name}: discovered {len(results)} interfaces")
+            if results := result["DiscoveredInterfaces"]:
                 self._discovered = results
-                return True
+                logger.info(f"Discovered {len(results)} interfaces.")
             else:
                 msg = (
-                    f"{self.node}: No interfaces discovered. "
+                    "No interfaces discovered. "
                     "The node may not have any interfaces available to monitor, "
                     "or there might be a problem with SNMP configuration / reachability. "
-                    "The SWIS API is inconsistent in its response codes so precisely "
-                    "identifying the cause isn't possible."
+                    "The SWIS API is inconsistent in its response codes, so precisely "
+                    "identifying the cause isn't currently possible."
                 )
                 raise SWDiscoveryError(msg)
         else:
-            msg = f"{self.node}: Interface discovery failed. "
+            msg = f"Interface discovery failed. "
             # https://thwack.pysolarwinds.com/product-forums/the-orion-platform/f/orion-sdk/40430/data-returned-from-discoverinterfacesonnode-question/159593#159593
             if self._discovery_response_code == 1:
-                # should never get this due to checks above
+                # Should never get this due to checks above.
                 msg += "Check that the node exists and is set to SNMP polling method."
             else:
                 msg += (
                     "Common causes: Invalid SNMP credentials; "
                     "SNMP misconfigured on node; "
-                    "SNMP ports blocked by firewall or ACL"
+                    "SNMP ports blocked by firewall or ACL."
                 )
                 raise SWDiscoveryError(msg)
 
