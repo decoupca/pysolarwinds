@@ -656,8 +656,7 @@ class MonitoredEndpoint(NewEndpoint):
     @property
     def last_sync(self) -> Optional[datetime.datetime]:
         """Last synchronization with SolarWinds."""
-        last_sync = self.data.get("LastSync")
-        if last_sync:
+        if last_sync := self.data.get("LastSync"):
             return datetime.datetime.strptime(last_sync, "%Y-%m-%dT%H:%M:%S.%f")
 
     @property

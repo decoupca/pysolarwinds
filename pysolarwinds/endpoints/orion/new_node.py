@@ -5,6 +5,7 @@ from pysolarwinds.endpoints import MonitoredEndpoint
 from pysolarwinds.endpoints.orion.credentials import OrionCredential
 from pysolarwinds.endpoints.orion.credentials.snmpv3 import OrionSNMPv3Credential
 from pysolarwinds.endpoints.orion.engines import OrionEngine
+from pysolarwinds.endpoints.orion.interfaces import OrionInterfaces
 from pysolarwinds.endpoints.orion.pollers import OrionPollers
 from pysolarwinds.endpoints.orion.volumes import OrionVolumes
 from pysolarwinds.exceptions import (
@@ -58,6 +59,7 @@ class OrionNode(MonitoredEndpoint):
         self.snmpv2_rw_community: str = self.data.get("RWCommunity", "")
         self.snmpv3_ro_cred: Optional[OrionSNMPv3Credential] = None
         self.snmpv3_rw_cred: Optional[OrionSNMPv3Credential] = None
+        self.interfaces = OrionInterfaces(node=self)
         self.settings = OrionNodeSettings(node=self)
         self.pollers = OrionPollers(node=self)
         self.volumes = OrionVolumes(node=self)

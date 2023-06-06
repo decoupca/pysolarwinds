@@ -1,6 +1,6 @@
 from pypika import MSSQLQuery
 
-NodeQuery = MSSQLQuery.from_("Orion.Nodes").select(
+query = MSSQLQuery.from_("Orion.Nodes").select(
     "AgentPort",
     "Allow64BitCounters",
     "AncestorDetailsUrls",

@@ -1,7 +1,7 @@
 import re
 from datetime import datetime, timedelta
 from time import sleep
-from typing import Callable, Dict, List, Literal, NewType, Optional, Union
+from typing import Callable, Literal, NewType, Optional, Union
 
 import pysolarwinds.defaults as d
 from pysolarwinds.endpoints import Endpoint
@@ -10,7 +10,7 @@ from pysolarwinds.endpoints.orion.credentials import (
     OrionSNMPv2Credential,
 )
 from pysolarwinds.endpoints.orion.engines import OrionEngine
-from pysolarwinds.endpoints.orion.interface import OrionInterfaces
+from pysolarwinds.endpoints.orion.interfaces import OrionInterfaces
 from pysolarwinds.endpoints.orion.pollers import OrionPoller, OrionPollers
 from pysolarwinds.endpoints.orion.volumes import OrionVolume, OrionVolumes
 from pysolarwinds.endpoints.orion.worldmap import WorldMapPoint
