@@ -12,7 +12,7 @@ from pysolarwinds.exceptions import (
     SWObjectPropertyError,
 )
 from pysolarwinds.logging import get_logger
-from pysolarwinds.swis import SWISClient
+from pysolarwinds.queries.orion.interfaces import QUERY, TABLE
 
 logger = get_logger(__name__)
 
@@ -87,7 +87,7 @@ class OrionInterface(NewEndpoint):
     @property
     def description(self) -> str:
         """Interface description."""
-        return self.data["Description"]
+        return self.data["InterfaceAlias"]  # This key is a misnomer
 
     @property
     def display_name(self) -> str:
@@ -110,7 +110,7 @@ class OrionInterface(NewEndpoint):
 
     @property
     def full_name(self) -> str:
-        """Node name with unabbreviated interface name."""
+        """Node name with unabbreviated interface name and description."""
         return self.data["FullName"]
 
     @property
@@ -218,13 +218,13 @@ class OrionInterface(NewEndpoint):
         Tests suggest this is the last configuration change, not status change.
         """
         last_change = self.data["LastChange"]
-        return datetime.datetime.strptime(last_change, "%Y-%m-%dT%H:%M:%S")
+        return datetime.datetime.strptime(last_change, "%Y-%m-%dT%H:%M:%S.%f0")
 
     @property
     def last_sync(self) -> datetime.datetime:
         """Last sync with SolarWinds."""
         last_sync = self.data["LastSync"]
-        return datetime.datetime.strptime(last_sync, "%Y-%m-%dT%H:%M:%S.%f")
+        return datetime.datetime.strptime(last_sync, "%Y-%m-%dT%H:%M:%S.%f0")
 
     @property
     def late_collisions_this_hour(self) -> float:
@@ -245,7 +245,7 @@ class OrionInterface(NewEndpoint):
     def max_input_bps_time(self) -> Optional[datetime.datetime]:
         """Date/time of max_input_bps_today."""
         if time := self.data.get("MaxInBpsTime"):
-            return datetime.datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%f")
+            return datetime.datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%f0")
 
     @property
     def max_input_bps_today(self) -> float:
@@ -256,7 +256,7 @@ class OrionInterface(NewEndpoint):
     def max_output_bps_time(self) -> Optional[datetime.datetime]:
         """Date/time of max_output_bps_today."""
         if time := self.data.get("MaxOutBpsTime"):
-            return datetime.datetime.strftime(time, "%Y-%m-%dT%H:%M:%S.%f")
+            return datetime.datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%f0")
 
     @property
     def max_output_bps_today(self) -> float:
@@ -270,7 +270,7 @@ class OrionInterface(NewEndpoint):
 
     @property
     def mtu(self) -> int:
-        return self.data["mtu"]
+        return self.data["MTU"]
 
     @property
     def name(self) -> str:
@@ -435,30 +435,11 @@ class OrionInterfaces(object):
         Queries for interfaces that have already been discovered and assigned
         to node
         """
-        logger.info(f"{self.node.name}: getting existing interfaces...")
-        query = f"""
-            SELECT
-                I.Uri,
-                I.AdminStatus,
-                I.InterfaceID,
-                I.InterfaceName,
-                I.MTU,
-                I.OperStatus,
-                I.PhysicalAddress,
-                I.Speed
-            FROM
-                Orion.Nodes N
-            JOIN
-                Orion.NPM.Interfaces I ON N.NodeID = I.NodeID
-            WHERE
-                N.NodeID = '{self.node.id}'
-        """
-        result = self.swis.query(query)
-        if result:
-            self._existing = [OrionInterface(self.node, data=data) for data in result]
-        logger.info(
-            f"{self.node.name}: found {len(self._existing)} existing interfaces"
-        )
+        logger.info(f"Getting existing interfaces...")
+        query = QUERY.where(TABLE.NodeID == self.node.id)
+        if results := self.swis.query(query.get_sql()):
+            self._existing = [OrionInterface(self.node, data=data) for data in results]
+        logger.info(f"Found {len(self._existing)} existing interfaces.")
 
     def delete(self, interfaces: Union[OrionInterface, list[OrionInterface]]) -> bool:
         if isinstance(interfaces, OrionInterface):

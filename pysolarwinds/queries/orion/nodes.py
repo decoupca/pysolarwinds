@@ -1,6 +1,7 @@
 from pypika import MSSQLQuery
 
-query = MSSQLQuery.from_("Orion.Nodes").select(
+TABLE = "Orion.Nodes"
+FIELDS = (
     "AgentPort",
     "Allow64BitCounters",
     "AncestorDetailsUrls",
@@ -104,3 +105,5 @@ query = MSSQLQuery.from_("Orion.Nodes").select(
     "Vendor",
     "VendorIcon",
 )
+
+QUERY = MSSQLQuery.from_(TABLE).select(*FIELDS)

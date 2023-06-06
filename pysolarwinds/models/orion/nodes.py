@@ -4,7 +4,7 @@ from pypika import Table
 
 from pysolarwinds.endpoints.orion.new_node import OrionNode
 from pysolarwinds.models.base import BaseModel
-from pysolarwinds.queries.orion.nodes import query
+from pysolarwinds.queries.orion.nodes import QUERY
 
 
 class Nodes(BaseModel):
@@ -36,6 +36,7 @@ class Nodes(BaseModel):
             ]
         else:
             where = []
+            query = QUERY
             if vendor:
                 query = query.where(self.table.vendor == vendor)
             if status:
