@@ -76,8 +76,8 @@ class OrionInterface(NewEndpoint):
 
     @property
     def custom_poller_last_statistics_poll(self) -> datetime.datetime:
-        last_poll = self.data["CustomPollerLastStatisticsPoll"]
-        return datetime.datetime.strptime(last_poll, "%Y-%m-%dT%H:%M:%S")
+        if last_poll := self.data["CustomPollerLastStatisticsPoll"]:
+            return datetime.datetime.strptime(last_poll, "%Y-%m-%dT%H:%M:%S")
 
     @property
     def description(self) -> str:
@@ -207,19 +207,19 @@ class OrionInterface(NewEndpoint):
         return self.data["UnPluggable"]
 
     @property
-    def last_change(self) -> datetime.datetime:
+    def last_change(self) -> Optional[datetime.datetime]:
         """
         Last change to interface.
         Tests suggest this is the last configuration change, not status change.
         """
-        last_change = self.data["LastChange"]
-        return datetime.datetime.strptime(last_change, "%Y-%m-%dT%H:%M:%S.%f0")
+        if last_change := self.data["LastChange"]:
+            return datetime.datetime.strptime(last_change, "%Y-%m-%dT%H:%M:%S.%f0")
 
     @property
-    def last_sync(self) -> datetime.datetime:
+    def last_sync(self) -> Optional[datetime.datetime]:
         """Last sync with SolarWinds."""
-        last_sync = self.data["LastSync"]
-        return datetime.datetime.strptime(last_sync, "%Y-%m-%dT%H:%M:%S.%f0")
+        if last_sync := self.data["LastSync"]:
+            return datetime.datetime.strptime(last_sync, "%Y-%m-%dT%H:%M:%S.%f0")
 
     @property
     def late_collisions_this_hour(self) -> float:
@@ -272,16 +272,16 @@ class OrionInterface(NewEndpoint):
         return self.data["Name"]
 
     @property
-    def next_poll(self) -> datetime.datetime:
+    def next_poll(self) -> Optional[datetime.datetime]:
         """Next poll by SolarWinds."""
-        next_poll = self.data["NextPoll"]
-        return datetime.datetime.strftime(next_poll, "%Y-%m-%dT%H:%M:%S.%f")
+        if next_poll := self.data["NextPoll"]:
+            return datetime.datetime.strftime(next_poll, "%Y-%m-%dT%H:%M:%S.%f")
 
     @property
     def next_rediscovery(self) -> datetime.datetime:
         """Next rediscovery by SolarWinds."""
-        next_rediscovery = self.data["NextPoll"]
-        return datetime.datetime.strftime(next_rediscovery, "%Y-%m-%dT%H:%M:%S.%f")
+        if next_rediscovery := self.data["NextPoll"]:
+            return datetime.datetime.strftime(next_rediscovery, "%Y-%m-%dT%H:%M:%S.%f")
 
     @property
     def node_id(self) -> int:
@@ -585,6 +585,7 @@ class OrionInterfaces:
         if interfaces is None:
             self.discover()
             self.add([x for x in self._discovered if x.oper_status == 1])
+            self.fetch()
         else:
             existing = [x.name for x in self._existing]
             missing = [x for x in interfaces if x not in existing]
