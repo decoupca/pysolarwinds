@@ -1,5 +1,5 @@
+import datetime
 import re
-from datetime import datetime, timedelta
 from time import sleep
 from typing import Callable, Literal, NewType, Optional, Union
 
@@ -75,11 +75,11 @@ class OrionNode(Endpoint):
         swis: SWISClient,
         ip_address: Optional[str] = None,
         caption: Optional[str] = None,
-        custom_properties: Optional[Dict] = None,
+        custom_properties: Optional[dict] = None,
         latitude: Optional[float] = None,
         longitude: Optional[float] = None,
         id: Optional[int] = None,
-        pollers: Optional[List[str]] = None,
+        pollers: Optional[list[str]] = None,
         polling_engine: Union[OrionEngine, int, str, None] = None,
         polling_method: Optional[str] = None,
         snmp_version: Optional[int] = None,
@@ -188,7 +188,7 @@ class OrionNode(Endpoint):
                 self.polling_method = "icmp"
                 self.snmp_version = 0
 
-    def _get_attr_updates(self) -> Dict:
+    def _get_attr_updates(self) -> dict:
         """
         Get attribute updates from swdata
         """
@@ -250,7 +250,7 @@ class OrionNode(Endpoint):
             self.id,
         )
 
-    def _get_extra_swargs(self) -> Dict:
+    def _get_extra_swargs(self) -> dict:
         extra_swargs = {
             "Status": self._swdata["properties"].get("Status") or 1,
             "ObjectSubType": self._get_polling_method().upper(),
@@ -641,9 +641,9 @@ class OrionNode(Endpoint):
 
     def unmanage(
         self,
-        start: Optional[datetime] = None,
-        end: Optional[datetime] = None,
-        duration: timedelta = timedelta(days=1),
+        start: Optional[datetime.datetime] = None,
+        end: Optional[datetime.datetime] = None,
+        duration: datetime.timedelta = datetime.timedelta(days=1),
     ) -> bool:
         """
         Un-manages node with optional start and end times, or duration.
@@ -662,7 +662,7 @@ class OrionNode(Endpoint):
         if self.exists():
             now = datetime.utcnow()
             if not start:
-                start = now - timedelta(minutes=10)
+                start = now - datetime.timedelta(minutes=10)
             if not end:
                 end = now + duration
             self._get_swdata(data="properties")
@@ -676,7 +676,7 @@ class OrionNode(Endpoint):
             logger.warning(f"{self}: Does not exist; nothing to unmanage")
             return False
 
-    def _get_alert_suppression_state(self) -> Dict:
+    def _get_alert_suppression_state(self) -> dict:
         return self.swis.invoke(
             "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri]
         )[0]
@@ -699,7 +699,7 @@ class OrionNode(Endpoint):
         return self._get_alert_suppression_state()["SuppressionMode"] == 3
 
     @property
-    def alerts_suppressed_from(self) -> Optional[datetime]:
+    def alerts_suppressed_from(self) -> Optional[datetime.datetime]:
         """Date/time from when alerts will be suppressed."""
         suppression_state = self._get_alert_suppression_state()
         suppressed_from = suppression_state["SuppressedFrom"]
@@ -709,7 +709,7 @@ class OrionNode(Endpoint):
             return None
 
     @property
-    def alerts_suppressed_until(self) -> Optional[datetime]:
+    def alerts_suppressed_until(self) -> Optional[datetime.datetime]:
         """Date/time from when alerts will be resumed."""
         suppression_state = self._get_alert_suppression_state()
         suppressed_until = suppression_state["SuppressedUntil"]
@@ -729,7 +729,9 @@ class OrionNode(Endpoint):
         return self.alerts_will_be_suppressed()
 
     def suppress_alerts(
-        self, start: Optional[datetime] = None, end: Optional[datetime] = None
+        self,
+        start: Optional[datetime.datetime] = None,
+        end: Optional[datetime.datetime] = None,
     ) -> bool:
         """
         Suppress alerts on node.
@@ -751,7 +753,7 @@ class OrionNode(Endpoint):
             Under normal conditions, invalid arguments will raise SWISError with details.
         """
         if start is None:
-            start = datetime.utcnow() - timedelta(hours=1)
+            start = datetime.utcnow() - datetime.timedelta(hours=1)
         # If you provide datetime objects directly to this call, SWIS will
         # erroneously convert it to UTC, so we need to explicitly pass a datetime
         # string in this format: 2023-02-28T16:40:00Z. The trailing "Z" causes
@@ -796,7 +798,9 @@ class OrionNode(Endpoint):
         return True
 
     def mute_alerts(
-        self, start: Optional[datetime] = None, end: Optional[datetime] = None
+        self,
+        start: Optional[datetime.datetime] = None,
+        end: Optional[datetime.datetime] = None,
     ) -> bool:
         """Convenience alias"""
         return self.suppress_alerts(start=start, end=end)
@@ -821,7 +825,7 @@ class OrionNode(Endpoint):
         return self._swp.get("AvgResponseTime")
 
     @property
-    def block_until(self) -> Optional[datetime]:
+    def block_until(self) -> Optional[datetime.datetime]:
         """Unknown meaning."""
         block_until = self._swp.get("BlockUntil")
         if block_until:
@@ -949,22 +953,22 @@ class OrionNode(Endpoint):
 
     def import_resources(
         self,
-        enable_pollers: Union[None, List[str], Literal["all"]] = "all",
+        enable_pollers: Union[None, list[str], Literal["all"]] = "all",
         purge_existing_pollers: bool = False,
         enforce_icmp_status_polling: bool = True,
         monitor_volumes: Union[
-            None, List[str], Literal["existing", "all"], Callable
+            None, list[str], Literal["existing", "all"], Callable
         ] = "existing",
-        delete_volumes: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
+        delete_volumes: Optional[Union[re.Pattern, list[re.Pattern]]] = None,
         monitor_interfaces: Union[
-            None, List[str], Literal["existing", "up", "all"], Callable
+            None, list[str], Literal["existing", "up", "all"], Callable
         ] = "existing",
-        delete_interfaces: Optional[Union[re.Pattern, List[re.Pattern]]] = None,
+        delete_interfaces: Optional[Union[re.Pattern, list[re.Pattern]]] = None,
         unmanage_node: bool = True,
-        unmanage_node_timeout: Union[timedelta, Integer] = timedelta(
+        unmanage_node_timeout: Union[datetime.timedelta, int] = datetime.timedelta(
             days=d.IMPORT_RESOURCES_UNMANAGE_NODE_DAYS
         ),
-        remanage_delay: Optional[Union[timedelta, Integer]] = None,
+        remanage_delay: Optional[Union[datetime.timedelta, int]] = None,
         import_timeout: int = d.IMPORT_RESOURCES_TIMEOUT,
     ) -> None:
         """
@@ -1100,10 +1104,10 @@ class OrionNode(Endpoint):
                 logger.info(f"{self}: Node is already unmanaged")
             else:
                 logger.info(f"{self}: Unmanaging node...")
-                if isinstance(unmanage_node_timeout, timedelta):
+                if isinstance(unmanage_node_timeout, datetime.timedelta):
                     delta = unmanage_node_timeout
                 elif isinstance(unmanage_node_timeout, int):
-                    delta = timedelta(seconds=unmanage_node_timeout)
+                    delta = datetime.timedelta(seconds=unmanage_node_timeout)
                 else:
                     raise ValueError(
                         "Unexpected value for unmanage_node_timeout: "
@@ -1169,7 +1173,7 @@ class OrionNode(Endpoint):
             interfaces_to_delete = []
         elif monitor_interfaces is None:
             interfaces_to_delete = [x for x in self.interfaces]
-        elif isinstance(monitor_interfaces, List):
+        elif isinstance(monitor_interfaces, list):
             interfaces_to_delete = [
                 x for x in self.interfaces if x.name not in monitor_interfaces
             ]
@@ -1244,7 +1248,7 @@ class OrionNode(Endpoint):
         if unmanage_node and not already_unmanaged:
             if remanage_delay:
                 if isinstance(remanage_delay, int):
-                    delta = timedelta(seconds=remanage_delay)
+                    delta = datetime.timedelta(seconds=remanage_delay)
                     msg = f"setting node to re-manage in {remanage_delay}sec..."
                 else:
                     delta = remanage_delay
