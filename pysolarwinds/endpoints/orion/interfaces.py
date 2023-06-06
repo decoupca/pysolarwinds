@@ -5,7 +5,10 @@ from typing import Literal, Optional, Union
 import netaddr
 
 from pysolarwinds.endpoints import NewEndpoint
-from pysolarwinds.exceptions import SWDiscoveryError, SWObjectPropertyError
+from pysolarwinds.exceptions import (
+    SWDiscoveryError,
+    SWObjectPropertyError,
+)
 from pysolarwinds.logging import get_logger
 from pysolarwinds.queries.orion.interfaces import QUERY, TABLE
 
@@ -385,6 +388,7 @@ class OrionInterface(NewEndpoint):
 
 
 class OrionInterfaces:
+
     def __init__(self, node) -> None:
         self.node = node
         self.swis = node.swis
@@ -421,7 +425,7 @@ class OrionInterfaces:
             "AddInterfacesOnNode",
             self.node.id,
             interfaces,
-            "AddDefaultPollers",
+            "AddDefaultPollers"
         )
 
     def fetch(self) -> None:
@@ -527,7 +531,7 @@ class OrionInterfaces:
         self, interfaces: Optional[list[str]] = None, delete_extraneous: bool = False
     ) -> None:
         """
-        Monitor interfaces on node.
+        Monitor discovered interfaces on node.
 
         If interfaces is not provided, all discovered up interfaces will be monitored.
         If interfaces is provided, only interfaces matching the names of those provided
