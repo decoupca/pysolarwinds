@@ -8,9 +8,9 @@ from pysolarwinds.entities import Endpoint
 from pysolarwinds.entities.orion.credentials import Credential, SNMPv2Credential
 from pysolarwinds.entities.orion.engines import Engine
 from pysolarwinds.entities.orion.interfaces import InterfaceList
+from pysolarwinds.entities.orion.map_point import MapPoint
 from pysolarwinds.entities.orion.pollers import Poller, PollerList
 from pysolarwinds.entities.orion.volumes import VolumeList
-from pysolarwinds.entities.orion.worldmap import WorldMapPoint
 from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
     SWDiscoveryError,
@@ -55,7 +55,7 @@ class Node(Endpoint):
     _required_swargs_attrs = ["ip_address", "polling_engine"]
     _child_objects = {
         "map_point": {
-            "class": WorldMapPoint,
+            "class": MapPoint,
             "init_args": {
                 "node_id": "instance_id",
             },

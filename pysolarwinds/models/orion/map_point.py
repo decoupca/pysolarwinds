@@ -1,19 +1,19 @@
 from typing import Optional
 
 from pysolarwinds.entities import Entity
-from pysolarwinds.entities.orion.worldmap import WorldMapPoint
+from pysolarwinds.entities.orion.map_point import MapPoint
 from pysolarwinds.models import BaseModel
 
 
-class WorldMapModel(BaseModel):
-    _entity_class = WorldMapPoint
+class MapPointsModel(BaseModel):
+    _entity_class = MapPoint
 
     def get(
         self, id: Optional[int] = None, entity: Optional[Entity] = None
-    ) -> WorldMapPoint:
+    ) -> MapPoint:
         if not id and not entity:
             raise ValueError("Must provide either id or entity.")
-        return WorldMapPoint(swis=self.swis, entity=entity, id=id)
+        return MapPoint(swis=self.swis, entity=entity, id=id)
 
     def create(
         self,
@@ -21,7 +21,7 @@ class WorldMapModel(BaseModel):
         latitude: float,
         longitude: float,
         street_address: str = "",
-    ) -> WorldMapPoint:
+    ) -> MapPoint:
         return super().create(
             Instance=entity.TYPE,
             InstanceID=entity.id,

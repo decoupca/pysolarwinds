@@ -5,9 +5,9 @@ from pysolarwinds.entities import MonitoredEntity
 from pysolarwinds.entities.orion.credentials.snmpv3 import SNMPv3Credential
 from pysolarwinds.entities.orion.engines import Engine
 from pysolarwinds.entities.orion.interfaces import InterfaceList
+from pysolarwinds.entities.orion.map_point import MapPoint
 from pysolarwinds.entities.orion.pollers import PollerList
 from pysolarwinds.entities.orion.volumes import VolumeList
-from pysolarwinds.entities.orion.worldmap import WorldMapPoint
 from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
     SWNonUniqueResultError,

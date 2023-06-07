@@ -5,7 +5,7 @@ from pysolarwinds.exceptions import SWObjectNotFound
 from pysolarwinds.swis import SWISClient
 
 
-class WorldMapPoint(Entity):
+class MapPoint(Entity):
     TYPE = "Orion.WorldMap.Point"
     WRITE_ATTR_MAP = {
         "latitude": "Latitude",
@@ -71,4 +71,4 @@ class WorldMapPoint(Entity):
         return self.longitude
 
     def __repr__(self) -> str:
-        return f"WorldMapPoint(entity={self.entity.__repr__()})"
+        return f"MapPoint(entity={self.entity.__repr__()})"
