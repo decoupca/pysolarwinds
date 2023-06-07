@@ -152,7 +152,6 @@ class Node(MonitoredEntity):
         )
 
         self.caption: str = self.data.get("Caption", "") or caption
-        self.geo: Optional[WorldMapPoint] = None
         self.interfaces: InterfaceList = InterfaceList(node=self)
         self.ip_address: str = self.data.get("IPAddress", "") or ip_address
         self.pollers: PollerList = PollerList(node=self)
