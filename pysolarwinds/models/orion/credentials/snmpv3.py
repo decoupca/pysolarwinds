@@ -24,11 +24,11 @@ class SNMPv3CredentialsModel(BaseModel):
                 raise SWObjectNotFound(f"SNMPv3 credential with ID {id} not found.")
         elif name:
             criterion = pypika.Criterion.all(
-                TABLE.CredentialType
+                self.TABLE.CredentialType
                 == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3",
-                TABLE.Name == name,
+                self.TABLE.Name == name,
             )
-            query = QUERY.where(criterion)
+            query = self.QUERY.where(criterion)
             if result := self.swis.query(query.get_sql()):
                 return SNMPv3Credential(swis=self.swis, data=result[0])
             else:

@@ -51,7 +51,13 @@ class WorldMapPoint(NewEndpoint):
                     f'No map point exists for entity "{self.entity.name}".'
                 )
 
+    def _id(self) -> int:
+        return self.data["PointId"]
+
     @property
     def auto_added(self) -> bool:
         """Whether or not map point was automatically added."""
         return self.data["AutoAdded"]
+
+    def __repr__(self) -> str:
+        return f"WorldMapPoint(entity={self.entity.__repr__()})"
