@@ -5,19 +5,19 @@ from pysolarwinds.endpoints.orion.credentials.snmpv3 import SNMPv3Credential
 from pysolarwinds.endpoints.orion.credentials.userpass import UserPassCredential
 from pysolarwinds.exceptions import SWError, SWNonUniqueResultError, SWObjectNotFound
 from pysolarwinds.models import BaseModel
-from pysolarwinds.models.orion.credentials.snmpv2 import SNMPv2Credential
-from pysolarwinds.models.orion.credentials.snmpv3 import SNMPv3Credential
-from pysolarwinds.models.orion.credentials.userpass import UserPassCredential
+from pysolarwinds.models.orion.credentials.snmpv2 import SNMPv2CredentialsModel
+from pysolarwinds.models.orion.credentials.snmpv3 import SNMPv3CredentialsModel
+from pysolarwinds.models.orion.credentials.userpass import UserPassCredentialsModel
 
 
-class Credentials(BaseModel):
+class CredentialsModel(BaseModel):
     name = "Credential"
 
     def __init__(self, swis):
         self.swis = swis
-        self.snmpv2 = SNMPv2Credential(swis=swis)
-        self.snmpv3 = SNMPv3Credential(swis=swis)
-        self.userpass = UserPassCredential(swis=swis)
+        self.snmpv2 = SNMPv2CredentialsModel(swis=swis)
+        self.snmpv3 = SNMPv3CredentialsModel(swis=swis)
+        self.userpass = UserPassCredentialsModel(swis=swis)
 
     def get(
         self, id: Optional[int] = None, name: Optional[str] = None

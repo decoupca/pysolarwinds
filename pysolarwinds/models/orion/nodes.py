@@ -7,7 +7,7 @@ from pysolarwinds.models.base import BaseModel
 from pysolarwinds.queries.orion.nodes import QUERY
 
 
-class Nodes(BaseModel):
+class NodesModel(BaseModel):
     table = Table("Orion.Nodes")
 
     def create(self):

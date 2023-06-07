@@ -17,6 +17,7 @@ from pysolarwinds.exceptions import (
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import STATUS_MAP
 from pysolarwinds.models.orion.node_settings import NodeSettings
+from pysolarwinds.queries.orion.nodes import QUERY, TABLE
 from pysolarwinds.swis import SWISClient
 
 logger = get_logger(__name__)
@@ -69,31 +70,27 @@ class OrionNode(MonitoredEndpoint):
         """Retrieve entity ID from data dict."""
         return self.data["NodeID"]
 
-    def _get_uri(self) -> Optional[str]:
-        """Try to resolve URI from caption or IP address."""
+    def _get_data(self) -> Optional[str]:
+        """Try to retrieve data from caption or IP address."""
         if self.caption:
-            result = self.swis.query(
-                f"SELECT Uri FROM Orion.Nodes WHERE Caption = '{self.caption}'"
-            )
-            if result:
+            query = QUERY.where(TABLE.Caption == self.caption)
+            if result := self.swis.query(query.get_sql()):
                 if len(result) > 1:
                     raise SWNonUniqueResultError(
                         f'Found {len(result)} results with caption "{self.caption}".'
                     )
-                return result[0]["Uri"]
+                return result[0]
             else:
                 raise SWObjectNotFound(f'Node with caption "{self.caption}" not found.')
 
         if self.ip_address:
-            result = self.swis.query(
-                f"SELECT Uri FROM Orion.Nodes WHERE IPAddress = '{self.ip_address}'"
-            )
-            if result:
+            query = QUERY.where(TABLE.IPAddress == self.ip_address)
+            if result := self.swis.query(query.get_sql()):
                 if len(result) > 1:
                     raise SWNonUniqueResultError(
                         f'Found {len(result)} results with ip_address "{self.ip_address}".'
                     )
-                return result[0]["Uri"]
+                return result[0]
             else:
                 raise SWObjectNotFound(
                     f"Node with IP address {self.ip_address} not found."

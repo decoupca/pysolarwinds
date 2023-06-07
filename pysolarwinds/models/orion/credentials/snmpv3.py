@@ -1,31 +1,36 @@
 from typing import Literal, Optional
 
+import pypika
+
 from pysolarwinds.endpoints.orion.credentials.snmpv3 import SNMPv3Credential
 from pysolarwinds.exceptions import SWObjectNotFound
 from pysolarwinds.models import BaseModel
+from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 
 
-class SNMPv3Credential(BaseModel):
+class SNMPv3CredentialsModel(BaseModel):
     def get(self, name: Optional[str], id: Optional[int] = None) -> SNMPv3Credential:
         if not id and not name:
             raise ValueError("Must provide either credential ID or name.")
         if id:
-            query = (
-                f"SELECT ID, Name, Description, CredentialType, CredentialOwner, Uri "
-                f"FROM Orion.Credential WHERE CredentialType='SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3' "
-                f"AND ID={id}"
+            criterion = pypika.Criterion.all(
+                TABLE.CredentialType
+                == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3",
+                TABLE.ID == id,
             )
-            if result := self.swis.query(query):
+            query = QUERY.where(criterion)
+            if result := self.swis.query(query.get_sql()):
                 return SNMPv3Credential(swis=self.swis, data=result[0])
             else:
                 raise SWObjectNotFound(f"SNMPv3 credential with ID {id} not found.")
         elif name:
-            query = (
-                f"SELECT ID, Name, Description, CredentialType, CredentialOwner, Uri "
-                f"FROM Orion.Credential WHERE CredentialType='SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3' "
-                f"AND Name='{name}'"
+            criterion = pypika.Criterion.all(
+                TABLE.CredentialType
+                == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3",
+                TABLE.Name == name,
             )
-            if result := self.swis.query(query):
+            query = QUERY.where(criterion)
+            if result := self.swis.query(query.get_sql()):
                 return SNMPv3Credential(swis=self.swis, data=result[0])
             else:
                 raise SWObjectNotFound(

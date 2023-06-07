@@ -1,7 +1,6 @@
 from pypika import MSSQLQuery, Table
 
 TABLE = Table("Orion.NPM.Interfaces")
-
 FIELDS = (
     "AdminStatus",
     "AdminStatusLED",
@@ -107,5 +106,4 @@ FIELDS = (
     "UnPluggable",
     "Uri",
 )
-
 QUERY = MSSQLQuery.from_(TABLE).select(*FIELDS)

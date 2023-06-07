@@ -4,9 +4,7 @@ from pysolarwinds.endpoints import Endpoint, NewEndpoint
 from pysolarwinds.endpoints.orion.credentials import Credential
 from pysolarwinds.exceptions import SWObjectCreationError, SWObjectNotFound
 from pysolarwinds.logging import get_logger
-from pysolarwinds.models.orion.credentials import (
-    Credentials as CredentialsModel,  # TODO: need undo this
-)
+from pysolarwinds.models.orion.credentials import CredentialsModel
 
 logger = get_logger(__name__)
 

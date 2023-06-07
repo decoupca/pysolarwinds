@@ -4,6 +4,7 @@ from pysolarwinds.endpoints import NewEndpoint
 from pysolarwinds.exceptions import SWObjectExists, SWObjectNotFound
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger
+from pysolarwinds.queries.orion.pollers import QUERY, TABLE
 from pysolarwinds.swis import SWISClient
 
 logger = get_logger(__name__)
@@ -30,14 +31,11 @@ class Poller(NewEndpoint):
         self.poller_type = poller_type or self.data.get("PollerType", "")
         self.is_enabled: bool = self.data["Enabled"]
 
-    def _get_uri(self) -> str:
+    def _get_data(self) -> Optional[dict]:
         if self.poller_type:
-            query = (
-                f"SELECT Uri FROM Orion.Pollers WHERE NetObjectID='{self.node.id}' "
-                f"AND PollerType='{self.poller_type}'"
-            )
-            if result := self.swis.query(query):
-                return result[0]["Uri"]
+            query = QUERY.where(TABLE.PollerType == self.poller_type)
+            if result := self.swis.query(query.get_sql()):
+                return result[0]
             else:
                 raise SWObjectNotFound(
                     f'No poller "{self.poller_type}" on node ID {self.node.id} found.'

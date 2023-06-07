@@ -572,8 +572,8 @@ class NewEndpoint:
             for k, v in kwargs.items():
                 setattr(self, k, v)
         if not id and not uri and not data:
-            if uri := self._get_uri():
-                self.uri = uri
+            if data := self._get_data():
+                self.data = data
             else:
                 raise ValueError("Must provide SWIS ID, URI, or data dict.")
         if not self.uri:
@@ -591,8 +591,8 @@ class NewEndpoint:
         """Retrieve entity ID from data dict."""
         pass
 
-    def _get_uri(self) -> Optional[str]:
-        """Subclass-specific method to retrieve URI by other means."""
+    def _get_data(self) -> Optional[dict]:
+        """Subclass-specific method to retrieve data by other means."""
         pass
 
     def _read(self) -> dict:

@@ -1,33 +1,38 @@
 from typing import Optional
 
+import pypika
+
 from pysolarwinds.endpoints.orion.credentials.userpass import UserPassCredential
 from pysolarwinds.exceptions import SWObjectNotFound
 from pysolarwinds.models import BaseModel
+from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 
 
-class UserPassCredential(BaseModel):
+class UserPassCredentialsModel(BaseModel):
     def get(self, name: Optional[str], id: Optional[int] = None) -> UserPassCredential:
         if not id and not name:
             raise ValueError("Must provide either credential ID or name.")
         if id:
-            query = (
-                f"SELECT ID, Name, Description, CredentialType, CredentialOwner, Uri "
-                f"FROM Orion.Credential WHERE CredentialType='SolarWinds.Orion.Core.SharedCredentials.Credentials.UsernamePasswordCredential' "
-                f"AND ID={id}"
+            criterion = pypika.Criterion.all(
+                TABLE.CredentialType
+                == "SolarWinds.Orion.Core.SharedCredentials.Credentials.UsernamePasswordCredential",
+                TABLE.ID == id,
             )
-            if result := self.swis.query(query):
+            query = QUERY.where(criterion)
+            if result := self.swis.query(query.get_sql()):
                 return UserPassCredential(swis=self.swis, data=result[0])
             else:
                 raise SWObjectNotFound(
                     f"Username/password credential with ID {id} not found."
                 )
         elif name:
-            query = (
-                f"SELECT ID, Name, Description, CredentialType, CredentialOwner, Uri "
-                f"FROM Orion.Credential WHERE CredentialType='SolarWinds.Orion.Core.SharedCredentials.Credentials.UsernamePasswordCredential' "
-                f"AND Name='{name}'"
+            criterion = pypika.Criterion.all(
+                TABLE.CredentialType
+                == "SolarWinds.Orion.Core.SharedCredentials.Credentials.UsernamePasswordCredential",
+                TABLE.Name == name,
             )
-            if result := self.swis.query(query):
+            query = QUERY.where(criterion)
+            if result := self.swis.query(query.get_sql()):
                 return UserPassCredential(swis=self.swis, data=result[0])
             else:
                 raise SWObjectNotFound(
