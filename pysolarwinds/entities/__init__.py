@@ -570,6 +570,7 @@ class Entity:
         self.id = id
         self.uri = uri
         self.data = data
+        self.custom_properties = {}
         if kwargs:
             for k, v in kwargs.items():
                 setattr(self, k, v)
@@ -588,11 +589,6 @@ class Entity:
         if not self.id:
             self.id = self._id
 
-    @property
-    def _id(self) -> int:
-        """Retrieve entity ID from data dict."""
-        pass
-
     def _get_data(self) -> Optional[dict]:
         """Subclass-specific method to retrieve data by other means."""
         pass
@@ -606,6 +602,16 @@ class Entity:
         """Description of entity."""
         return self.data.get("Description", "")
 
+    @property
+    def _id(self) -> int:
+        """Retrieve entity ID from data dict."""
+        pass
+
+    @property
+    def cp(self) -> dict:
+        """Convenience alias."""
+        return self.custom_properties
+
     def delete(self) -> None:
         """Delete entity."""
         self.swis.delete(self.uri)
@@ -618,12 +624,20 @@ class Entity:
         """Save changes, if any, to SWIS."""
         if not updates:
             for attr, prop in self.WRITE_ATTR_MAP.items():
-                updates.update({prop: getattr(self, attr)})
-        self.swis.update(self.uri, **updates)
-        for attr, key in self.WRITE_ATTR_MAP.items():
-            value = getattr(self, attr)
-            self.data[key] = value
-        logger.debug(f"Updated properties: {updates}")
+                attr_val = getattr(self, attr)
+                prop_val = self.data[prop]
+                if attr_val != prop_val:
+                    updates.update({prop: attr_val})
+        if updates:
+            self.swis.update(self.uri, **updates)
+            for attr, key in self.WRITE_ATTR_MAP.items():
+                value = getattr(self, attr)
+                self.data[key] = value
+            logger.debug(f"Updated properties: {updates}")
+        else:
+            logger.debug("Nothing to update.")
+        if hasattr(self, "custom_properties"):
+            self.custom_properties.save()
 
     def __str__(self) -> str:
         return self.name

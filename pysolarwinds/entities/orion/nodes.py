@@ -1,11 +1,11 @@
 import datetime
 from typing import Optional
 
+from pysolarwinds.custom_properties import CustomProperties
 from pysolarwinds.entities import MonitoredEntity
 from pysolarwinds.entities.orion.credentials.snmpv3 import SNMPv3Credential
 from pysolarwinds.entities.orion.engines import Engine
 from pysolarwinds.entities.orion.interfaces import InterfaceList
-from pysolarwinds.entities.orion.map_point import MapPoint
 from pysolarwinds.entities.orion.pollers import PollerList
 from pysolarwinds.entities.orion.volumes import VolumeList
 from pysolarwinds.exceptions import (
@@ -49,6 +49,9 @@ class Node(MonitoredEntity):
         )
 
         self.caption: str = self.data.get("Caption", "") or caption
+        self.custom_properties: CustomProperties = CustomProperties(
+            swis=self.swis, entity=self
+        )
         self.interfaces: InterfaceList = InterfaceList(node=self)
         self.ip_address: str = self.data.get("IPAddress", "") or ip_address
         self.pollers: PollerList = PollerList(node=self)
@@ -61,8 +64,6 @@ class Node(MonitoredEntity):
         self.snmpv3_ro_cred: Optional[SNMPv3Credential] = None
         self.snmpv3_rw_cred: Optional[SNMPv3Credential] = None
         self.volumes: VolumeList = VolumeList(node=self)
-
-        # TODO: Custom properties
 
     @property
     def _id(self) -> int:
