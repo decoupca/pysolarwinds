@@ -60,5 +60,15 @@ class WorldMapPoint(Entity):
         """Whether or not map point was automatically added."""
         return self.data["AutoAdded"]
 
+    @property
+    def lat(self) -> float:
+        """Convenience property."""
+        return self.latitude
+
+    @property
+    def lon(self) -> float:
+        """Convenience property."""
+        return self.longitude
+
     def __repr__(self) -> str:
         return f"WorldMapPoint(entity={self.entity.__repr__()})"
