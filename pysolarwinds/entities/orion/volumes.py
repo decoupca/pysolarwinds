@@ -3,12 +3,13 @@ from typing import Optional, Union
 from pysolarwinds.entities import MonitoredEntity
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger
+from pysolarwinds.queries.orion.volumes import QUERY, TABLE
 from pysolarwinds.swis import SWISClient
 
 logger = get_logger(__name__)
 
 
-class VolumeList(MonitoredEntity):
+class Volume(MonitoredEntity):
     TYPE = "Orion.Volumes"
     WRITE_ATTR_MAP = {}
 
@@ -22,6 +23,10 @@ class VolumeList(MonitoredEntity):
     ) -> None:
         super().__init__(swis=swis, id=id, uri=uri, data=data)
         self.node = node
+
+    @property
+    def _id(self) -> int:
+        return self.volume_id
 
     @property
     def details_url(self) -> str:
@@ -78,10 +83,6 @@ class VolumeList(MonitoredEntity):
     @property
     def interface_type(self) -> str:
         return self.data.get("InterfaceType", "")
-
-    @property
-    def _id(self) -> int:
-        return self.volume_id
 
     @property
     def name(self) -> str:
@@ -238,18 +239,18 @@ class VolumeList(MonitoredEntity):
         return True
 
     def __repr__(self) -> str:
-        return f'VolumeList("{self.name}")'
+        return f'Volume("{self.name}")'
 
 
 class VolumeList(BaseList):
-    _item_class = VolumeList
+    _item_class = Volume
 
-    def delete(self, volumes: Union[VolumeList, list[VolumeList]]) -> bool:
+    def delete(self, volumes: Union[Volume, list[Volume]]) -> bool:
         if isinstance(volumes, list):
             self.swis.delete([x.uri for x in volumes])
             for volume in volumes:
                 self.node.volumes.items.remove(volume)
-            logger.info(f"{self.node}: deleted {len(volumes)} volumes")
+            logger.info(f"Deleted {len(volumes)} volumes.")
         else:
             volume.delete()
         return True
@@ -260,88 +261,18 @@ class VolumeList(BaseList):
         if volume_count:
             self.swis.delete([x.uri for x in self])
             self.items = []
-            logger.info(f"{self.node}: Deleted all volumes ({volume_count})")
+            logger.info(f"Deleted all volumes ({volume_count}).")
             return True
         else:
-            logger.info(f"{self.node}: No volumes to delete")
+            logger.info(f"No volumes to delete.")
             return False
 
     def fetch(self) -> None:
-        query = f"""
-            SELECT
-                AncestorDetailsUrls,
-                AncestorDisplayNames,
-                Caption,
-                Description,
-                DetailsUrl,
-                DeviceId,
-                DiskQueueLength,
-                DiskReads,
-                DiskSerialNumber,
-                DiskTransfer,
-                DiskWrites,
-                DisplayName,
-                FullName,
-                Icon,
-                Image,
-                Index,
-                InstanceSiteId,
-                InstanceType,
-                InterfaceType,
-                LastSync,
-                MinutesSinceLastSync,
-                NextPoll,
-                NextRediscovery,
-                NodeID,
-                OrionIdColumn,
-                OrionIdPrefix,
-                PollInterval,
-                RediscoveryInterval,
-                Responding,
-                SCSIControllerId,
-                SCSILunId,
-                SCSIPortId,
-                SCSIPortOffset,
-                SCSITargetId,
-                Size,
-                SkippedPollingCycles,
-                StatCollection,
-                Status,
-                StatusDescription,
-                StatusIcon,
-                StatusIconHint,
-                StatusLED,
-                TotalDiskIOPS,
-                Type,
-                UnManageFrom,
-                UnManageUntil,
-                UnManaged,
-                Uri,
-                VolumeAllocationFailuresThisHour,
-                VolumeAllocationFailuresToday,
-                VolumeDescription,
-                VolumeID,
-                VolumeIndex,
-                VolumePercentAvailable,
-                VolumePercentUsed,
-                VolumeResponding,
-                VolumeSize,
-                VolumeSpaceAvailable,
-                VolumeSpaceAvailableExp,
-                VolumeSpaceUsed,
-                VolumeType,
-                VolumeTypeID,
-                VolumeTypeIcon
-            FROM Orion.Volumes
-            WHERE NodeID = '{self.node.id}'
-        """
-        if results := self.swis.query(query):
-            volumes = [
-                VolumeList(swis=self.swis, node=self.node, data=x) for x in results
+        query = QUERY.where(TABLE.NodeID == self.node.id)
+        if results := self.swis.query(str(query)):
+            self.items = [
+                Volume(swis=self.swis, node=self.node, data=x) for x in results
             ]
-            self.items = volumes
 
     def __repr__(self) -> str:
-        if not self.items:
-            self.fetch()
         return super().__repr__()

@@ -9,6 +9,9 @@ class BaseList:
         self.swis = self.node.swis
         self.items = []
 
+    def fetch(self) -> None:
+        pass
+
     def get(self, item: Any) -> Any:
         for existing_item in self.items:
             if isinstance(item, str):
@@ -32,4 +35,6 @@ class BaseList:
             raise KeyError(f"Item not found: {item}")
 
     def __repr__(self) -> str:
+        if not self.items:
+            self.fetch()
         return str(self.items)
