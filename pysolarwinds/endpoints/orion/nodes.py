@@ -17,16 +17,15 @@ from pysolarwinds.exceptions import (
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import STATUS_MAP
 from pysolarwinds.models.orion.node_settings import NodeSettings
-from pysolarwinds.queries.orion.nodes import QUERY, TABLE
 from pysolarwinds.swis import SWISClient
 
 logger = get_logger(__name__)
 
 
 class Node(MonitoredEndpoint):
-    _entity_type = "Orion.Nodes"
-    _uri_template = "swis://{}/Orion/Orion.Nodes/NodeID={}"
-    _write_attr_map = {
+    TYPE = "Orion.Nodes"
+    URI_TEMPLATE = "swis://{}/Orion/Orion.Nodes/NodeID={}"
+    WRITE_ATTR_MAP = {
         "caption": "Caption",
         "ip_address": "IPAddress",
         "snmp_version": "SNMPVersion",
@@ -34,6 +33,110 @@ class Node(MonitoredEndpoint):
         "snmpv2_rw_community": "RWCommunity",
         "polling_method": "ObjectSubType",
     }
+    FIELDS = (
+        "AgentPort",
+        "Allow64BitCounters",
+        "AncestorDetailsUrls",
+        "AncestorDisplayNames",
+        "AvgResponseTime",
+        "BlockUntil",
+        "BufferBgMissThisHour",
+        "BufferBgMissToday",
+        "BufferHgMissThisHour",
+        "BufferHgMissToday",
+        "BufferLgMissThisHour",
+        "BufferLgMissToday",
+        "BufferMdMissThisHour",
+        "BufferMdMissToday",
+        "BufferNoMemThisHour",
+        "BufferNoMemToday",
+        "BufferSmMissThisHour",
+        "BufferSmMissToday",
+        "CMTS",
+        "CPUCount",
+        "CPULoad",
+        "Caption",
+        "Category",
+        "ChildStatus",
+        "Community",
+        "Contact",
+        "CustomPollerLastStatisticsPoll",
+        "CustomPollerLastStatisticsPollSuccess",
+        "CustomStatus",
+        "DNS",
+        "Description",
+        "DetailsUrl",
+        "DisplayName",
+        "DynamicIP",
+        "EngineID",
+        "EntityType",
+        "External",
+        "GroupStatus",
+        "IOSImage",
+        "IOSVersion",
+        "IP",
+        "IPAddress",
+        "IPAddressGUID",
+        "IPAddressType",
+        "IP_Address",
+        "Icon",
+        "Image",
+        "InstanceSiteId",
+        "InstanceType",
+        "IsOrionServer",
+        "IsServer",
+        "LastBoot",
+        "LastSync",
+        "LastSystemUpTimePollUtc",
+        "LoadAverage1",
+        "LoadAverage15",
+        "LoadAverage5",
+        "Location",
+        "MachineType",
+        "MaxResponseTime",
+        "MemoryAvailable",
+        "MemoryUsed",
+        "MinResponseTime",
+        "MinutesSinceLastSync",
+        "NextPoll",
+        "NextRediscovery",
+        "NodeDescription",
+        "NodeID",
+        "NodeName",
+        "NodeStatusRootCause",
+        "NodeStatusRootCauseWithLinks",
+        "ObjectSubType",
+        "OrionIdColumn",
+        "OrionIdPrefix",
+        "PercentLoss",
+        "PercentMemoryAvailable",
+        "PercentMemoryUsed",
+        "PollInterval",
+        "PolledStatus",
+        "RWCommunity",
+        "RediscoveryInterval",
+        "ResponseTime",
+        "SNMPVersion",
+        "Severity",
+        "SkippedPollingCycles",
+        "StatCollection",
+        "Status",
+        "StatusDescription",
+        "StatusIcon",
+        "StatusIconHint",
+        "StatusLED",
+        "SysName",
+        "SysObjectID",
+        "SystemUpTime",
+        "TotalMemory",
+        "UiSeverity",
+        "UnManageFrom",
+        "UnManageUntil",
+        "UnManaged",
+        "Uri",
+        "Vendor",
+        "VendorIcon",
+    )
 
     def __init__(
         self,
@@ -73,7 +176,7 @@ class Node(MonitoredEndpoint):
     def _get_data(self) -> Optional[str]:
         """Try to retrieve data from caption or IP address."""
         if self.caption:
-            query = QUERY.where(TABLE.Caption == self.caption)
+            query = self.QUERY.where(self.TABLE.Caption == self.caption)
             if result := self.swis.query(query.get_sql()):
                 if len(result) > 1:
                     raise SWNonUniqueResultError(
@@ -84,7 +187,7 @@ class Node(MonitoredEndpoint):
                 raise SWObjectNotFound(f'Node with caption "{self.caption}" not found.')
 
         if self.ip_address:
-            query = QUERY.where(TABLE.IPAddress == self.ip_address)
+            query = self.QUERY.where(self.TABLE.IPAddress == self.ip_address)
             if result := self.swis.query(query.get_sql()):
                 if len(result) > 1:
                     raise SWNonUniqueResultError(

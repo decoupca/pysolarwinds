@@ -6,8 +6,8 @@ from pysolarwinds.utils import parse_datetime
 
 
 class Engine(NewEndpoint):
-    _entity_type = "Orion.Engines"
-    _uri_template = "swis://{}/Orion/Orion.Engines/EngineID={}"
+    TYPE = "Orion.Engines"
+    URI_TEMPLATE = "swis://{}/Orion/Orion.Engines/EngineID={}"
 
     @property
     def avg_cpu_used(self) -> float:

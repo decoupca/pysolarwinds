@@ -6,11 +6,12 @@ from pysolarwinds.swis import SWISClient
 
 
 class Credential(NewEndpoint):
-    _entity_type = "Orion.Credential"
-    _uri_template = "swis://{}/Orion/Orion.Credential/ID={}"
-    _write_attr_map = {
+    TYPE = "Orion.Credential"
+    URI_TEMPLATE = "swis://{}/Orion/Orion.Credential/ID={}"
+    WRITE_ATTR_MAP = {
         "name": "Name",
     }
+    FIELDS = ("ID", "Name", "Description", "CredentialType", "CredentialOwner", "Uri")
 
     def __init__(
         self,

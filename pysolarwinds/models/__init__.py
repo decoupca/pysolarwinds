@@ -5,5 +5,5 @@ class BaseModel:
         self.swis = swis
 
     def create(self, **kwargs) -> _entity_class:
-        uri = self.swis.create(self._entity_class._entity_type, **kwargs)
+        uri = self.swis.create(self._entity_class.TYPE, **kwargs)
         return self._entity_class(swis=self.swis, uri=uri)

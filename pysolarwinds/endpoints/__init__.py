@@ -1,6 +1,8 @@
 import datetime
 from typing import Any, Dict, Optional
 
+import pypika
+
 from pysolarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from pysolarwinds.exceptions import (
     SWIDNotFound,
@@ -551,9 +553,10 @@ class Endpoint:
 
 
 class NewEndpoint:
-    _entity_type = ""
-    _uri_template = ""
-    _write_attr_map = {}
+    TYPE = ""
+    URI_TEMPLATE = ""
+    WRITE_ATTR_MAP = {}
+    FIELDS = ()
 
     def __init__(
         self,
@@ -578,13 +581,21 @@ class NewEndpoint:
                 raise ValueError("Must provide SWIS ID, URI, or data dict.")
         if not self.uri:
             if id:
-                self.uri = self._uri_template.format(self.swis.host, id)
+                self.uri = self.URI_TEMPLATE.format(self.swis.host, id)
             if data:
                 self.uri = self.data.get("Uri")
         if not self.data:
             self.read()
         if not self.id:
             self.id = self._id
+
+    @property
+    def TABLE(self) -> pypika.Table:
+        return pypika.Table(self.TYPE)
+
+    @property
+    def QUERY(self) -> pypika.Query:
+        return pypika.MSSQLQuery.from_(self.TABLE).select(*self.FIELDS)
 
     @property
     def _id(self) -> int:
@@ -615,10 +626,10 @@ class NewEndpoint:
     def save(self, updates: dict = {}) -> None:
         """Save changes, if any, to SWIS."""
         if not updates:
-            for attr, prop in self._write_attr_map.items():
+            for attr, prop in self.WRITE_ATTR_MAP.items():
                 updates.update({prop: getattr(self, attr)})
         self.swis.update(self.uri, **updates)
-        for attr, key in self._write_attr_map.items():
+        for attr, key in self.WRITE_ATTR_MAP.items():
             value = getattr(self, attr)
             self.data[key] = value
         logger.debug(f"Updated properties: {updates}")

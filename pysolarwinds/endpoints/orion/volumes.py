@@ -9,8 +9,8 @@ logger = get_logger(__name__)
 
 
 class VolumeList(MonitoredEndpoint):
-    _entity_type = "Orion.Volumes"
-    _write_attr_map = {}
+    TYPE = "Orion.Volumes"
+    WRITE_ATTR_MAP = {}
 
     def __init__(
         self,
