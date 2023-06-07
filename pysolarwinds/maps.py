@@ -10,7 +10,7 @@ NODE_DISCOVERY_STATUS_MAP = {
     8: "ReadyForImport",
 }
 
-NODE_STATUS_MAP = {
+STATUS_MAP = {
     0: "Unknown",
     1: "Up",
     2: "Down",

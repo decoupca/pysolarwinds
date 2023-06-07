@@ -7,6 +7,7 @@ import netaddr
 from pysolarwinds.endpoints import NewEndpoint
 from pysolarwinds.exceptions import SWDiscoveryError, SWObjectPropertyError
 from pysolarwinds.logging import get_logger
+from pysolarwinds.maps import STATUS_MAP
 from pysolarwinds.queries.orion.interfaces import QUERY, TABLE
 
 logger = get_logger(__name__)
@@ -30,8 +31,12 @@ class OrionInterface(NewEndpoint):
         return int(self.data["InterfaceID"])
 
     @property
-    def admin_status(self) -> int:
-        """Administrative status."""
+    def admin_status(self) -> str:
+        return STATUS_MAP[self.admin_status_code].lower()
+
+    @property
+    def admin_status_code(self) -> int:
+        """Administrative status code."""
         return self.data["AdminStatus"]
 
     @property
@@ -275,13 +280,13 @@ class OrionInterface(NewEndpoint):
     def next_poll(self) -> Optional[datetime.datetime]:
         """Next poll by SolarWinds."""
         if next_poll := self.data["NextPoll"]:
-            return datetime.datetime.strftime(next_poll, "%Y-%m-%dT%H:%M:%S.%f")
+            return datetime.datetime.strptime(next_poll, "%Y-%m-%dT%H:%M:%S.%f")
 
     @property
     def next_rediscovery(self) -> datetime.datetime:
         """Next rediscovery by SolarWinds."""
         if next_rediscovery := self.data["NextPoll"]:
-            return datetime.datetime.strftime(next_rediscovery, "%Y-%m-%dT%H:%M:%S.%f")
+            return datetime.datetime.strptime(next_rediscovery, "%Y-%m-%dT%H:%M:%S.%f")
 
     @property
     def node_id(self) -> int:
@@ -289,12 +294,17 @@ class OrionInterface(NewEndpoint):
         return self.data["NodeID"]
 
     @property
-    def operational_status(self) -> int:
+    def oper_status(self) -> str:
+        """Human-friendly operational status."""
+        return STATUS_MAP[self.oper_status_code]
+
+    @property
+    def oper_status_code(self) -> int:
         """Operational status code."""
         return self.data["OperStatus"]
 
     @property
-    def operational_status_led(self) -> str:
+    def oper_status_led(self) -> str:
         """Operational status icon string."""
         return self.data["OperStatusLED"].strip()
 
@@ -357,6 +367,11 @@ class OrionInterface(NewEndpoint):
     def percent_util(self) -> float:
         """Percent utilization. Unknown how this maps to input/output usage."""
         return self.data["PercentUtil"]
+
+    @property
+    def status(self) -> str:
+        """Convenience alias for oper_status."""
+        return self.oper_status
 
     @property
     def type(self) -> str:
