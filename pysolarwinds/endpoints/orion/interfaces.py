@@ -82,7 +82,7 @@ class OrionInterface(NewEndpoint):
     @property
     def custom_poller_last_statistics_poll(self) -> datetime.datetime:
         if last_poll := self.data["CustomPollerLastStatisticsPoll"]:
-            return datetime.datetime.strptime(last_poll, "%Y-%m-%dT%H:%M:%S")
+            return datetime.datetime.strptime(last_poll, "%Y-%m-%dT%H:%M:%S.%f0")
 
     @property
     def description(self) -> str:
@@ -280,13 +280,13 @@ class OrionInterface(NewEndpoint):
     def next_poll(self) -> Optional[datetime.datetime]:
         """Next poll by SolarWinds."""
         if next_poll := self.data["NextPoll"]:
-            return datetime.datetime.strptime(next_poll, "%Y-%m-%dT%H:%M:%S.%f")
+            return datetime.datetime.strptime(next_poll, "%Y-%m-%dT%H:%M:%S.%f0")
 
     @property
     def next_rediscovery(self) -> datetime.datetime:
         """Next rediscovery by SolarWinds."""
         if next_rediscovery := self.data["NextPoll"]:
-            return datetime.datetime.strptime(next_rediscovery, "%Y-%m-%dT%H:%M:%S.%f")
+            return datetime.datetime.strptime(next_rediscovery, "%Y-%m-%dT%H:%M:%S.%f0")
 
     @property
     def node_id(self) -> int:
@@ -296,7 +296,7 @@ class OrionInterface(NewEndpoint):
     @property
     def oper_status(self) -> str:
         """Human-friendly operational status."""
-        return STATUS_MAP[self.oper_status_code]
+        return STATUS_MAP[self.oper_status_code].lower()
 
     @property
     def oper_status_code(self) -> int:

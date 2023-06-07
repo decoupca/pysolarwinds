@@ -317,7 +317,7 @@ class OrionNode(MonitoredEndpoint):
     @property
     def status(self) -> str:
         """Node status."""
-        return STATUS_MAP[self.status_code]
+        return STATUS_MAP[self.status_code].lower()
 
     @property
     def sys_name(self) -> str:
