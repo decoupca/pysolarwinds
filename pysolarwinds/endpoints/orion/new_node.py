@@ -16,7 +16,7 @@ from pysolarwinds.exceptions import (
     SWObjectNotFound,
 )
 from pysolarwinds.logging import get_logger
-from pysolarwinds.maps import NODE_STATUS_MAP
+from pysolarwinds.maps import STATUS_MAP
 from pysolarwinds.models.orion.node_settings import OrionNodeSettings
 from pysolarwinds.swis import SWISClient
 
@@ -317,7 +317,7 @@ class OrionNode(MonitoredEndpoint):
     @property
     def status(self) -> str:
         """Node status."""
-        return NODE_STATUS_MAP[self.status_code]
+        return STATUS_MAP[self.status_code]
 
     @property
     def sys_name(self) -> str:
