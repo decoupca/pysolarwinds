@@ -18,7 +18,7 @@ class SNMPv2CredentialsModel(BaseModel):
                 == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV2",
                 TABLE.ID == id,
             )
-            query = self.QUERY.where(criterion)
+            query = QUERY.where(criterion)
             if result := self.swis.query(str(query)):
                 return SNMPv2Credential(swis=self.swis, data=result[0])
             else:
@@ -29,7 +29,7 @@ class SNMPv2CredentialsModel(BaseModel):
                 == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV2",
                 TABLE.Name == name,
             )
-            query = self.QUERY.where(criterion)
+            query = QUERY.where(criterion)
             if result := self.swis.query(str(query)):
                 return SNMPv2Credential(swis=self.swis, data=result[0])
             else:
