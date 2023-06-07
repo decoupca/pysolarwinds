@@ -663,9 +663,4 @@ class Node(MonitoredEntity):
         self.settings.save()
 
     def __repr__(self) -> str:
-        if self.caption:
-            return f"Node(caption='{self.caption}')"
-        elif self.ip_address:
-            return f"Node(ip_address='{self.ip_address}')"
-        else:
-            return f"Node(id={self.id})"
+        return f"Node(caption='{self.caption}')"
