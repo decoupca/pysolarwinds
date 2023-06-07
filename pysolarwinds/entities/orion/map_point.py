@@ -2,6 +2,7 @@ from typing import Optional
 
 from pysolarwinds.entities import Entity
 from pysolarwinds.exceptions import SWObjectNotFound
+from pysolarwinds.queries.orion.map_point import QUERY, TABLE
 from pysolarwinds.swis import SWISClient
 
 
@@ -12,20 +13,6 @@ class MapPoint(Entity):
         "longitude": "Longitude",
         "street_address": "StreetAddress",
     }
-    FIELDS = (
-        "PointId",
-        "Instance",
-        "InstanceID",
-        "Latitude",
-        "Longitude",
-        "AutoAdded",
-        "StreetAddress",
-        "DisplayName",
-        "Description",
-        "InstanceType",
-        "Uri",
-        "InstanceSiteId",
-    )
 
     def __init__(
         self,
@@ -43,8 +30,8 @@ class MapPoint(Entity):
 
     def _get_data(self) -> Optional[dict]:
         if self.entity:
-            query = self.QUERY.where(self.TABLE.InstanceID == self.entity.id)
-            if results := self.swis.query(query.get_sql()):
+            query = QUERY.where(TABLE.InstanceID == self.entity.id)
+            if results := self.swis.query(str(query)):
                 return results[0]
             else:
                 raise SWObjectNotFound(

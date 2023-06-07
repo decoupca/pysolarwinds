@@ -556,7 +556,6 @@ class Entity:
     TYPE = ""
     URI_TEMPLATE = ""
     WRITE_ATTR_MAP = {}
-    FIELDS = ()
 
     def __init__(
         self,
@@ -588,16 +587,6 @@ class Entity:
             self.read()
         if not self.id:
             self.id = self._id
-
-    @property
-    def TABLE(self) -> pypika.Table:
-        """PyPika table for building SQL queries."""
-        return pypika.Table(self.TYPE)
-
-    @property
-    def QUERY(self) -> pypika.Query:
-        """Base PyPika query for building SQL queries."""
-        return pypika.MSSQLQuery.from_(self.TABLE).select(*self.FIELDS)
 
     @property
     def _id(self) -> int:

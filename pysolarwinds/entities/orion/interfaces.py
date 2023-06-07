@@ -8,6 +8,7 @@ from pysolarwinds.entities import Entity
 from pysolarwinds.exceptions import SWDiscoveryError, SWObjectPropertyError
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import STATUS_MAP
+from pysolarwinds.queries.orion.interfaces import QUERY, TABLE
 
 logger = get_logger(__name__)
 
@@ -15,111 +16,6 @@ logger = get_logger(__name__)
 class Interface(Entity):
     TYPE = "Orion.NPM.Interfaces"
     URI_TEMPLATE = "swis://{}/Orion/Orion.Nodes/NodeID={}/Interfaces/InterfaceID={}"
-    FIELDS = (
-        "AdminStatus",
-        "AdminStatusLED",
-        "Alias",
-        "AncestorDetailsUrls",
-        "AncestorDisplayNames",
-        "Bps",
-        "CRCAlignErrorsThisHour",
-        "CRCAlignErrorsToday",
-        "Caption",
-        "Counter64",
-        "CustomBandwidth",
-        "CustomPollerLastStatisticsPoll",
-        "Description",
-        "DetailsUrl",
-        "DisplayName",
-        "DuplexMode",
-        "FullName",
-        "HasObsoleteData",
-        "Icon",
-        "IfName",
-        "Image",
-        "InBandwidth",
-        "InDiscardsThisHour",
-        "InDiscardsToday",
-        "InErrorsThisHour",
-        "InErrorsToday",
-        "InMcastPps",
-        "InPercentUtil",
-        "InPktSize",
-        "InPps",
-        "InUcastPps",
-        "Inbps",
-        "Index",
-        "InstanceSiteId",
-        "InstanceType",
-        "InterfaceAlias",
-        "InterfaceCaption",
-        "InterfaceID",
-        "InterfaceIcon",
-        "InterfaceIndex",
-        "InterfaceLastChange",
-        "InterfaceMTU",
-        "InterfaceName",
-        "InterfaceResponding",
-        "InterfaceSpeed",
-        "InterfaceSubType",
-        "InterfaceType",
-        "InterfaceTypeDescription",
-        "InterfaceTypeName",
-        "LastChange",
-        "LastSync",
-        "LateCollisionsThisHour",
-        "LateCollisionsToday",
-        "MAC",
-        "MTU",
-        "MaxInBpsTime",
-        "MaxInBpsToday",
-        "MaxOutBpsTime",
-        "MaxOutBpsToday",
-        "MinutesSinceLastSync",
-        "Name",
-        "NextPoll",
-        "NextRediscovery",
-        "NodeID",
-        "ObjectSubType",
-        "ObsoleteDataCurrentSettingValue",
-        "ObsoleteDataFeatureStatus",
-        "OperStatus",
-        "OperStatusLED",
-        "OrionIdColumn",
-        "OrionIdPrefix",
-        "OutBandwidth",
-        "OutDiscardsThisHour",
-        "OutDiscardsToday",
-        "OutErrorsThisHour",
-        "OutErrorsToday",
-        "OutMcastPps",
-        "OutPercentUtil",
-        "OutPktSize",
-        "OutPps",
-        "OutUcastPps",
-        "Outbps",
-        "PercentUtil",
-        "PhysicalAddress",
-        "PollInterval",
-        "RediscoveryInterval",
-        "Severity",
-        "SkippedPollingCycles",
-        "Speed",
-        "StatCollection",
-        "Status",
-        "StatusDescription",
-        "StatusIcon",
-        "StatusIconHint",
-        "StatusLED",
-        "Type",
-        "TypeDescription",
-        "TypeName",
-        "UnManageFrom",
-        "UnManageUntil",
-        "UnManaged",
-        "UnPluggable",
-        "Uri",
-    )
 
     def __init__(
         self,
@@ -579,8 +475,8 @@ class InterfaceList:
     def fetch(self) -> None:
         """Retrieves interfaces that have already been discovered and monitored."""
         logger.info(f"Fetching existing interfaces...")
-        query = self.QUERY.where(self.TABLE.NodeID == self.node.id)
-        if results := self.swis.query(query.get_sql()):
+        query = QUERY.where(TABLE.NodeID == self.node.id)
+        if results := self.swis.query(str(query)):
             self._existing = [Interface(node=self.node, data=data) for data in results]
         logger.info(f"Found {len(self._existing)} existing interfaces.")
 

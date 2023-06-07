@@ -5,6 +5,7 @@ import pypika
 from pysolarwinds.entities.orion.credentials.userpass import UserPassCredential
 from pysolarwinds.exceptions import SWObjectNotFound
 from pysolarwinds.models import BaseModel
+from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 
 
 class UserPassCredentialsModel(BaseModel):
@@ -13,12 +14,12 @@ class UserPassCredentialsModel(BaseModel):
             raise ValueError("Must provide either credential ID or name.")
         if id:
             criterion = pypika.Criterion.all(
-                self.TABLE.CredentialType
+                TABLE.CredentialType
                 == "SolarWinds.Orion.Core.SharedCredentials.Credentials.UsernamePasswordCredential",
-                self.TABLE.ID == id,
+                TABLE.ID == id,
             )
-            query = self.QUERY.where(criterion)
-            if result := self.swis.query(query.get_sql()):
+            query = QUERY.where(criterion)
+            if result := self.swis.query(str(query)):
                 return UserPassCredential(swis=self.swis, data=result[0])
             else:
                 raise SWObjectNotFound(
@@ -26,12 +27,12 @@ class UserPassCredentialsModel(BaseModel):
                 )
         elif name:
             criterion = pypika.Criterion.all(
-                self.TABLE.CredentialType
+                TABLE.CredentialType
                 == "SolarWinds.Orion.Core.SharedCredentials.Credentials.UsernamePasswordCredential",
-                self.TABLE.Name == name,
+                TABLE.Name == name,
             )
-            query = self.QUERY.where(criterion)
-            if result := self.swis.query(query.get_sql()):
+            query = QUERY.where(criterion)
+            if result := self.swis.query(str(query)):
                 return UserPassCredential(swis=self.swis, data=result[0])
             else:
                 raise SWObjectNotFound(

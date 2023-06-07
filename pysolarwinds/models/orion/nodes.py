@@ -4,6 +4,7 @@ from pypika import Table
 
 from pysolarwinds.entities.orion.nodes import Node
 from pysolarwinds.models.base import BaseModel
+from pysolarwinds.queries.orion.nodes import QUERY, TABLE
 
 
 class NodesModel(BaseModel):
@@ -35,11 +36,11 @@ class NodesModel(BaseModel):
             ]
         else:
             where = []
-            query = self.QUERY
+            query = QUERY
             if vendor:
-                query = query.where(self.table.vendor == vendor)
+                query = query.where(TABLE.vendor == vendor)
             if status:
-                query = query.where(self.table.status == status)
+                query = query.where(TABLE.status == status)
             if limit:
                 query = query.top(limit)
             import ipdb

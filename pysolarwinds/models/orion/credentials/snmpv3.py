@@ -5,6 +5,7 @@ import pypika
 from pysolarwinds.entities.orion.credentials.snmpv3 import SNMPv3Credential
 from pysolarwinds.exceptions import SWObjectNotFound
 from pysolarwinds.models import BaseModel
+from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 
 
 class SNMPv3CredentialsModel(BaseModel):
@@ -13,23 +14,23 @@ class SNMPv3CredentialsModel(BaseModel):
             raise ValueError("Must provide either credential ID or name.")
         if id:
             criterion = pypika.Criterion.all(
-                self.TABLE.CredentialType
+                TABLE.CredentialType
                 == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3",
-                self.TABLE.ID == id,
+                TABLE.ID == id,
             )
             query = self.QUERY.where(criterion)
-            if result := self.swis.query(query.get_sql()):
+            if result := self.swis.query(str(query)):
                 return SNMPv3Credential(swis=self.swis, data=result[0])
             else:
                 raise SWObjectNotFound(f"SNMPv3 credential with ID {id} not found.")
         elif name:
             criterion = pypika.Criterion.all(
-                self.TABLE.CredentialType
+                TABLE.CredentialType
                 == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3",
-                self.TABLE.Name == name,
+                TABLE.Name == name,
             )
             query = self.QUERY.where(criterion)
-            if result := self.swis.query(query.get_sql()):
+            if result := self.swis.query(str(query)):
                 return SNMPv3Credential(swis=self.swis, data=result[0])
             else:
                 raise SWObjectNotFound(

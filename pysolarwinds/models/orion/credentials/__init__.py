@@ -8,6 +8,7 @@ from pysolarwinds.models import BaseModel
 from pysolarwinds.models.orion.credentials.snmpv2 import SNMPv2CredentialsModel
 from pysolarwinds.models.orion.credentials.snmpv3 import SNMPv3CredentialsModel
 from pysolarwinds.models.orion.credentials.userpass import UserPassCredentialsModel
+from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 
 
 class CredentialsModel(BaseModel):
@@ -27,11 +28,8 @@ class CredentialsModel(BaseModel):
         if id:
             return SNMPv3Credential(swis=self.swis, id=id)
         if name:
-            query = (
-                f"SELECT ID, Name, Description, CredentialType, CredentialOwner, Uri "
-                f"FROM Orion.Credential WHERE Name='{name}'"
-            )
-            if result := self.swis.query(query):
+            query = QUERY.where(TABLE.Name == name)
+            if result := self.swis.query(str(query)):
                 if len(result) > 1:
                     raise SWNonUniqueResultError(
                         f'More than one credential found with name "{name}".'

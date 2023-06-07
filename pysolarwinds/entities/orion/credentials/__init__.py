@@ -11,7 +11,6 @@ class Credential(Entity):
     WRITE_ATTR_MAP = {
         "name": "Name",
     }
-    FIELDS = ("ID", "Name", "Description", "CredentialType", "CredentialOwner", "Uri")
 
     def __init__(
         self,
