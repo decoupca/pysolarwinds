@@ -1,11 +1,11 @@
 from typing import Dict, Literal, Optional
 
-from pysolarwinds.endpoints import NewEndpoint
+from pysolarwinds.entities import Entity
 from pysolarwinds.exceptions import SWObjectNotFound
 from pysolarwinds.swis import SWISClient
 
 
-class Credential(NewEndpoint):
+class Credential(Entity):
     TYPE = "Orion.Credential"
     URI_TEMPLATE = "swis://{}/Orion/Orion.Credential/ID={}"
     WRITE_ATTR_MAP = {

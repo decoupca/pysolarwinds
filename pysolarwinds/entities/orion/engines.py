@@ -1,11 +1,11 @@
 import datetime
 from typing import Dict, Optional
 
-from pysolarwinds.endpoints import NewEndpoint
+from pysolarwinds.entities import Entity
 from pysolarwinds.utils import parse_datetime
 
 
-class Engine(NewEndpoint):
+class Engine(Entity):
     TYPE = "Orion.Engines"
     URI_TEMPLATE = "swis://{}/Orion/Orion.Engines/EngineID={}"
 

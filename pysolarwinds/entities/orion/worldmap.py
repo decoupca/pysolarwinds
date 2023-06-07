@@ -1,11 +1,11 @@
 from typing import Optional
 
-from pysolarwinds.endpoints import NewEndpoint
+from pysolarwinds.entities import Entity
 from pysolarwinds.exceptions import SWObjectNotFound
 from pysolarwinds.swis import SWISClient
 
 
-class WorldMapPoint(NewEndpoint):
+class WorldMapPoint(Entity):
     TYPE = "Orion.WorldMap.Point"
     WRITE_ATTR_MAP = {
         "latitude": "Latitude",
@@ -30,13 +30,13 @@ class WorldMapPoint(NewEndpoint):
     def __init__(
         self,
         swis: SWISClient,
-        entity: Optional[NewEndpoint] = None,
+        entity: Optional[Entity] = None,
         id: Optional[int] = None,
         uri: Optional[str] = None,
         data: Optional[dict] = None,
     ) -> None:
         super().__init__(swis=swis, id=id, uri=uri, data=data, entity=entity)
-        self.entity: NewEndpoint = entity
+        self.entity: Entity = entity
         self.latitude: float = self.data.get("Latitude")
         self.longitude: float = self.data.get("Longitude")
         self.street_address: str = self.data.get("StreetAddress")
@@ -51,6 +51,7 @@ class WorldMapPoint(NewEndpoint):
                     f'No map point exists for entity "{self.entity.name}".'
                 )
 
+    @property
     def _id(self) -> int:
         return self.data["PointId"]
 

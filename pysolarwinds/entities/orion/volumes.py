@@ -1,6 +1,6 @@
 from typing import Optional, Union
 
-from pysolarwinds.endpoints import MonitoredEndpoint
+from pysolarwinds.entities import MonitoredEntity
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger
 from pysolarwinds.swis import SWISClient
@@ -8,7 +8,7 @@ from pysolarwinds.swis import SWISClient
 logger = get_logger(__name__)
 
 
-class VolumeList(MonitoredEndpoint):
+class VolumeList(MonitoredEntity):
     TYPE = "Orion.Volumes"
     WRITE_ATTR_MAP = {}
 

@@ -4,13 +4,13 @@ from time import sleep
 from typing import Callable, Literal, NewType, Optional, Union
 
 import pysolarwinds.defaults as d
-from pysolarwinds.endpoints import Endpoint
-from pysolarwinds.endpoints.orion.credentials import Credential, SNMPv2Credential
-from pysolarwinds.endpoints.orion.engines import Engine
-from pysolarwinds.endpoints.orion.interfaces import InterfaceList
-from pysolarwinds.endpoints.orion.pollers import Poller, PollerList
-from pysolarwinds.endpoints.orion.volumes import VolumeList
-from pysolarwinds.endpoints.orion.worldmap import WorldMapPoint
+from pysolarwinds.entities import Endpoint
+from pysolarwinds.entities.orion.credentials import Credential, SNMPv2Credential
+from pysolarwinds.entities.orion.engines import Engine
+from pysolarwinds.entities.orion.interfaces import InterfaceList
+from pysolarwinds.entities.orion.pollers import Poller, PollerList
+from pysolarwinds.entities.orion.volumes import VolumeList
+from pysolarwinds.entities.orion.worldmap import WorldMapPoint
 from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
     SWDiscoveryError,

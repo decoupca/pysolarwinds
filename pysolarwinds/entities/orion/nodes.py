@@ -1,13 +1,13 @@
 import datetime
 from typing import Optional
 
-from pysolarwinds.endpoints import MonitoredEndpoint
-from pysolarwinds.endpoints.orion.credentials.snmpv3 import SNMPv3Credential
-from pysolarwinds.endpoints.orion.engines import Engine
-from pysolarwinds.endpoints.orion.interfaces import InterfaceList
-from pysolarwinds.endpoints.orion.pollers import PollerList
-from pysolarwinds.endpoints.orion.volumes import VolumeList
-from pysolarwinds.endpoints.orion.worldmap import WorldMapPoint
+from pysolarwinds.entities import MonitoredEntity
+from pysolarwinds.entities.orion.credentials.snmpv3 import SNMPv3Credential
+from pysolarwinds.entities.orion.engines import Engine
+from pysolarwinds.entities.orion.interfaces import InterfaceList
+from pysolarwinds.entities.orion.pollers import PollerList
+from pysolarwinds.entities.orion.volumes import VolumeList
+from pysolarwinds.entities.orion.worldmap import WorldMapPoint
 from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
     SWNonUniqueResultError,
@@ -22,7 +22,7 @@ from pysolarwinds.swis import SWISClient
 logger = get_logger(__name__)
 
 
-class Node(MonitoredEndpoint):
+class Node(MonitoredEntity):
     TYPE = "Orion.Nodes"
     URI_TEMPLATE = "swis://{}/Orion/Orion.Nodes/NodeID={}"
     WRITE_ATTR_MAP = {

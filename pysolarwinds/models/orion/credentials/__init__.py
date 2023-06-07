@@ -1,8 +1,8 @@
 from typing import Optional, Union
 
-from pysolarwinds.endpoints.orion.credentials.snmpv2 import SNMPv2Credential
-from pysolarwinds.endpoints.orion.credentials.snmpv3 import SNMPv3Credential
-from pysolarwinds.endpoints.orion.credentials.userpass import UserPassCredential
+from pysolarwinds.entities.orion.credentials.snmpv2 import SNMPv2Credential
+from pysolarwinds.entities.orion.credentials.snmpv3 import SNMPv3Credential
+from pysolarwinds.entities.orion.credentials.userpass import UserPassCredential
 from pysolarwinds.exceptions import SWError, SWNonUniqueResultError, SWObjectNotFound
 from pysolarwinds.models import BaseModel
 from pysolarwinds.models.orion.credentials.snmpv2 import SNMPv2CredentialsModel

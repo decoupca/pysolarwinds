@@ -552,7 +552,7 @@ class Endpoint:
             return self.create()
 
 
-class NewEndpoint:
+class Entity:
     TYPE = ""
     URI_TEMPLATE = ""
     WRITE_ATTR_MAP = {}
@@ -640,7 +640,7 @@ class NewEndpoint:
         return self.name
 
 
-class MonitoredEndpoint(NewEndpoint):
+class MonitoredEntity(Entity):
     @property
     def avg_response_time(self) -> int:
         """Average response time in milliseconds."""

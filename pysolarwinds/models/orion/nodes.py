@@ -2,7 +2,7 @@ from typing import Optional, Union
 
 from pypika import Table
 
-from pysolarwinds.endpoints.orion.nodes import Node
+from pysolarwinds.entities.orion.nodes import Node
 from pysolarwinds.models.base import BaseModel
 
 

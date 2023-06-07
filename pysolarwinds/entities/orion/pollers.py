@@ -1,6 +1,6 @@
 from typing import Optional, Union
 
-from pysolarwinds.endpoints import NewEndpoint
+from pysolarwinds.entities import Entity
 from pysolarwinds.exceptions import SWObjectExists, SWObjectNotFound
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger
@@ -9,7 +9,7 @@ from pysolarwinds.swis import SWISClient
 logger = get_logger(__name__)
 
 
-class Poller(NewEndpoint):
+class Poller(Entity):
     TYPE = "Orion.Pollers"
     URI_TEMPLATE = "swis://{}/Orion/Orion.Pollers/PollerID={}"
     WRITE_ATTR_MAP = {

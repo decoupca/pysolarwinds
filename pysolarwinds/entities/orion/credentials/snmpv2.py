@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pysolarwinds.endpoints.orion.credentials import Credential
+from pysolarwinds.entities.orion.credentials import Credential
 
 
 class SNMPv2Credential(Credential):

@@ -2,7 +2,7 @@ from typing import Literal, Optional
 
 import pypika
 
-from pysolarwinds.endpoints.orion.credentials.snmpv3 import SNMPv3Credential
+from pysolarwinds.entities.orion.credentials.snmpv3 import SNMPv3Credential
 from pysolarwinds.exceptions import SWObjectNotFound
 from pysolarwinds.models import BaseModel
 

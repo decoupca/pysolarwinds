@@ -2,7 +2,7 @@ from typing import Optional
 
 import pypika
 
-from pysolarwinds.endpoints.orion.credentials.userpass import UserPassCredential
+from pysolarwinds.entities.orion.credentials.userpass import UserPassCredential
 from pysolarwinds.exceptions import SWObjectNotFound
 from pysolarwinds.models import BaseModel
 

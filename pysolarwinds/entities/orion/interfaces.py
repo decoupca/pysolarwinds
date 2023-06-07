@@ -4,7 +4,7 @@ from typing import Literal, Optional, Union
 
 import netaddr
 
-from pysolarwinds.endpoints import NewEndpoint
+from pysolarwinds.entities import Entity
 from pysolarwinds.exceptions import SWDiscoveryError, SWObjectPropertyError
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import STATUS_MAP
@@ -12,7 +12,7 @@ from pysolarwinds.maps import STATUS_MAP
 logger = get_logger(__name__)
 
 
-class Interface(NewEndpoint):
+class Interface(Entity):
     TYPE = "Orion.NPM.Interfaces"
     URI_TEMPLATE = "swis://{}/Orion/Orion.Nodes/NodeID={}/Interfaces/InterfaceID={}"
     FIELDS = (
