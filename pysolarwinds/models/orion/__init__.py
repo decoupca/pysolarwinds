@@ -10,3 +10,8 @@ class Orion:
         self.map_points = MapPointsModel(swis=swis)
         self.credentials = CredentialsModel(swis=swis)
         self.nodes = NodesModel(swis=swis)
+
+    @property
+    def creds(self) -> CredentialsModel:
+        """Convenience property."""
+        return self.credentials
