@@ -20,13 +20,13 @@ pip install git+https://github.com/decoupca/pysolarwinds@master
 >>> node = sw.orion.nodes.get(caption='my-node')
 >>> # Explore node properties
 >>> node
-OrionNode(caption='my-node')
+Node(caption='my-node')
 >>> node.ip
 '172.18.64.4'
 >>> node.uptime
 datetime.timedelta(days=268, seconds=62125, microseconds=376991)
 >>> node.pollers
-[Poller(node=OrionNode(caption='my-node'), poller_type='N.ResponseTime.ICMP.Native'), ...]
+[Poller(node=Node(caption='my-node'), poller_type='N.ResponseTime.ICMP.Native'), ...]
 >>> node.polling_method
 'icmp'
 >>> # Update node properties
@@ -73,9 +73,9 @@ sw.swis.client = client
 The `SolarWindsClient` returned by `pysolarwinds.client()` provides a convenient way to create and retrieve SolarWinds objects. This is the recommended approach, as it handles `SWISClient` creation and insertion, and more gracefully handles certain validation issues. If you prefer, you can also construct objects directly:
 ```python
 >>> from pysolarwinds.swis import SWISClient
->>> from pysolarwinds.endpoints.orion.nodes import OrionNode
+>>> from pysolarwinds.endpoints.orion.nodes import Node
 >>> swis = SWISClient(host='solarwinds.example.net', username='sw-user', password='s3cr3t')
->>> node = OrionNode(swis=swis, caption='my-node')
+>>> node = Node(swis=swis, caption='my-node')
 >>> node
-OrionNode(caption='my-node')
+Node(caption='my-node')
 ```

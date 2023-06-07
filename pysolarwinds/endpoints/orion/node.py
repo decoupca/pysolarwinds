@@ -29,7 +29,7 @@ DEFAULT_POLLING_ENGINE_ID = 1
 Integer = NewType("Integer", int)
 
 
-class OrionNode(Endpoint):
+class Node(Endpoint):
     endpoint = "Orion.Nodes"
     _type = "node"
     _id_attr = "id"
@@ -1272,5 +1272,5 @@ class OrionNode(Endpoint):
         return self.name or self.ip_address  # type: ignore
 
 
-class OrionNodes(object):
+class Nodes(object):
     pass

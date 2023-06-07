@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from pysolarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from pysolarwinds.exceptions import (

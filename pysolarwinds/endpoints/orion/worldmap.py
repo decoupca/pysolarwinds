@@ -1,59 +1,32 @@
-from pysolarwinds.endpoints import Endpoint
-from pysolarwinds.swis import SWISClient
+from typing import Optional
+
+from pysolarwinds.endpoints import NewEndpoint
 
 
-class WorldMapPoint(Endpoint):
-    name = "WorldMapPoint"
-    endpoint = "Orion.WorldMap.Point"
-    _type = "map_point"
-    _id_attr = "point_id"
-    _swid_key = "PointId"
-    _required_swargs_attrs = ["instance_id"]
-    _swquery_attrs = ["point_id", "instance_id"]
-    _swargs_attrs = [
-        "instance_id",
-        "instance",
-        "latitude",
-        "longitude",
-        "auto_added",
-        "street_address",
-    ]
+class WorldMapPoint(NewEndpoint):
+    _entity_type = "Orion.WorldMap.Point"
+    _write_attr_map = {
+        "latitude": "Latitude",
+        "longitude": "Longitude",
+        "street_address": "StreetAddress",
+    }
 
     def __init__(
         self,
-        swis: SWISClient,
-        node=None,
-        point_id=None,
-        instance_id=None,
-        instance="Orion.Nodes",
-        latitude=None,
-        longitude=None,
-        auto_added=False,
-        street_address=None,
-    ):
-        self.swis = swis
+        node,
+        id: Optional[int] = None,
+        uri: Optional[str] = None,
+        data: Optional[dict] = None,
+    ) -> None:
         self.node = node
-        self.point_id = point_id
-        self.instance_id = instance_id
-        self.instance = instance
-        self.latitude = latitude
-        self.longitude = longitude
-        self.auto_added = auto_added
-        self.street_address = street_address
-        if self.instance_id is None:
-            if self.node is not None:
-                self.instance_id = self.node.id
-        super().__init__()
+        super().__init__(
+            swis=node.swis, id=id, uri=uri, data=data, instance_id=self.node.id
+        )
+        self.latitude: float = self.data.get("Latitude")
+        self.longitude: float = self.data.get("Longitude")
+        self.street_address: str = self.data.get("StreetAddress")
 
-    def _get_attr_updates(self) -> dict:
-        swdata = self._swdata["properties"]
-        return {
-            "latitude": swdata["Latitude"],
-            "longitude": swdata["Longitude"],
-            "auto_added": swdata["AutoAdded"],
-            "street_address": swdata["StreetAddress"],
-        }
-
-
-class WorldMapPointLabel(Endpoint):
-    pass
+    @property
+    def auto_added(self) -> bool:
+        """Whether or not map point was automatically added."""
+        return self.data["AutoAdded"]

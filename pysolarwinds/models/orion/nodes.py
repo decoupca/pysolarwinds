@@ -2,7 +2,7 @@ from typing import Optional, Union
 
 from pypika import Table
 
-from pysolarwinds.endpoints.orion.new_node import OrionNode
+from pysolarwinds.endpoints.orion.nodes import Node
 from pysolarwinds.models.base import BaseModel
 from pysolarwinds.queries.orion.nodes import QUERY
 
@@ -25,7 +25,7 @@ class NodesModel(BaseModel):
         """Retrieve a list of nodes based on filtering criteria."""
         if query:
             return [
-                OrionNode(
+                Node(
                     swis=self.swis,
                     id=x.get("NodeID"),
                     uri=x.get("Uri"),
@@ -47,7 +47,7 @@ class NodesModel(BaseModel):
 
             ipdb.set_trace()
             result = self.swis.query(str(query))
-            return [OrionNode(swis=self.swis, data=x) for x in result]
+            return [Node(swis=self.swis, data=x) for x in result]
 
     def get(
         self,
@@ -55,9 +55,9 @@ class NodesModel(BaseModel):
         uri: Optional[str] = None,
         caption: Optional[str] = None,
         ip_address: Optional[str] = None,
-    ) -> OrionNode:
+    ) -> Node:
         """
-        Get a single OrionNode.
+        Get a single Node.
 
         You may provide more than one argument, but only one will be used to resolve the node,
         in this order of precedence:
@@ -73,7 +73,7 @@ class NodesModel(BaseModel):
             ip_address: IP address of node.
 
         Returns:
-            `OrionNode` if exactly one result was found.
+            `Node` if exactly one result was found.
 
         Raises:
             None.
@@ -83,6 +83,6 @@ class NodesModel(BaseModel):
             raise ValueError(
                 "Must provide at least one: id, uri, caption, or ip_address."
             )
-        return OrionNode(
+        return Node(
             swis=self.swis, id=id, uri=uri, caption=caption, ip_address=ip_address
         )

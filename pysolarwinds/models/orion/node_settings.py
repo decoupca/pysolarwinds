@@ -9,7 +9,7 @@ from pysolarwinds.models.orion.credentials import CredentialsModel
 logger = get_logger(__name__)
 
 
-class OrionNodeSetting:
+class NodeSetting:
     node_attr = None
     node_attr_value = None
 
@@ -36,10 +36,10 @@ class OrionNodeSetting:
         return bool(self.node_setting_id)
 
     def __repr__(self) -> str:
-        return f'<OrionNodeSetting "{self.name}": "{self.value}">'
+        return f'<NodeSetting "{self.name}": "{self.value}">'
 
 
-class SNMPCredentialSetting(OrionNodeSetting):
+class SNMPCredentialSetting(NodeSetting):
     def build(self) -> None:
         model = CredentialsModel(swis=self.swis)
         cred = model.get(id=self.value)
@@ -83,17 +83,17 @@ class NodeSettings:
                 node_setting_id = setting["NodeSettingID"]
                 self._settings.append(self.create(name, value, node_setting_id))
 
-    def create(self, name: str, value, node_setting_id=None) -> OrionNodeSetting:
+    def create(self, name: str, value, node_setting_id=None) -> NodeSetting:
         setting_props = self.SETTING_MAP.get(name)
         if setting_props:
             setting_class = setting_props["class"]
         else:
-            setting_class = OrionNodeSetting
+            setting_class = NodeSetting
         return setting_class(self.node, name, value, node_setting_id)
 
     def get(
         self, name: str = None, node_setting_id: int = None
-    ) -> Union[OrionNodeSetting, None]:
+    ) -> Union[NodeSetting, None]:
         if name is None and node_setting_id is None:
             raise ValueError("must provide either setting `name` or `node_setting_id`")
         if self._settings:
@@ -104,7 +104,7 @@ class NodeSettings:
                 if name == setting.name:
                     return setting
 
-    def add(self, setting: OrionNodeSetting) -> bool:
+    def add(self, setting: NodeSetting) -> bool:
         statement = (
             "INSERT INTO NodeSettings (NodeID, SettingName, SettingValue) VALUES "
             f"('{setting.node.id}', '{setting.name}', '{setting.value}')"
@@ -128,15 +128,13 @@ class NodeSettings:
         self._settings.append(setting)
         return True
 
-    def delete(self, setting: OrionNodeSetting) -> bool:
+    def delete(self, setting: NodeSetting) -> bool:
         statement = f"DELETE FROM NodeSettings WHERE NodeSettingID = '{setting.node_setting_id}'"
         self.swis.sql(statement)
         self._settings.remove(setting)
         return True
 
-    def update(
-        self, old_setting: OrionNodeSetting, new_setting: OrionNodeSetting
-    ) -> bool:
+    def update(self, old_setting: NodeSetting, new_setting: NodeSetting) -> bool:
         if self.add(new_setting):
             self.delete(old_setting)
             return True

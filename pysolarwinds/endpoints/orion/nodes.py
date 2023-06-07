@@ -7,9 +7,9 @@ from pysolarwinds.endpoints.orion.engines import Engine
 from pysolarwinds.endpoints.orion.interfaces import InterfaceList
 from pysolarwinds.endpoints.orion.pollers import PollerList
 from pysolarwinds.endpoints.orion.volumes import VolumeList
+from pysolarwinds.endpoints.orion.worldmap import WorldMapPoint
 from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
-    SWISError,
     SWNonUniqueResultError,
     SWObjectManageError,
     SWObjectNotFound,
@@ -23,7 +23,7 @@ from pysolarwinds.swis import SWISClient
 logger = get_logger(__name__)
 
 
-class OrionNode(MonitoredEndpoint):
+class Node(MonitoredEndpoint):
     _entity_type = "Orion.Nodes"
     _uri_template = "swis://{}/Orion/Orion.Nodes/NodeID={}"
     _write_attr_map = {
@@ -47,22 +47,22 @@ class OrionNode(MonitoredEndpoint):
         super().__init__(
             swis=swis, data=data, uri=uri, id=id, caption=caption, ip_address=ip_address
         )
-        self.caption: str = self.data.get("Caption", "") or caption
-        self.ip_address: str = self.data.get("IPAddress", "") or ip_address
 
+        self.caption: str = self.data.get("Caption", "") or caption
+        self.geo: Optional[WorldMapPoint] = None
+        self.interfaces: InterfaceList = InterfaceList(node=self)
+        self.ip_address: str = self.data.get("IPAddress", "") or ip_address
+        self.pollers: PollerList = PollerList(node=self)
         self.polling_engine: Engine = Engine(swis=swis, id=self.data["EngineID"])
         self.polling_method: str = self.data.get("ObjectSubType", "icmp").lower()
+        self.settings: NodeSettings = NodeSettings(node=self)
         self.snmp_version: int = self.data.get("SNMPVersion", 0)
         self.snmpv2_ro_community: str = self.data.get("Community", "")
         self.snmpv2_rw_community: str = self.data.get("RWCommunity", "")
         self.snmpv3_ro_cred: Optional[SNMPv3Credential] = None
         self.snmpv3_rw_cred: Optional[SNMPv3Credential] = None
-        self.interfaces = InterfaceList(node=self)
-        self.settings = NodeSettings(node=self)
-        self.pollers = PollerList(node=self)
-        self.volumes = VolumeList(node=self)
-        # self.latitude = latitude
-        # self.longitude = longitude
+        self.volumes: VolumeList = VolumeList(node=self)
+
         # TODO: Custom properties
 
     @property
@@ -562,8 +562,8 @@ class OrionNode(MonitoredEndpoint):
 
     def __repr__(self) -> str:
         if self.caption:
-            return f"OrionNode(caption='{self.caption}')"
+            return f"Node(caption='{self.caption}')"
         elif self.ip_address:
-            return f"OrionNode(ip_address='{self.ip_address}')"
+            return f"Node(ip_address='{self.ip_address}')"
         else:
-            return f"OrionNode(id={self.id})"
+            return f"Node(id={self.id})"

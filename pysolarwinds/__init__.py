@@ -60,5 +60,5 @@ def client(
 
 __all__ = [
     "SolarWindsClient",
-    "OrionNode",
+    "Node",
 ]
