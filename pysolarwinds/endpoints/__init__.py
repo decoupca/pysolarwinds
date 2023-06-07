@@ -591,10 +591,12 @@ class NewEndpoint:
 
     @property
     def TABLE(self) -> pypika.Table:
+        """PyPika table for building SQL queries."""
         return pypika.Table(self.TYPE)
 
     @property
     def QUERY(self) -> pypika.Query:
+        """Base PyPika query for building SQL queries."""
         return pypika.MSSQLQuery.from_(self.TABLE).select(*self.FIELDS)
 
     @property

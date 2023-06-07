@@ -579,7 +579,7 @@ class InterfaceList:
     def fetch(self) -> None:
         """Retrieves interfaces that have already been discovered and monitored."""
         logger.info(f"Fetching existing interfaces...")
-        query = QUERY.where(TABLE.NodeID == self.node.id)
+        query = self.QUERY.where(self.TABLE.NodeID == self.node.id)
         if results := self.swis.query(query.get_sql()):
             self._existing = [Interface(node=self.node, data=data) for data in results]
         logger.info(f"Found {len(self._existing)} existing interfaces.")
