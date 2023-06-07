@@ -9,7 +9,7 @@ from pysolarwinds.swis import SWISClient
 logger = get_logger(__name__)
 
 
-class OrionPoller(NewEndpoint):
+class Poller(NewEndpoint):
     _entity_type = "Orion.Pollers"
     _uri_template = "swis://{}/Orion/Orion.Pollers/PollerID={}"
     _write_attr_map = {
@@ -94,11 +94,11 @@ class OrionPoller(NewEndpoint):
             logger.info(f"{self.node}: {self}: enabled poller")
 
     def __repr__(self) -> str:
-        return f"OrionPoller(node={self.node.__repr__()}, poller_type='{self.poller_type}')"
+        return f"Poller(node={self.node.__repr__()}, poller_type='{self.poller_type}')"
 
 
-class OrionPollers(BaseList):
-    _item_class = OrionPoller
+class PollerList(BaseList):
+    _item_class = Poller
 
     def __init__(self, node) -> None:
         self.node = node
@@ -125,7 +125,7 @@ class OrionPollers(BaseList):
             }
             uri = self.swis.create("Orion.Pollers", **kwargs)
             data = self.swis.read(uri)
-            new_poller = OrionPoller(swis=self.swis, node=self.node, data=data)
+            new_poller = Poller(swis=self.swis, node=self.node, data=data)
             self.items.append(new_poller)
             logger.info(
                 f"{self.node}: {new_poller}: created new poller "
@@ -133,7 +133,7 @@ class OrionPollers(BaseList):
             )
         return True
 
-    def delete(self, poller: Union[OrionPoller, str]) -> bool:
+    def delete(self, poller: Union[Poller, str]) -> bool:
         if isinstance(poller, str):
             poller = self[poller]
         poller.delete()
@@ -149,7 +149,7 @@ class OrionPollers(BaseList):
             logger.debug(f"{self.node}: No pollers to delete, doing nothing")
         return True
 
-    def disable(self, poller: Union[OrionPoller, str]) -> bool:
+    def disable(self, poller: Union[Poller, str]) -> bool:
         if isinstance(poller, str):
             poller = self[poller]
         return poller.disable()
@@ -160,7 +160,7 @@ class OrionPollers(BaseList):
                 poller.disable()
         return True
 
-    def enable(self, poller: Union[OrionPoller, str]) -> bool:
+    def enable(self, poller: Union[Poller, str]) -> bool:
         if isinstance(poller, str):
             poller = self[poller]
         return poller.enable()
@@ -178,9 +178,7 @@ class OrionPollers(BaseList):
             f"FROM Orion.Pollers WHERE NetObjectID='{self.node.id}'"
         )
         if results := self.swis.query(query):
-            pollers = [
-                OrionPoller(swis=self.swis, node=self.node, data=x) for x in results
-            ]
+            pollers = [Poller(swis=self.swis, node=self.node, data=x) for x in results]
             self.items = pollers
 
     def __repr__(self) -> str:

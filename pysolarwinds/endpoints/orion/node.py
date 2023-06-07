@@ -5,14 +5,11 @@ from typing import Callable, Literal, NewType, Optional, Union
 
 import pysolarwinds.defaults as d
 from pysolarwinds.endpoints import Endpoint
-from pysolarwinds.endpoints.orion.credentials import (
-    OrionCredential,
-    OrionSNMPv2Credential,
-)
-from pysolarwinds.endpoints.orion.engines import OrionEngine
-from pysolarwinds.endpoints.orion.interfaces import OrionInterfaces
-from pysolarwinds.endpoints.orion.pollers import OrionPoller, OrionPollers
-from pysolarwinds.endpoints.orion.volumes import OrionVolume, OrionVolumes
+from pysolarwinds.endpoints.orion.credentials import Credential, SNMPv2Credential
+from pysolarwinds.endpoints.orion.engines import Engine
+from pysolarwinds.endpoints.orion.interfaces import InterfaceList
+from pysolarwinds.endpoints.orion.pollers import Poller, PollerList
+from pysolarwinds.endpoints.orion.volumes import VolumeList
 from pysolarwinds.endpoints.orion.worldmap import WorldMapPoint
 from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
@@ -22,7 +19,7 @@ from pysolarwinds.exceptions import (
 )
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import NODE_DISCOVERY_STATUS_MAP
-from pysolarwinds.models.orion.node_settings import OrionNodeSettings
+from pysolarwinds.models.orion.node_settings import NodeSettings
 from pysolarwinds.swis import SWISClient
 
 logger = get_logger(__name__)
@@ -39,7 +36,7 @@ class OrionNode(Endpoint):
     _swid_key = "NodeID"
     _swquery_attrs = ["ip_address", "caption"]
     _endpoint_attrs = {
-        "polling_engine": OrionEngine,
+        "polling_engine": Engine,
     }
     _attr_map = {
         "caption": "Caption",
@@ -80,13 +77,13 @@ class OrionNode(Endpoint):
         longitude: Optional[float] = None,
         id: Optional[int] = None,
         pollers: Optional[list[str]] = None,
-        polling_engine: Union[OrionEngine, int, str, None] = None,
+        polling_engine: Union[Engine, int, str, None] = None,
         polling_method: Optional[str] = None,
         snmp_version: Optional[int] = None,
         snmpv2_ro_community: Optional[str] = None,
         snmpv2_rw_community: Optional[str] = None,
-        snmpv3_ro_cred: Optional[OrionCredential] = None,
-        snmpv3_rw_cred: Optional[OrionCredential] = None,
+        snmpv3_ro_cred: Optional[Credential] = None,
+        snmpv3_rw_cred: Optional[Credential] = None,
     ):
         self.swis = swis
         self.caption = caption
@@ -105,8 +102,8 @@ class OrionNode(Endpoint):
 
         self.map_point = None
 
-        self.settings = OrionNodeSettings(node=self)
-        self.interfaces = OrionInterfaces(node=self)
+        self.settings = NodeSettings(node=self)
+        self.interfaces = InterfaceList(node=self)
 
         self._discovery_id = None
         self._discovery_batch_id = None
@@ -124,8 +121,8 @@ class OrionNode(Endpoint):
         super().__init__()
 
         self.polling_method = self._get_polling_method()
-        self.pollers = OrionPollers(node=self, enabled_pollers=pollers)
-        self.volumes = OrionVolumes(node=self)
+        self.pollers = PollerList(node=self, enabled_pollers=pollers)
+        self.volumes = VolumeList(node=self)
 
         if self.exists():
             self.settings.fetch()
@@ -135,15 +132,15 @@ class OrionNode(Endpoint):
         return self.caption
 
     @property
-    def ints(self) -> OrionInterfaces:
+    def ints(self) -> InterfaceList:
         return self.interfaces
 
     @property
-    def intf(self) -> OrionInterfaces:
+    def intf(self) -> InterfaceList:
         return self.interfaces
 
     @property
-    def intfs(self) -> OrionInterfaces:
+    def intfs(self) -> InterfaceList:
         return self.interfaces
 
     @property
@@ -198,7 +195,7 @@ class OrionNode(Endpoint):
             "ip_address": swdata["IPAddress"],
             "snmpv2_ro_community": swdata["Community"],
             "snmpv2_rw_community": swdata["RWCommunity"],
-            "polling_engine": OrionEngine(swis=self.swis, id=swdata["EngineID"]),
+            "polling_engine": Engine(swis=self.swis, id=swdata["EngineID"]),
             "polling_method": self._get_polling_method(),
             "snmp_version": swdata["SNMPVersion"],
         }
@@ -288,13 +285,11 @@ class OrionNode(Endpoint):
         if not self.ip_address:
             raise SWObjectPropertyError(f"must provide IP address to create node")
         if not self.polling_engine:
-            self.polling_engine = OrionEngine(
-                swis=self.swis, id=DEFAULT_POLLING_ENGINE_ID
-            )
+            self.polling_engine = Engine(swis=self.swis, id=DEFAULT_POLLING_ENGINE_ID)
         if isinstance(self.polling_engine, int):
-            self.polling_engine = OrionEngine(swis=self.swis, id=self.polling_engine)
+            self.polling_engine = Engine(swis=self.swis, id=self.polling_engine)
         if isinstance(self.polling_engine, str):
-            self.polling_engine = OrionEngine(swis=self.swis, name=self.polling_engine)
+            self.polling_engine = Engine(swis=self.swis, name=self.polling_engine)
         if not self.polling_engine.exists():
             raise SWObjectPropertyError(
                 f"polling engine {self.polling_engine} does not exist"
@@ -367,25 +362,19 @@ class OrionNode(Endpoint):
                 "snmpv2_ro_community, snmpv2_rw_community, snmpv3_ro_cred, or snmpv3_rw_cred"
             )
         if not self.polling_engine:
-            self.polling_engine = OrionEngine(
-                swis=self.swis, id=DEFAULT_POLLING_ENGINE_ID
-            )
+            self.polling_engine = Engine(swis=self.swis, id=DEFAULT_POLLING_ENGINE_ID)
         self._resolve_endpoint_attrs()
 
         credentials = []
         order = 1
         if self.snmp_version == 2:
             if self.snmpv2_rw_community:
-                cred = OrionSNMPv2Credential(
-                    swis=self.swis, name=self.snmpv2_rw_community
-                )
+                cred = SNMPv2Credential(swis=self.swis, name=self.snmpv2_rw_community)
                 if cred.exists():
                     credentials.append({"CredentialID": cred.id, "Order": order})
                     order += 1
             if self.snmpv2_ro_community:
-                cred = OrionSNMPv2Credential(
-                    swis=self.swis, name=self.snmpv2_ro_community
-                )
+                cred = SNMPv2Credential(swis=self.swis, name=self.snmpv2_ro_community)
                 if cred.exists():
                     credentials.append({"CredentialID": cred.id, "Order": order})
                     order += 1
@@ -582,7 +571,7 @@ class OrionNode(Endpoint):
         # node's assigned polling engine. If they are directed at the main SWIS
         # server and the node uses a different polling engine, the process
         # will hang at "unknown" status
-        if not isinstance(self.polling_engine, OrionEngine):
+        if not isinstance(self.polling_engine, Engine):
             self._resolve_endpoint_attrs()
         swis_hostname = self.swis.hostname
         self.swis.hostname = self.polling_engine.ip_address
@@ -1272,9 +1261,7 @@ class OrionNode(Endpoint):
                     "snmpv3_rw_cred when snmp_version=3"
                 )
         if not self.polling_engine:
-            self.polling_engine = OrionEngine(
-                swis=self.swis, id=DEFAULT_POLLING_ENGINE_ID
-            )
+            self.polling_engine = Engine(swis=self.swis, id=DEFAULT_POLLING_ENGINE_ID)
         self.settings.save()
         return super().save()
 

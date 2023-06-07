@@ -13,7 +13,7 @@ from pysolarwinds.queries.orion.interfaces import QUERY, TABLE
 logger = get_logger(__name__)
 
 
-class OrionInterface(NewEndpoint):
+class Interface(NewEndpoint):
     _entity_type = "Orion.NPM.Interfaces"
     _uri_template = "swis://{}/Orion/Orion.Nodes/NodeID={}/Interfaces/InterfaceID={}"
 
@@ -417,7 +417,7 @@ class DiscoveredInterface:
         return f"DiscoveredInterface(name='{self.name}')"
 
 
-class OrionInterfaces:
+class InterfaceList:
     def __init__(self, node) -> None:
         self.node = node
         self.swis = node.swis
@@ -425,7 +425,7 @@ class OrionInterfaces:
         self._discovered = []
         self._discovery_response_code = None
 
-    def _get_iface_by_abbr(self, abbr: str) -> OrionInterface:
+    def _get_iface_by_abbr(self, abbr: str) -> Interface:
         abbr = abbr.lower()
         abbr_pattern = r"^([a-z\-]+)([\d\/\:]+)$"
         if match := re.match(abbr_pattern, abbr):
@@ -477,17 +477,15 @@ class OrionInterfaces:
         logger.info(f"Fetching existing interfaces...")
         query = QUERY.where(TABLE.NodeID == self.node.id)
         if results := self.swis.query(query.get_sql()):
-            self._existing = [
-                OrionInterface(node=self.node, data=data) for data in results
-            ]
+            self._existing = [Interface(node=self.node, data=data) for data in results]
         logger.info(f"Found {len(self._existing)} existing interfaces.")
 
-    def delete(self, interfaces: Union[OrionInterface, list[OrionInterface]]) -> None:
+    def delete(self, interfaces: Union[Interface, list[Interface]]) -> None:
         """
         Delete one or more currently monitored interfaces.
 
         Arguments:
-            interfaces: An OrionInterface object or list of OrionInterface objects to delete.
+            interfaces: An Interface object or list of Interface objects to delete.
 
         Returns:
             None.
@@ -495,7 +493,7 @@ class OrionInterfaces:
         Raises:
             None.
         """
-        if isinstance(interfaces, OrionInterface):
+        if isinstance(interfaces, Interface):
             interfaces = [interfaces]
         self.swis.delete([x.uri for x in interfaces])
         for interface in interfaces:
@@ -626,7 +624,7 @@ class OrionInterfaces:
     def __len__(self) -> int:
         return len(self._existing)
 
-    def __getitem__(self, item: Union[str, int]) -> OrionInterface:
+    def __getitem__(self, item: Union[str, int]) -> Interface:
         if isinstance(item, int):
             return self._existing[item]
         else:

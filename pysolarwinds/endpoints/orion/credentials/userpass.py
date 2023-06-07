@@ -1,9 +1,9 @@
 from typing import Optional
 
-from pysolarwinds.endpoints.orion.credentials import OrionCredential
+from pysolarwinds.endpoints.orion.credentials import Credential
 
 
-class OrionUserPassCredential(OrionCredential):
+class UserPassCredential(Credential):
     def update(
         self,
         username: str,
@@ -34,4 +34,4 @@ class OrionUserPassCredential(OrionCredential):
         )
 
     def __repr__(self) -> str:
-        return f"OrionUserPassCredential(id={self.id})"
+        return f"UserPassCredential(id={self.id})"

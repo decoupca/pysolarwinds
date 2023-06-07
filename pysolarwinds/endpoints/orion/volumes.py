@@ -8,7 +8,7 @@ from pysolarwinds.swis import SWISClient
 logger = get_logger(__name__)
 
 
-class OrionVolume(MonitoredEndpoint):
+class VolumeList(MonitoredEndpoint):
     _entity_type = "Orion.Volumes"
     _write_attr_map = {}
 
@@ -238,13 +238,13 @@ class OrionVolume(MonitoredEndpoint):
         return True
 
     def __repr__(self) -> str:
-        return f'OrionVolume("{self.name}")'
+        return f'VolumeList("{self.name}")'
 
 
-class OrionVolumes(BaseList):
-    _item_class = OrionVolume
+class VolumeList(BaseList):
+    _item_class = VolumeList
 
-    def delete(self, volumes: Union[OrionVolume, list[OrionVolume]]) -> bool:
+    def delete(self, volumes: Union[VolumeList, list[VolumeList]]) -> bool:
         if isinstance(volumes, list):
             self.swis.delete([x.uri for x in volumes])
             for volume in volumes:
@@ -337,7 +337,7 @@ class OrionVolumes(BaseList):
         """
         if results := self.swis.query(query):
             volumes = [
-                OrionVolume(swis=self.swis, node=self.node, data=x) for x in results
+                VolumeList(swis=self.swis, node=self.node, data=x) for x in results
             ]
             self.items = volumes
 

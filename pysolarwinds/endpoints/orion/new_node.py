@@ -2,12 +2,11 @@ import datetime
 from typing import Optional
 
 from pysolarwinds.endpoints import MonitoredEndpoint
-from pysolarwinds.endpoints.orion.credentials import OrionCredential
-from pysolarwinds.endpoints.orion.credentials.snmpv3 import OrionSNMPv3Credential
-from pysolarwinds.endpoints.orion.engines import OrionEngine
-from pysolarwinds.endpoints.orion.interfaces import OrionInterfaces
-from pysolarwinds.endpoints.orion.pollers import OrionPollers
-from pysolarwinds.endpoints.orion.volumes import OrionVolumes
+from pysolarwinds.endpoints.orion.credentials.snmpv3 import SNMPv3Credential
+from pysolarwinds.endpoints.orion.engines import Engine
+from pysolarwinds.endpoints.orion.interfaces import InterfaceList
+from pysolarwinds.endpoints.orion.pollers import PollerList
+from pysolarwinds.endpoints.orion.volumes import VolumeList
 from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
     SWISError,
@@ -17,7 +16,7 @@ from pysolarwinds.exceptions import (
 )
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import STATUS_MAP
-from pysolarwinds.models.orion.node_settings import OrionNodeSettings
+from pysolarwinds.models.orion.node_settings import NodeSettings
 from pysolarwinds.swis import SWISClient
 
 logger = get_logger(__name__)
@@ -50,19 +49,17 @@ class OrionNode(MonitoredEndpoint):
         self.caption: str = self.data.get("Caption", "") or caption
         self.ip_address: str = self.data.get("IPAddress", "") or ip_address
 
-        self.polling_engine: OrionEngine = OrionEngine(
-            swis=swis, id=self.data["EngineID"]
-        )
+        self.polling_engine: Engine = Engine(swis=swis, id=self.data["EngineID"])
         self.polling_method: str = self.data.get("ObjectSubType", "icmp").lower()
         self.snmp_version: int = self.data.get("SNMPVersion", 0)
         self.snmpv2_ro_community: str = self.data.get("Community", "")
         self.snmpv2_rw_community: str = self.data.get("RWCommunity", "")
-        self.snmpv3_ro_cred: Optional[OrionSNMPv3Credential] = None
-        self.snmpv3_rw_cred: Optional[OrionSNMPv3Credential] = None
-        self.interfaces = OrionInterfaces(node=self)
-        self.settings = OrionNodeSettings(node=self)
-        self.pollers = OrionPollers(node=self)
-        self.volumes = OrionVolumes(node=self)
+        self.snmpv3_ro_cred: Optional[SNMPv3Credential] = None
+        self.snmpv3_rw_cred: Optional[SNMPv3Credential] = None
+        self.interfaces = InterfaceList(node=self)
+        self.settings = NodeSettings(node=self)
+        self.pollers = PollerList(node=self)
+        self.volumes = VolumeList(node=self)
         # self.latitude = latitude
         # self.longitude = longitude
         # TODO: Custom properties

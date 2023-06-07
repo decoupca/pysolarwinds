@@ -1,7 +1,7 @@
 from typing import Union
 
 from pysolarwinds.endpoints import Endpoint, NewEndpoint
-from pysolarwinds.endpoints.orion.credentials import OrionCredential
+from pysolarwinds.endpoints.orion.credentials import Credential
 from pysolarwinds.exceptions import SWObjectCreationError, SWObjectNotFound
 from pysolarwinds.logging import get_logger
 from pysolarwinds.models.orion.credentials import (
@@ -51,7 +51,7 @@ class SNMPCredentialSetting(OrionNodeSetting):
         self.node_attr_value = cred
 
 
-class OrionNodeSettings:
+class NodeSettings:
     SETTING_MAP = {
         "ROSNMPCredentialID": {
             "class": SNMPCredentialSetting,

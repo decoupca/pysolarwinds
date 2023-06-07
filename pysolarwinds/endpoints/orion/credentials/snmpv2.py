@@ -1,9 +1,9 @@
 from typing import Optional
 
-from pysolarwinds.endpoints.orion.credentials import OrionCredential
+from pysolarwinds.endpoints.orion.credentials import Credential
 
 
-class OrionSNMPv2Credential(OrionCredential):
+class SNMPv2Credential(Credential):
     def update(self, community: str, name: Optional[str] = None) -> None:
         """
         Update SNMPv1/2 credential community and optionally name.
@@ -23,4 +23,4 @@ class OrionSNMPv2Credential(OrionCredential):
         )
 
     def __repr__(self) -> str:
-        return f"OrionSNMPv2Credential(name='{self.name}')"
+        return f"SNMPv2Credential(name='{self.name}')"

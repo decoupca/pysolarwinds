@@ -1,9 +1,9 @@
 from typing import Literal, Optional
 
-from pysolarwinds.endpoints.orion.credentials import OrionCredential
+from pysolarwinds.endpoints.orion.credentials import Credential
 
 
-class OrionSNMPv3Credential(OrionCredential):
+class SNMPv3Credential(Credential):
     def update(
         self,
         username: str,
@@ -41,4 +41,4 @@ class OrionSNMPv3Credential(OrionCredential):
         )
 
     def __repr__(self) -> str:
-        return f"OrionSNMPv3Credential(name='{self.name}')"
+        return f"SNMPv3Credential(name='{self.name}')"

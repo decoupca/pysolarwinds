@@ -1,14 +1,12 @@
 from typing import Optional
 
-from pysolarwinds.endpoints.orion.credentials.userpass import OrionUserPassCredential
+from pysolarwinds.endpoints.orion.credentials.userpass import UserPassCredential
 from pysolarwinds.exceptions import SWObjectNotFound
 from pysolarwinds.models import BaseModel
 
 
 class UserPassCredential(BaseModel):
-    def get(
-        self, name: Optional[str], id: Optional[int] = None
-    ) -> OrionUserPassCredential:
+    def get(self, name: Optional[str], id: Optional[int] = None) -> UserPassCredential:
         if not id and not name:
             raise ValueError("Must provide either credential ID or name.")
         if id:
@@ -18,7 +16,7 @@ class UserPassCredential(BaseModel):
                 f"AND ID={id}"
             )
             if result := self.swis.query(query):
-                return OrionUserPassCredential(swis=self.swis, data=result[0])
+                return UserPassCredential(swis=self.swis, data=result[0])
             else:
                 raise SWObjectNotFound(
                     f"Username/password credential with ID {id} not found."
@@ -30,7 +28,7 @@ class UserPassCredential(BaseModel):
                 f"AND Name='{name}'"
             )
             if result := self.swis.query(query):
-                return OrionUserPassCredential(swis=self.swis, data=result[0])
+                return UserPassCredential(swis=self.swis, data=result[0])
             else:
                 raise SWObjectNotFound(
                     f'Username/password credential with name "{name}" not found.'
@@ -42,7 +40,7 @@ class UserPassCredential(BaseModel):
         username: str,
         password: str,
         owner: str = "Orion",
-    ) -> OrionUserPassCredential:
+    ) -> UserPassCredential:
         id = self.swis.invoke(
             "Orion.Credential",
             "CreateUsernamePasswordCredentials",
@@ -51,4 +49,4 @@ class UserPassCredential(BaseModel):
             password,
             owner,
         )
-        return OrionUserPassCredential(swis=self.swis, id=id)
+        return UserPassCredential(swis=self.swis, id=id)

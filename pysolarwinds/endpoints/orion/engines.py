@@ -5,7 +5,7 @@ from pysolarwinds.endpoints import NewEndpoint
 from pysolarwinds.utils import parse_datetime
 
 
-class OrionEngine(NewEndpoint):
+class Engine(NewEndpoint):
     _entity_type = "Orion.Engines"
     _uri_template = "swis://{}/Orion/Orion.Engines/EngineID={}"
 
@@ -212,4 +212,4 @@ class OrionEngine(NewEndpoint):
         return self.data["WindowsVersion"]
 
     def __repr__(self):
-        return f"OrionEngine(id={self.id})"
+        return f"Engine(id={self.id})"

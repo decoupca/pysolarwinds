@@ -5,7 +5,7 @@ from pysolarwinds.exceptions import SWObjectNotFound
 from pysolarwinds.swis import SWISClient
 
 
-class OrionCredential(NewEndpoint):
+class Credential(NewEndpoint):
     _entity_type = "Orion.Credential"
     _uri_template = "swis://{}/Orion/Orion.Credential/ID={}"
     _write_attr_map = {
@@ -46,7 +46,7 @@ class OrionCredential(NewEndpoint):
         return self.data.get("CredentialType", "")
 
     def __repr__(self):
-        return f"OrionCredential(name='{self.name}')"
+        return f"Credential(name='{self.name}')"
 
     def __str__(self) -> str:
         return self.name

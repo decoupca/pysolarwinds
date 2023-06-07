@@ -1,8 +1,8 @@
 from typing import Optional, Union
 
-from pysolarwinds.endpoints.orion.credentials.snmpv2 import OrionSNMPv2Credential
-from pysolarwinds.endpoints.orion.credentials.snmpv3 import OrionSNMPv3Credential
-from pysolarwinds.endpoints.orion.credentials.userpass import OrionUserPassCredential
+from pysolarwinds.endpoints.orion.credentials.snmpv2 import SNMPv2Credential
+from pysolarwinds.endpoints.orion.credentials.snmpv3 import SNMPv3Credential
+from pysolarwinds.endpoints.orion.credentials.userpass import UserPassCredential
 from pysolarwinds.exceptions import SWError, SWNonUniqueResultError, SWObjectNotFound
 from pysolarwinds.models import BaseModel
 from pysolarwinds.models.orion.credentials.snmpv2 import SNMPv2Credential
@@ -21,11 +21,11 @@ class Credentials(BaseModel):
 
     def get(
         self, id: Optional[int] = None, name: Optional[str] = None
-    ) -> Union[OrionSNMPv2Credential, OrionSNMPv3Credential, OrionUserPassCredential]:
+    ) -> Union[SNMPv2Credential, SNMPv3Credential, UserPassCredential]:
         if not id and not name:
             raise ValueError("Must provide either credential ID or name.")
         if id:
-            return OrionSNMPv3Credential(swis=self.swis, id=id)
+            return SNMPv3Credential(swis=self.swis, id=id)
         if name:
             query = (
                 f"SELECT ID, Name, Description, CredentialType, CredentialOwner, Uri "
@@ -38,11 +38,11 @@ class Credentials(BaseModel):
                     )
                 cred_type = result[0]["CredentialType"]
                 if cred_type.endswith("SnmpCredentialsV3"):
-                    return OrionSNMPv3Credential(swis=self.swis, data=result[0])
+                    return SNMPv3Credential(swis=self.swis, data=result[0])
                 elif cred_type.endswith("SnmpCredentialsV2"):
-                    return OrionSNMPv2Credential(swis=self.swis, data=result[0])
+                    return SNMPv2Credential(swis=self.swis, data=result[0])
                 elif cred_type.endswith("UsernamePasswordCredential"):
-                    return OrionUserPassCredential(swis=self.swis, data=result[0])
+                    return UserPassCredential(swis=self.swis, data=result[0])
                 else:
                     raise SWError(f"Unknown credential type: {cred_type}")
             else:

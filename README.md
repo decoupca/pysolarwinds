@@ -26,7 +26,7 @@ OrionNode(caption='my-node')
 >>> node.uptime
 datetime.timedelta(days=268, seconds=62125, microseconds=376991)
 >>> node.pollers
-[OrionPoller(node=OrionNode(caption='my-node'), poller_type='N.ResponseTime.ICMP.Native'), ...]
+[Poller(node=OrionNode(caption='my-node'), poller_type='N.ResponseTime.ICMP.Native'), ...]
 >>> node.polling_method
 'icmp'
 >>> # Update node properties
