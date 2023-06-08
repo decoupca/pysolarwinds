@@ -16,10 +16,10 @@ from pysolarwinds.entities.orion.volumes import VolumeList
 from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
     SWDiscoveryError,
+    SWEntityManagementError,
+    SWEntityPropertyError,
     SWNonUniqueResultError,
-    SWObjectManageError,
     SWObjectNotFoundError,
-    SWObjectPropertyError,
     SWResourceImportError,
 )
 from pysolarwinds.logging import get_logger
@@ -411,9 +411,7 @@ class Node(MonitoredEntity):
 
     @property
     def alerts_will_be_suppressed(self) -> bool:
-        """Whether alerts are scheduled to be suppressed at a future
-        date/time.
-        """
+        """Whether alerts are scheduled to be suppressed at a future date/time."""
         return (
             self._get_alert_suppression_state()["SuppressionMode"]
             == ALERTS_WILL_BE_SUPPRESSED
@@ -499,8 +497,7 @@ class Node(MonitoredEntity):
         *,
         import_volumes: bool,
     ) -> None:
-        """
-        Runs discovery on node.
+        """Runs discovery on node.
 
         If node does not exist, will discover node with provided IP address and SNMP
         credential(s). Optionally, will also discover pollers, volumes, and interfaces.
@@ -533,7 +530,7 @@ class Node(MonitoredEntity):
             raise NotImplementedError(msg)
         if not self.ip_address:
             msg = "Discovery requires ip_address is set."
-            raise SWObjectPropertyError(msg)
+            raise SWEntityPropertyError(msg)
         if (
             not self.snmpv2_ro_community
             and not self.snmpv2_rw_community
@@ -541,7 +538,7 @@ class Node(MonitoredEntity):
             and not self.snmpv3_rw_cred
         ):
             msg = "Discovery requires at least one SNMP credential or community property set: snmpv2_ro_community, snmpv2_rw_community, snmpv3_ro_cred, or snmpv3_rw_cred"
-            raise SWObjectPropertyError(msg)
+            raise SWEntityPropertyError(msg)
         if not self.polling_engine:
             self.polling_engine = Engine(swis=self.swis, id=DEFAULT_POLLING_ENGINE_ID)
 
@@ -734,13 +731,13 @@ class Node(MonitoredEntity):
             None.
 
         Raises:
-            SWObjectPropertyError if polling_method is not 'snmp', or if no SNMP
+            SWEntityPropertyError if polling_method is not 'snmp', or if no SNMP
                 credentials were provided.
         """
         logger.info("Importing and monitoring all available SNMP resources...")
         if self.polling_method != "snmp":
             msg = "Polling_method must be 'snmp' to import resources."
-            raise SWObjectPropertyError(msg)
+            raise SWEntityPropertyError(msg)
         if (
             not self.snmpv2_ro_community
             and not self.snmpv2_rw_community
@@ -748,7 +745,7 @@ class Node(MonitoredEntity):
             and not self.snmpv3_rw_cred
         ):
             msg = "Must set SNMPv2 community or SNMPv3 credentials."
-            raise SWObjectPropertyError(msg)
+            raise SWEntityPropertyError(msg)
 
         # The verbs associated with this method need to be pointed at this
         # node's assigned polling engine. If they are directed at the main SWIS
@@ -1215,7 +1212,7 @@ class Node(MonitoredEntity):
             None.
 
         Raises:
-            `SWObjectManageError` if node is already managed.
+            `SWEntityManagementError` if node is already managed.
         """
         if self.is_unmanaged:
             self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
@@ -1223,7 +1220,7 @@ class Node(MonitoredEntity):
             self.read()
         else:
             msg = "Node already managed, doing nothing."
-            raise SWObjectManageError(msg)
+            raise SWEntityManagementError(msg)
 
     def save(self) -> None:
         updates = {

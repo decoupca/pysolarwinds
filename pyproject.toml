@@ -15,7 +15,7 @@ select = [
     "C",
     "I",
     "N",
-    # "D",
+    "D",
     "UP",
     "ANN",
     # "S",
@@ -57,6 +57,7 @@ ignore = [
     "ANN401", # Dynamically typed expressions
     "RET505", # Unnecessary control structures
     "COM812", # Trailing commas
+    "D107", # __init__ docstrings
 ]
 exclude = [
     "node.py",

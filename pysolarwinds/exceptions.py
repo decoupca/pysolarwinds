@@ -1,45 +1,36 @@
+"""Exceptions."""
+
+
 class SWError(Exception):
-    """Base SolarWinds SWError."""
+    """Base SolarWinds error."""
 
 
 class SWAlertSuppressionError(SWError):
-    pass
+    """Error with suppressing alerts."""
 
 
 class SWDiscoveryError(SWError):
-    pass
+    """Error in discovery."""
 
 
 class SWResourceImportError(SWError):
-    pass
+    """Error importing resources."""
 
 
-class SWObjectManageError(SWError):
-    pass
+class SWEntityManagementError(SWError):
+    """Error managing or un-managing an entity."""
 
 
-class SWIDNotFoundError(SWError):
-    pass
+class SWEntityExistsError(SWError):
+    """Entity already exists."""
 
 
-class SWObjectNotFoundError(SWError):
-    pass
-
-
-class SWObjectExistsError(SWError):
-    pass
-
-
-class SWObjectPropertyError(SWError):
-    pass
+class SWEntityPropertyError(SWError):
+    """Error with an entity's property."""
 
 
 class SWNonUniqueResultError(SWError):
-    pass
-
-
-class SWObjectCreationError(SWError):
-    pass
+    """Search found more than one result matching criteria."""
 
 
 class SWISError(SWError):

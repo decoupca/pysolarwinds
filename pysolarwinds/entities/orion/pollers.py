@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional, Union
 
 from pysolarwinds.entities import Entity
-from pysolarwinds.exceptions import SWObjectExistsError, SWObjectNotFoundError
+from pysolarwinds.exceptions import SWEntityExistsError, SWObjectNotFoundError
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger
 from pysolarwinds.queries.orion.pollers import QUERY, TABLE
@@ -148,7 +148,7 @@ class PollerList(BaseList):
         for poller in pollers:
             if self.get(poller):
                 msg = f"{self.node}: poller already exists: {poller}"
-                raise SWObjectExistsError(msg)
+                raise SWEntityExistsError(msg)
 
             kwargs = {
                 "PollerType": poller,

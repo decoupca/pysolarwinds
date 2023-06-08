@@ -8,7 +8,7 @@ import netaddr
 import pytz
 
 from pysolarwinds.entities import Entity
-from pysolarwinds.exceptions import SWDiscoveryError, SWObjectPropertyError
+from pysolarwinds.exceptions import SWDiscoveryError, SWEntityPropertyError
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import STATUS_MAP
 from pysolarwinds.queries.orion.interfaces import QUERY, TABLE
@@ -110,8 +110,14 @@ class Interface(Entity):
 
     @property
     def duplex(self) -> Optional[Literal["unknown", "half", "full"]]:
-        """Human-friendly representation of duplex mode. Returns None when SolarWinds
-        reports duplex mode is not applicable to this interface type.
+        """Human-friendly representation of duplex mode.
+
+        Args:
+            None.
+
+        Returns:
+            "unknown", "half" or "full" in most cases. None when SolarWinds
+            reports duplex mode is not applicable to this interface type.
         https://support.solarwinds.com/SuccessCenter/s/article/Duplex-mode-on-interfaces-in-NPM?language=en_US.
         """
         return [None, "unknown", "half", "full"][self.duplex_mode]
@@ -204,6 +210,7 @@ class Interface(Entity):
     @property
     def is_responding(self) -> bool:
         """Whether the interface is responding.
+
         Unknown if this corresponds to an 'up/up' status.
         """
         return bool(self.data["InterfaceResponding"])
@@ -226,6 +233,7 @@ class Interface(Entity):
     @property
     def last_change(self) -> Optional[datetime.datetime]:
         """Last change to interface.
+
         Tests suggest this is the last configuration change, not status change.
         """
         if last_change := self.data["LastChange"]:
@@ -293,11 +301,13 @@ class Interface(Entity):
         return self.data["MinutesSinceLastSync"]
 
     @property
-    def mtu(self) -> int:
-        return self.data["MTU"]
+    def mtu(self) -> Optional[int]:
+        """Maximum transmission unit."""
+        return self.data.get("MTU")
 
     @property
     def name(self) -> str:
+        """Interface name."""
         return self.data["Name"]
 
     @property
@@ -558,12 +568,12 @@ class InterfaceList:
             None.
 
         Raises:
-            - SWObjectPropertyError if polling method is not 'snmp'.
+            - SWEntityPropertyError if polling method is not 'snmp'.
             - SWDiscoveryError if there was a problem discovering interfaces.
         """
         if self.node.polling_method != "snmp":
             msg = f'Interface discovery requires SNMP polling method; node polling method is currently "{self.node.polling_method}".'
-            raise SWObjectPropertyError(
+            raise SWEntityPropertyError(
                 msg,
             )
         logger.info("Discovering interfaces via SNMP...")

@@ -1,3 +1,4 @@
+"""Base list."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Union
@@ -9,6 +10,8 @@ if TYPE_CHECKING:
 
 
 class BaseList:
+    """Base list."""
+
     _item_class = Entity
 
     def __init__(self, node: Node) -> None:
@@ -17,9 +20,10 @@ class BaseList:
         self.items = []
 
     def fetch(self) -> None:
-        pass
+        """Fetch all items."""
 
     def get(self, item: Any) -> Any:
+        """Gets an item from list."""
         for existing_item in self.items:
             if isinstance(item, str) and existing_item.name == item:
                 return existing_item

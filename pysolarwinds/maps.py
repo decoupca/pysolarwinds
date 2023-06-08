@@ -1,3 +1,5 @@
+"""Code mappings. Should be moved to enums."""
+
 NODE_DISCOVERY_STATUS_MAP = {
     0: "Unknown",
     1: "InProgress",

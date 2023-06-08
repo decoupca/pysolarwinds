@@ -1,3 +1,4 @@
+"""Credentials model."""
 from typing import Optional, Union
 
 from pysolarwinds.entities.orion.credentials.snmpv2 import SNMPv2Credential
@@ -17,6 +18,8 @@ from pysolarwinds.swis import SWISClient
 
 
 class CredentialsModel(BaseModel):
+    """Credentials model."""
+
     name = "Credential"
 
     def __init__(self, swis: SWISClient) -> None:
@@ -30,6 +33,19 @@ class CredentialsModel(BaseModel):
         id: Optional[int] = None,
         name: Optional[str] = None,
     ) -> Union[SNMPv2Credential, SNMPv3Credential, UserPassCredential, None]:
+        """Get a single credential.
+
+        Args:
+            id: Credential ID to retrieve.
+            name: Credential name to retrieve.
+
+        Returns:
+            SNMPv2Credential, SNMPv3Credential, UserPassCredential, or None.
+
+        Raises:
+            ValueError if neither `id` nor `name` are provided.
+            SWObjectNotFoundError if no credential matches name or ID.
+        """
         if not id and not name:
             msg = "Must provide either credential ID or name."
             raise ValueError(msg)

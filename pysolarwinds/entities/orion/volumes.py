@@ -15,6 +15,8 @@ logger = get_logger(__name__)
 
 
 class Volume(MonitoredEntity):
+    """Orion volume."""
+
     TYPE = "Orion.Volumes"
     WRITE_ATTR_MAP = {}
 
@@ -95,6 +97,7 @@ class Volume(MonitoredEntity):
 
     @property
     def interface_type(self) -> str:
+        """Interface type. Unknown significance."""
         return self.data.get("InterfaceType", "")
 
     @property
@@ -286,6 +289,8 @@ class Volume(MonitoredEntity):
 
 
 class VolumeList(BaseList):
+    """Volume list."""
+
     _item_class = Volume
 
     def delete(self, volumes: Union[Volume, list[Volume]]) -> None:
