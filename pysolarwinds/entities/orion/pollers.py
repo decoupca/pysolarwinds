@@ -37,6 +37,7 @@ class Poller(Entity):
         self.is_enabled: bool = self.data["Enabled"]
 
     def _get_data(self) -> Optional[dict]:
+        """Get poller data by type."""
         if self.poller_type:
             query = QUERY.where(TABLE.PollerType == self.poller_type)
             if results := self.swis.query(str(query)):
@@ -77,26 +78,29 @@ class Poller(Entity):
         return self.data.get("InstanceType", "")
 
     def delete(self) -> None:
+        """Delete poller."""
         self.swis.delete(self.uri)
         if self.node.pollers.get(self):
             self.node.pollers.items.remove(self)
-        logger.info(f"{self.node}: {self}: deleted poller")
+        logger.info("Deleted poller.")
 
     def disable(self) -> None:
+        """Disable poller."""
         if not self.is_enabled:
-            logger.debug(f"{self.node}: {self}: poller already disabled")
+            logger.debug("Poller already disabled.")
         else:
             self.is_enabled = False
             self.save()
-            logger.info(f"{self.node}: {self}: disabled poller")
+            logger.info("Disabled poller.")
 
     def enable(self) -> None:
+        """Enable poller."""
         if self.is_enabled:
-            logger.debug(f"{self.node}: {self}: poller already enabled")
+            logger.debug("Poller already enabled.")
         else:
             self.is_enabled = True
             self.save()
-            logger.info(f"{self.node}: {self}: enabled poller")
+            logger.info("Enabled poller.")
 
     def __repr__(self) -> str:
         return f"Poller(node={self.node.__repr__()}, poller_type='{self.poller_type}')"
@@ -106,15 +110,39 @@ class PollerList(BaseList):
     _item_class = Poller
 
     def __init__(self, node: Node) -> None:
+        """Initialize poller list.
+
+        Args:
+            node: Parent node for poller list.
+
+        Returns:
+            None.
+
+        Raises:
+            None.
+        """
         self.node = node
         self.swis = self.node.swis
         self.items = []
 
     @property
     def names(self) -> list:
+        """List all pollers by name."""
         return [x.name for x in self.items]
 
     def add(self, pollers: Union[list[str], str], *, enabled: bool) -> None:
+        """Add one or more pollers to node.
+
+        Args:
+            pollers: One or more pollers by name to add.
+            enabled: Whether to enable the poller(s).
+
+        Returns:
+            None.
+
+        Raises:
+            None.
+        """
         if isinstance(pollers, str):
             pollers = [pollers]
         for poller in pollers:
@@ -139,11 +167,13 @@ class PollerList(BaseList):
             )
 
     def delete(self, poller: Union[Poller, str]) -> None:
+        """Delete a poller."""
         if isinstance(poller, str):
             poller = self[poller]
         poller.delete()
 
     def delete_all(self) -> None:
+        """Delete all pollers."""
         self.fetch()
         pollers = self.items
         if pollers:
@@ -154,34 +184,36 @@ class PollerList(BaseList):
             logger.debug("No pollers to delete; doing nothing.")
 
     def disable(self, poller: Union[Poller, str]) -> None:
+        """Disable a poller."""
         if isinstance(poller, str):
             poller = self[poller]
         poller.disable()
 
     def disable_all(self) -> None:
+        """Disable all pollers."""
         for poller in self.items:
             if poller.is_enabled:
                 poller.disable()
 
     def enable(self, poller: Union[Poller, str]) -> None:
+        """Enable a poller."""
         if isinstance(poller, str):
             poller = self[poller]
         return poller.enable()
 
     def enable_all(self) -> None:
+        """Enable all pollers."""
         for poller in self.items:
             if not poller.is_enabled:
                 poller.disable()
 
     def fetch(self) -> None:
-        query = (
-            f"SELECT PollerID, PollerType, NetObject, NetObjectType, NetObjectID, "
-            "Enabled, DisplayName, Description, InstanceType, Uri, InstanceSiteId "
-            f"FROM Orion.Pollers WHERE NetObjectID='{self.node.id}'"
-        )
-        if results := self.swis.query(query):
-            pollers = [Poller(swis=self.swis, node=self.node, data=x) for x in results]
-            self.items = pollers
+        """Fetch all currently assigned pollers."""
+        query = QUERY.where(TABLE.NetObjectID == self.node.id)
+        if results := self.swis.query(str(query)):
+            self.items = [
+                Poller(swis=self.swis, node=self.node, data=x) for x in results
+            ]
 
     def __repr__(self) -> str:
         if not self.items:
