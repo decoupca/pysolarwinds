@@ -3,14 +3,12 @@ from typing import Optional
 
 from pysolarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from pysolarwinds.exceptions import (
-    SWIDNotFound,
-    SWObjectDoesNotExist,
-    SWObjectExists,
+    SWIDNotFoundError,
+    SWObjectExistsError,
     SWObjectPropertyError,
 )
 from pysolarwinds.logging import get_logger
 from pysolarwinds.swis import SWISClient
-from pysolarwinds.utils import print_dict, sanitize_swdata
 
 logger = get_logger(__name__)
 
@@ -149,7 +147,7 @@ class Endpoint:
     def _get_swdata(self, refresh: bool = False, data: str = "both") -> None:
         """Caches pysolarwinds data."""
         if not self.exists():
-            raise SWObjectDoesNotExist
+            raise SWIDNotFoundError()
         else:
             if (
                 not self._swdata.get("properties")
@@ -158,10 +156,10 @@ class Endpoint:
                 swdata = {"properties": None, "custom_properties": None}
                 logger.debug("getting object data from pysolarwinds...")
                 if data == "both" or data == "properties":
-                    swdata["properties"] = sanitize_swdata(self.swis.read(self.uri))
+                    swdata["properties"] = self.swis.read(self.uri)
                 if data == "both" or data == "custom_properties":
                     if hasattr(self, "custom_properties"):
-                        swdata["custom_properties"] = sanitize_swdata(
+                        swdata["custom_properties"] = (
                             self.swis.read(f"{self.uri}/CustomProperties"),
                         )
                 if swdata.get("properties") or swdata.get("custom_properties"):
@@ -437,7 +435,7 @@ class Endpoint:
             msg = (
                 f'could not find id value in _swdata["properties"]["{self._swid_key}"]'
             )
-            raise SWIDNotFound(
+            raise SWIDNotFoundError(
                 msg,
             )
 
@@ -445,7 +443,7 @@ class Endpoint:
         """Create object."""
         if self.exists():
             msg = "object exists, cannot create"
-            raise SWObjectExists(msg)
+            raise SWObjectExistsError(msg)
         else:
             self._resolve_endpoint_attrs()
             self._build_swargs()
@@ -501,7 +499,7 @@ class Endpoint:
                 if self._changes.get("properties"):
                     self.swis.update(self.uri, **self._changes["properties"])
                     logger.info(
-                        f"{self.name}: updated properties: {print_dict(self._changes['properties'])}",
+                        f"{self.name}: updated properties: {self._changes['properties']}",
                     )
                     self._get_swdata(refresh=True, data="properties")
                 if self._changes.get("custom_properties"):
@@ -510,7 +508,7 @@ class Endpoint:
                         **self._changes["custom_properties"],
                     )
                     logger.info(
-                        f"{self.name}: updated custom properties: {print_dict(self._changes['custom_properties'])}",
+                        f"{self.name}: updated custom properties: {self._changes['custom_properties']}",
                     )
                     self._get_swdata(refresh=True, data="custom_properties")
                 if self._changes.get("child_objects"):

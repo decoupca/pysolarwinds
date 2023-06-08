@@ -3,7 +3,7 @@ from typing import Optional
 import pypika
 
 from pysolarwinds.entities.orion.credentials.snmpv2 import SNMPv2Credential
-from pysolarwinds.exceptions import SWObjectNotFound
+from pysolarwinds.exceptions import SWObjectNotFoundError
 from pysolarwinds.models import BaseModel
 from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 
@@ -22,10 +22,9 @@ class SNMPv2CredentialsModel(BaseModel):
             query = QUERY.where(criterion)
             if result := self.swis.query(str(query)):
                 return SNMPv2Credential(swis=self.swis, data=result[0])
-            else:
-                msg = f"SNMPv2 credential with ID {id} not found."
-                raise SWObjectNotFound(msg)
-        elif name:
+            msg = f"SNMPv2 credential with ID {id} not found."
+            raise SWObjectNotFoundError(msg)
+        elif name:  # noqa
             criterion = pypika.Criterion.all(
                 TABLE.CredentialType
                 == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV2",
@@ -34,11 +33,10 @@ class SNMPv2CredentialsModel(BaseModel):
             query = QUERY.where(criterion)
             if result := self.swis.query(str(query)):
                 return SNMPv2Credential(swis=self.swis, data=result[0])
-            else:
-                msg = f'SNMPv2 credential with name "{name}" not found.'
-                raise SWObjectNotFound(
-                    msg,
-                )
+            msg = f'SNMPv2 credential with name "{name}" not found.'
+            raise SWObjectNotFoundError(
+                msg,
+            )
         return None
 
     def create(

@@ -1,11 +1,16 @@
-from typing import Optional, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional, Union
 
 from pysolarwinds.entities import Entity
-from pysolarwinds.exceptions import SWObjectExists, SWObjectNotFound
+from pysolarwinds.exceptions import SWObjectExistsError, SWObjectNotFoundError
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger
 from pysolarwinds.queries.orion.pollers import QUERY, TABLE
 from pysolarwinds.swis import SWISClient
+
+if TYPE_CHECKING:
+    from pysolarwinds.entities.orion.nodes import Node
 
 logger = get_logger(__name__)
 
@@ -20,7 +25,7 @@ class Poller(Entity):
     def __init__(
         self,
         swis: SWISClient,
-        node,
+        node: Node,
         id: Optional[int] = None,
         uri: Optional[str] = None,
         data: Optional[dict] = None,
@@ -38,7 +43,7 @@ class Poller(Entity):
                 return results[0]
             else:
                 msg = f'No poller "{self.poller_type}" on node ID {self.node.id} found.'
-                raise SWObjectNotFound(
+                raise SWObjectNotFoundError(
                     msg,
                 )
         return None
@@ -100,7 +105,7 @@ class Poller(Entity):
 class PollerList(BaseList):
     _item_class = Poller
 
-    def __init__(self, node) -> None:
+    def __init__(self, node: Node) -> None:
         self.node = node
         self.swis = self.node.swis
         self.items = []
@@ -109,13 +114,13 @@ class PollerList(BaseList):
     def names(self) -> list:
         return [x.name for x in self.items]
 
-    def add(self, pollers: Union[list[str], str], enabled: bool = True) -> bool:
+    def add(self, pollers: Union[list[str], str], *, enabled: bool) -> bool:
         if isinstance(pollers, str):
             pollers = [pollers]
         for poller in pollers:
             if self.get(poller):
                 msg = f"{self.node}: poller already exists: {poller}"
-                raise SWObjectExists(msg)
+                raise SWObjectExistsError(msg)
 
             kwargs = {
                 "PollerType": poller,

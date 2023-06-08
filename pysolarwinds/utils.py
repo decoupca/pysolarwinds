@@ -8,7 +8,7 @@ def parse_response(response: list) -> Optional[dict]:
         result = response.get("results")
         if len(result) == 0:
             return None
-        else:  # noqa: RET505
+        else:
             return result
     else:
         return None

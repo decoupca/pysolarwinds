@@ -6,6 +6,7 @@ from pysolarwinds.entities.orion.credentials import Credential
 class SNMPv3Credential(Credential):
     def update(
         self,
+        *,
         username: str,
         auth_method: Literal["md5", "sha1", "sha256", "sha512"],
         auth_password: str,

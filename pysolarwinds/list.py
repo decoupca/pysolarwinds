@@ -1,10 +1,15 @@
-from typing import Any, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Union
+
+if TYPE_CHECKING:
+    from pysolarwinds.entities.orion.nodes import Node
 
 
 class BaseList:
     _item_class = None
 
-    def __init__(self, node) -> None:
+    def __init__(self, node: Node) -> None:
         self.node = node
         self.swis = self.node.swis
         self.items = []

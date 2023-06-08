@@ -1,3 +1,4 @@
+"""Poller query."""
 from pypika import MSSQLQuery, Table
 
 TABLE = Table("Orion.Nodes")

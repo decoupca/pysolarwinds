@@ -1,14 +1,20 @@
+from __future__ import annotations
+
 import datetime
 import re
-from typing import Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 import netaddr
+import pytz
 
 from pysolarwinds.entities import Entity
 from pysolarwinds.exceptions import SWDiscoveryError, SWObjectPropertyError
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import STATUS_MAP
 from pysolarwinds.queries.orion.interfaces import QUERY, TABLE
+
+if TYPE_CHECKING:
+    from pysolarwinds.entities.orion.nodes import Node
 
 logger = get_logger(__name__)
 
@@ -19,7 +25,7 @@ class Interface(Entity):
 
     def __init__(
         self,
-        node,
+        node: Node,
         id: Optional[int] = None,
         uri: Optional[str] = None,
         data: Optional[dict] = None,
@@ -82,7 +88,9 @@ class Interface(Entity):
     @property
     def custom_poller_last_statistics_poll(self) -> datetime.datetime:
         if last_poll := self.data["CustomPollerLastStatisticsPoll"]:
-            return datetime.datetime.strptime(last_poll, "%Y-%m-%dT%H:%M:%S.%f0")
+            return datetime.datetime.strptime(
+                last_poll, "%Y-%m-%dT%H:%M:%S.%f0"
+            ).astimezone(tz=pytz.utc)
         return None
 
     @property
@@ -216,14 +224,18 @@ class Interface(Entity):
         Tests suggest this is the last configuration change, not status change.
         """
         if last_change := self.data["LastChange"]:
-            return datetime.datetime.strptime(last_change, "%Y-%m-%dT%H:%M:%S.%f0")
+            return datetime.datetime.strptime(
+                last_change, "%Y-%m-%dT%H:%M:%S.%f0"
+            ).astimezone(tz=pytz.utc)
         return None
 
     @property
     def last_sync(self) -> Optional[datetime.datetime]:
         """Last sync with SolarWinds."""
         if last_sync := self.data["LastSync"]:
-            return datetime.datetime.strptime(last_sync, "%Y-%m-%dT%H:%M:%S.%f0")
+            return datetime.datetime.strptime(
+                last_sync, "%Y-%m-%dT%H:%M:%S.%f0"
+            ).astimezone(tz=pytz.utc)
         return None
 
     @property
@@ -246,7 +258,9 @@ class Interface(Entity):
     def max_input_bps_time(self) -> Optional[datetime.datetime]:
         """Date/time of max_input_bps_today."""
         if time := self.data.get("MaxInBpsTime"):
-            return datetime.datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%f0")
+            return datetime.datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%f0").astimezone(
+                tz=pytz.utc
+            )
         return None
 
     @property
@@ -258,7 +272,9 @@ class Interface(Entity):
     def max_output_bps_time(self) -> Optional[datetime.datetime]:
         """Date/time of max_output_bps_today."""
         if time := self.data.get("MaxOutBpsTime"):
-            return datetime.datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%f0")
+            return datetime.datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%f0").astimezone(
+                tz=pytz.utc
+            )
         return None
 
     @property
@@ -283,14 +299,18 @@ class Interface(Entity):
     def next_poll(self) -> Optional[datetime.datetime]:
         """Next poll by SolarWinds."""
         if next_poll := self.data["NextPoll"]:
-            return datetime.datetime.strptime(next_poll, "%Y-%m-%dT%H:%M:%S.%f0")
+            return datetime.datetime.strptime(
+                next_poll, "%Y-%m-%dT%H:%M:%S.%f0"
+            ).astimezone(tz=pytz.utc)
         return None
 
     @property
     def next_rediscovery(self) -> datetime.datetime:
         """Next rediscovery by SolarWinds."""
         if next_rediscovery := self.data["NextPoll"]:
-            return datetime.datetime.strptime(next_rediscovery, "%Y-%m-%dT%H:%M:%S.%f0")
+            return datetime.datetime.strptime(
+                next_rediscovery, "%Y-%m-%dT%H:%M:%S.%f0"
+            ).astimezone(tz=pytz.utc)
         return None
 
     @property
@@ -392,14 +412,18 @@ class Interface(Entity):
     def unmanage_from(self) -> Optional[datetime.datetime]:
         """Date/time to un-manage (if scheduled)."""
         if unmanage_from := self.data["UnManageFrom"]:
-            return datetime.datetime.strptime(unmanage_from, "%Y-%m-%dT%H:%M:%S")
+            return datetime.datetime.strptime(
+                unmanage_from, "%Y-%m-%dT%H:%M:%S"
+            ).astimezone(tz=pytz.utc)
         return None
 
     @property
     def unmanage_until(self) -> Optional[datetime.datetime]:
         """Date/time to re-manage (if scheduled)."""
         if unmanage_until := self.data["UnManageUntil"]:
-            return datetime.datetime.strptime(unmanage_until, "%Y-%m-%dT%H:%M:%S")
+            return datetime.datetime.strptime(
+                unmanage_until, "%Y-%m-%dT%H:%M:%S"
+            ).astimezone(tz=pytz.utc)
         return None
 
     def __repr__(self) -> str:
@@ -425,7 +449,7 @@ class DiscoveredInterface:
 
 
 class InterfaceList:
-    def __init__(self, node) -> None:
+    def __init__(self, node: Node) -> None:
         self.node = node
         self.swis = node.swis
         self._existing = []
@@ -584,7 +608,8 @@ class InterfaceList:
     def monitor(
         self,
         interfaces: Optional[list[str]] = None,
-        delete_extraneous: bool = False,
+        *,
+        delete_extraneous: bool,
     ) -> None:
         """Monitor discovered interfaces on node.
 

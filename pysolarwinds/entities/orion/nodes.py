@@ -1,6 +1,8 @@
 import datetime
 from typing import Optional
 
+import pytz
+
 from pysolarwinds.custom_properties import CustomProperties
 from pysolarwinds.entities import MonitoredEntity
 from pysolarwinds.entities.orion.credentials.snmpv3 import SNMPv3Credential
@@ -12,7 +14,7 @@ from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
     SWNonUniqueResultError,
     SWObjectManageError,
-    SWObjectNotFound,
+    SWObjectNotFoundError,
 )
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import STATUS_MAP
@@ -21,6 +23,9 @@ from pysolarwinds.queries.orion.nodes import QUERY, TABLE
 from pysolarwinds.swis import SWISClient
 
 logger = get_logger(__name__)
+
+ALERTS_ARE_SUPPRESSED = 1
+ALERTS_WILL_BE_SUPPRESSED = 3
 
 
 class Node(MonitoredEntity):
@@ -89,7 +94,7 @@ class Node(MonitoredEntity):
                 return result[0]
             else:
                 msg = f'Node with caption "{self.caption}" not found.'
-                raise SWObjectNotFound(msg)
+                raise SWObjectNotFoundError(msg)
 
         if self.ip_address:
             query = QUERY.where(TABLE.IPAddress == self.ip_address)
@@ -102,7 +107,7 @@ class Node(MonitoredEntity):
                 return result[0]
             else:
                 msg = f"Node with IP address {self.ip_address} not found."
-                raise SWObjectNotFound(
+                raise SWObjectNotFoundError(
                     msg,
                 )
         return None
@@ -122,7 +127,9 @@ class Node(MonitoredEntity):
         """Unknown meaning."""
         block_until = self.data.get("BlockUntil")
         if block_until:
-            return datetime.datetime.strptime(block_until, "%Y-%m-%dT%H:%M:%S")
+            return datetime.datetime.strptime(
+                block_until, "%Y-%m-%dT%H:%M:%S"
+            ).astimezone(tz=pytz.utc)
         return None
 
     @property
@@ -258,7 +265,9 @@ class Node(MonitoredEntity):
     @property
     def last_boot(self) -> datetime.datetime:
         """Last boot date/time."""
-        return datetime.datetime.strptime(self.data["LastBoot"], "%Y-%m-%dT%H:%M:%S")
+        return datetime.datetime.strptime(
+            self.data["LastBoot"], "%Y-%m-%dT%H:%M:%S"
+        ).astimezone(tz=pytz.utc)
 
     @property
     def load_average_1(self) -> Optional[int]:
@@ -348,7 +357,7 @@ class Node(MonitoredEntity):
     @property
     def uptime(self) -> datetime.timedelta:
         """Time since last boot."""
-        return datetime.datetime.utcnow() - self.last_boot
+        return datetime.datetime.now(tz=pytz.utc) - self.last_boot
 
     @property
     def vendor(self) -> str:
@@ -366,18 +375,27 @@ class Node(MonitoredEntity):
     @property
     def alerts_are_suppressed(self) -> bool:
         """Whether or not alerts are currently suppressed on node."""
-        return self._get_alert_suppression_state()["SuppressionMode"] == 1
+        return (
+            self._get_alert_suppression_state()["SuppressionMode"]
+            == ALERTS_ARE_SUPPRESSED
+        )
 
     @property
     def alerts_will_be_suppressed(self) -> bool:
         """Whether or not alerts are scheduled to be suppressed at a future date/time."""
-        return self._get_alert_suppression_state()["SuppressionMode"] == 3
+        return (
+            self._get_alert_suppression_state()["SuppressionMode"]
+            == ALERTS_WILL_BE_SUPPRESSED
+        )
 
     @property
     def alerts_suppressed_from(self) -> Optional[datetime.datetime]:
         """Date/time from when alerts will be suppressed."""
         if suppressed_from := self._get_alert_suppression_state()["SuppressedFrom"]:
-            return datetime.datetime.strptime(suppressed_from, "%Y-%m-%dT%H:%M:%S")
+            return datetime.datetime.strptime(
+                suppressed_from,
+                "%Y-%m-%dT%H:%M:%S",
+            ).astimezone(tz=pytz.utc)
         else:
             return None
 
@@ -385,7 +403,10 @@ class Node(MonitoredEntity):
     def alerts_suppressed_until(self) -> Optional[datetime.datetime]:
         """Date/time from when alerts will be resumed."""
         if suppressed_until := self._get_alert_suppression_state()["SuppressedUntil"]:
-            return datetime.datetime.strptime(suppressed_until, "%Y-%m-%dT%H:%M:%S")
+            return datetime.datetime.strptime(
+                suppressed_until,
+                "%Y-%m-%dT%H:%M:%S",
+            ).astimezone(tz=pytz.utc)
         else:
             return None
 
@@ -458,7 +479,7 @@ class Node(MonitoredEntity):
             Under normal conditions, invalid arguments will raise `SWISError` with details.
         """
         if start is None:
-            start = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+            start = datetime.datetime.now(tz=pytz.utc) - datetime.timedelta(hours=1)
         # If you provide datetime objects directly to this call, SWIS will
         # erroneously convert it to UTC, so we need to explicitly pass a datetime
         # string in this format: 2023-02-28T16:40:00Z. The trailing "Z" causes
@@ -527,12 +548,19 @@ class Node(MonitoredEntity):
             duration: timedelta object representing how long node should remain unmanaged. Defaults
                 to 1 day (86,400 seconds).
         """
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(tz=pytz.utc)
         if not start:
             start = now - datetime.timedelta(minutes=10)
         if not end:
             end = now + duration
-        self.swis.invoke("Orion.Nodes", "Unmanage", f"N:{self.id}", start, end, False)
+        self.swis.invoke(
+            "Orion.Nodes",
+            "Unmanage",
+            f"N:{self.id}",
+            start,
+            end,
+            False,  # noqa: FBT003
+        )
         logger.info(f"Un-managed node until {end}.")
         self.read()
         return True

@@ -1,7 +1,7 @@
 from typing import Optional
 
 from pysolarwinds.entities import Entity
-from pysolarwinds.exceptions import SWObjectNotFound
+from pysolarwinds.exceptions import SWObjectNotFoundError
 from pysolarwinds.queries.orion.map_point import QUERY, TABLE
 from pysolarwinds.swis import SWISClient
 
@@ -35,7 +35,7 @@ class MapPoint(Entity):
                 return results[0]
             else:
                 msg = f'No map point exists for entity "{self.entity.name}".'
-                raise SWObjectNotFound(
+                raise SWObjectNotFoundError(
                     msg,
                 )
         return None

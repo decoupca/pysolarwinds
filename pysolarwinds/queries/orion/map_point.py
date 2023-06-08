@@ -1,3 +1,4 @@
+"""Map point query."""
 from pypika import MSSQLQuery, Table
 
 TABLE = Table("Orion.WorldMap.Point")

@@ -1,10 +1,15 @@
-from typing import Optional, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional, Union
 
 from pysolarwinds.entities import MonitoredEntity
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger
 from pysolarwinds.queries.orion.volumes import QUERY, TABLE
 from pysolarwinds.swis import SWISClient
+
+if TYPE_CHECKING:
+    from pysolarwinds.entities.orion.nodes import Node
 
 logger = get_logger(__name__)
 
@@ -16,7 +21,7 @@ class Volume(MonitoredEntity):
     def __init__(
         self,
         swis: SWISClient,
-        node,
+        node: Node,
         id: Optional[int] = None,
         uri: Optional[str] = None,
         data: Optional[dict] = None,
@@ -39,10 +44,6 @@ class Volume(MonitoredEntity):
     @property
     def description(self) -> str:
         return self.data.get("Description", "")
-
-    @property
-    def device_id(self) -> str:
-        return self.data.get("DeviceId", "")
 
     @property
     def disk_queue_length(self) -> Optional[float]:

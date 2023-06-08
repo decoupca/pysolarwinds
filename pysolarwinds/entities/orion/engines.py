@@ -1,8 +1,9 @@
 import datetime
 from typing import Optional
 
+import pytz
+
 from pysolarwinds.entities import Entity
-from pysolarwinds.utils import parse_datetime
 
 
 class Engine(Entity):
@@ -80,7 +81,11 @@ class Engine(Entity):
 
     @property
     def keepalive(self) -> Optional[datetime.datetime]:
-        return parse_datetime(self.data.get("KeepAlive"))
+        if keepalive := self.data.get("KeepAlive"):
+            return datetime.datetime.strptime(
+                keepalive, "%Y-%m-%dT%H:%M:%S.%f0"
+            ).astimezone(tz=pytz.utc)
+        return None
 
     @property
     def license_key(self) -> str:
@@ -165,7 +170,11 @@ class Engine(Entity):
 
     @property
     def restart_datetime(self) -> Optional[datetime.datetime]:
-        return parse_datetime(self.data["Restart"])
+        if restart := self.data.get("Restart"):
+            return datetime.datetime.strptime(
+                restart, "%Y-%m-%dT%H:%M:%S.%f0"
+            ).astimezone(tz=pytz.utc)
+        return None
 
     @property
     def serial_number(self) -> Optional[str]:
@@ -181,7 +190,11 @@ class Engine(Entity):
 
     @property
     def start_time(self) -> Optional[datetime.datetime]:
-        return parse_datetime(self.data.get("StartTime"))
+        if start := self.data.get("StartTime"):
+            return datetime.datetime.strptime(
+                start, "%Y-%m-%dT%H:%M:%S.%f0"
+            ).astimezone(tz=pytz.utc)
+        return None
 
     @property
     def stat_poll_interval(self) -> Optional[int]:
@@ -189,11 +202,19 @@ class Engine(Entity):
 
     @property
     def syslog_keepalive(self) -> Optional[datetime.datetime]:
-        return parse_datetime(self.data.get("SysLogKeepAlive"))
+        if syslog := self.data.get("SysLogKeepAlive"):
+            return datetime.datetime.strptime(
+                syslog, "%Y-%m-%dT%H:%M:%S.%f0"
+            ).astimezone(tz=pytz.utc)
+        return None
 
     @property
     def traps_keepalive(self) -> Optional[datetime.datetime]:
-        return parse_datetime(self.data.get("TrapsKeepAlive"))
+        if traps := self.data.get("TrapsKeepAlive"):
+            return datetime.datetime.strptime(
+                traps, "%Y-%m-%dT%H:%M:%S.%f0"
+            ).astimezone(tz=pytz.utc)
+        return None
 
     @property
     def volume_poll_interval(self) -> Optional[int]:

@@ -1,3 +1,4 @@
+"""Credentials query."""
 from pypika import MSSQLQuery, Table
 
 TABLE = Table("Orion.Credential")

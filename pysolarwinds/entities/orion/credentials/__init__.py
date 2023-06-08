@@ -1,7 +1,7 @@
 from typing import Optional
 
 from pysolarwinds.entities import Entity
-from pysolarwinds.exceptions import SWObjectNotFound
+from pysolarwinds.exceptions import SWObjectNotFoundError
 from pysolarwinds.swis import SWISClient
 
 
@@ -30,7 +30,7 @@ class Credential(Entity):
                 return result[0]["Uri"]
             else:
                 msg = f'No credential with name "{self.poller_type}" found.'
-                raise SWObjectNotFound(
+                raise SWObjectNotFoundError(
                     msg,
                 )
         return None

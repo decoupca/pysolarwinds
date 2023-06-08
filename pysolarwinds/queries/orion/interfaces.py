@@ -1,3 +1,4 @@
+"""Interfaces query."""
 from pypika import MSSQLQuery, Table
 
 TABLE = Table("Orion.NPM.Interfaces")

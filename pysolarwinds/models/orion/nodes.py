@@ -1,6 +1,5 @@
+"""SolarWindsClient nodes model."""
 from typing import Optional, Union
-
-from pypika import Table
 
 from pysolarwinds.entities.orion.nodes import Node
 from pysolarwinds.models.base import BaseModel
@@ -8,14 +7,11 @@ from pysolarwinds.queries.orion.nodes import QUERY, TABLE
 
 
 class NodesModel(BaseModel):
-    table = Table("Orion.Nodes")
-
-    def create(self):
-        """Create a new node."""
+    """SolarWindsClient nodes model."""
 
     def list(
         self,
-        caption: Union[str, list[str], None] = None,
+        caption: Union[str, list[str], None] = None,  # noqa
         vendor: Optional[str] = None,
         status: Union[int, str, None] = None,
         query: Optional[str] = None,
@@ -33,19 +29,15 @@ class NodesModel(BaseModel):
                 )
                 for x in self.swis.query(query)
             ]
-        else:
-            query = QUERY
-            if vendor:
-                query = query.where(TABLE.vendor == vendor)
-            if status:
-                query = query.where(TABLE.status == status)
-            if limit:
-                query = query.top(limit)
-            import ipdb
-
-            ipdb.set_trace()
-            result = self.swis.query(str(query))
-            return [Node(swis=self.swis, data=x) for x in result]
+        query = QUERY
+        if vendor:
+            query = query.where(TABLE.vendor == vendor)
+        if status:
+            query = query.where(TABLE.status == status)
+        if limit:
+            query = query.top(limit)
+        result = self.swis.query(str(query))
+        return [Node(swis=self.swis, data=x) for x in result]
 
     def get(
         self,
@@ -63,7 +55,7 @@ class NodesModel(BaseModel):
         3. caption
         4. ip_address
 
-        Arguments:
+        Args:
             id: ID of node.
             uri: SWIS URI of node.
             caption: Caption (hostname) of node.

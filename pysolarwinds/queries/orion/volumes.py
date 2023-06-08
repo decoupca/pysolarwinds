@@ -1,3 +1,4 @@
+"""Volume query."""
 from pypika import MSSQLQuery, Table
 
 TABLE = Table("Orion.Volumes")

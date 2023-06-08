@@ -11,7 +11,7 @@ from pysolarwinds.exceptions import SWISError
 from pysolarwinds.utils import parse_response
 
 
-def _json_serial(obj: Any) -> Optional[str]:  # noqa: ANN401
+def _json_serial(obj: Any) -> Optional[str]:
     """Serializer for objects not serializable by JSON."""
     if isinstance(obj, datetime.datetime):
         return obj.isoformat()
@@ -82,7 +82,7 @@ class SWISClient:
             self._req("POST", "Query", {"query": query, "parameters": params}).json(),
         )
 
-    def invoke(self, entity: str, verb: str, *args: Any) -> dict:  # noqa: ANN401
+    def invoke(self, entity: str, verb: str, *args: Any) -> dict:
         """Invoke a SWIS verb on an entity.
 
         Args:

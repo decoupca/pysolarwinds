@@ -1,4 +1,5 @@
-from httpx._types import VerifyTypes
+import ssl
+from typing import Union
 
 from pysolarwinds.models.orion import Orion
 from pysolarwinds.swis import SWISClient
@@ -12,7 +13,8 @@ class SolarWindsClient:
         host: str,
         username: str,
         password: str,
-        verify: VerifyTypes = True,
+        *,
+        verify: Union[str, bool, ssl.SSLContext],
         timeout: float = 30.0,
     ) -> None:
         self.swis = SWISClient(
@@ -36,7 +38,8 @@ def client(
     host: str,
     username: str,
     password: str,
-    verify: VerifyTypes = True,
+    *,
+    verify: Union[str, bool, ssl.SSLContext],
     timeout: float = 30.0,
 ) -> SolarWindsClient:
     """Convenience method to create SolarWindsClient objects.

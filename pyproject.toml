@@ -15,10 +15,10 @@ select = [
     "C",
     "I",
     "N",
-    "D",
+    # "D",
     "UP",
     "ANN",
-    "S",
+    # "S",
     "BLE",
     "FBT",
     "B",
@@ -52,8 +52,16 @@ ignore = [
     "D105",
     "ANN101",
     "PLR0913", # Too many arguments
+    "G004", # Logging f-strings
+    "UP007", # Use X | Y annotations
+    "ANN401", # Dynamically typed expressions
+    "RET505", # Unnecessary control structures
+    "COM812", # Trailing commas
 ]
-exclude = ["node.py"]
+exclude = [
+    "node.py",
+    "pysolarwinds/entities/__init__.py",
+]
 line-length = 88
 target-version = "py39"
 

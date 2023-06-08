@@ -18,23 +18,15 @@ class SWObjectManageError(SWError):
     pass
 
 
-class SWIDNotFound(SWError):
+class SWIDNotFoundError(SWError):
     pass
 
 
-class SWUriNotFound(SWError):
+class SWObjectNotFoundError(SWError):
     pass
 
 
-class SWObjectNotFound(SWError):
-    pass
-
-
-class SWObjectExists(SWError):
-    pass
-
-
-class SWObjectDoesNotExist(SWError):
+class SWObjectExistsError(SWError):
     pass
 
 
