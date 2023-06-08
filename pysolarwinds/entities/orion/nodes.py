@@ -303,7 +303,7 @@ class Node(MonitoredEntity):
     def last_boot(self) -> datetime.datetime:
         """Last boot date/time."""
         return datetime.datetime.strptime(
-            self.data["LastBoot"], "%Y-%m-%dT%H:%M:%S"
+            self.data["LastBoot"], "%Y-%m-%dT%H:%M:%S.%f0"
         ).astimezone(tz=pytz.utc)
 
     @property
@@ -352,14 +352,14 @@ class Node(MonitoredEntity):
         return self.data["NodeDescription"]
 
     @property
-    def percent_memory_available(self) -> int:
+    def percent_memory_available(self) -> float:
         """Percent memory available."""
-        return self.data["PercentMemoryAvailable"]
+        return float(self.data["PercentMemoryAvailable"])
 
     @property
-    def percent_memory_used(self) -> int:
+    def percent_memory_used(self) -> float:
         """Percent memory used."""
-        return self.data["PercentMemoryUsed"]
+        return float(self.data["PercentMemoryUsed"])
 
     @property
     def status_code(self) -> int:
