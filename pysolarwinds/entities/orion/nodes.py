@@ -1,12 +1,14 @@
 import datetime
 import re
 import time
+import types
 from typing import Callable, Literal, Optional, Union
 
 import pytz
 
 from pysolarwinds.custom_properties import CustomProperties
 from pysolarwinds.entities import MonitoredEntity
+from pysolarwinds.entities.orion.credentials.snmpv2 import SNMPv2Credential
 from pysolarwinds.entities.orion.credentials.snmpv3 import SNMPv3Credential
 from pysolarwinds.entities.orion.engines import Engine
 from pysolarwinds.entities.orion.interfaces import InterfaceList
@@ -14,6 +16,7 @@ from pysolarwinds.entities.orion.pollers import PollerList
 from pysolarwinds.entities.orion.volumes import VolumeList
 from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
+    SWDiscoveryError,
     SWNonUniqueResultError,
     SWObjectManageError,
     SWObjectNotFoundError,
@@ -21,7 +24,7 @@ from pysolarwinds.exceptions import (
     SWResourceImportError,
 )
 from pysolarwinds.logging import get_logger
-from pysolarwinds.maps import STATUS_MAP
+from pysolarwinds.maps import NODE_DISCOVERY_STATUS_MAP, STATUS_MAP
 from pysolarwinds.models.orion.node_settings import NodeSettings
 from pysolarwinds.queries.orion.nodes import QUERY, TABLE
 from pysolarwinds.swis import SWISClient
@@ -30,6 +33,22 @@ logger = get_logger(__name__)
 
 ALERTS_ARE_SUPPRESSED = 1
 ALERTS_WILL_BE_SUPPRESSED = 3
+
+DEFAULT_POLLING_ENGINE_ID = 1
+
+NODE_DISCOVERY_FINISHED = 2
+NODE_DISCOVERY_JOB_TIMEOUT_SECONDS = 600
+NODE_DISCOVERY_SEARCH_TIMEOUT_MILLISECONDS = 5000
+NODE_DISCOVERY_SNMP_TIMEOUT_MILLISECONDS = 5000
+NODE_DISCOVERY_SNMP_RETRIES = 3
+NODE_DISCOVERY_REPEAT_INTERVAL_MILLISECONDS = 1800
+NODE_DISCOVERY_SNMP_PORT = 161
+NODE_DISCOVERY_HOP_COUNT = 0
+NODE_DISCOVERY_PREFERRED_SNMP_VERSION = "SNMP2c"  # misnomer, leave as-is for snmpv3
+NODE_DISCOVERY_DISABLE_ICMP = False
+NODE_DISCOVERY_ALLOW_DUPLICATE_NODES = False
+NODE_DISCOVERY_IS_AUTO_IMPORT = True
+NODE_DISCOVERY_IS_HIDDEN = False
 
 
 class Node(MonitoredEntity):
@@ -459,6 +478,206 @@ class Node(MonitoredEntity):
             self._import_job_id,
             self.id,
         )
+
+    def discover(  # noqa: C901, PLR0912, PLR0915
+        self,
+        retries: int = 3,
+        timeout: float = 600.0,
+        protocol: Literal["snmp", "wmi"] = "snmp",
+        import_interfaces: Optional[list] = types.MappingProxyType(["up"]),
+        *,
+        import_volumes: bool,
+    ) -> bool:
+        """
+        Runs discovery on node.
+
+        If node does not exist, will discover node with provided IP address and SNMP
+        credential(s). Optionally, will also discover pollers, volumes, and interfaces.
+
+        Args:
+            retries: Number of SNMP queries to attempt before giving up.
+            timeout: Seconds to wait for discovery to complete.
+            protocol: Which protocol to use, either "snmp" or "wmi". Only "snmp" is implemented.
+            import_interfaces: NOTE: Currently only works for 'up' or None.
+                List of types of interfaces to import. If None is provided,
+                no interfaces will be imported. Available options are:
+                - up: all up interfaces
+                - down: all down interfaces
+                - shutdown: all shutdown (administratively disabled) interfaces
+                - virtual: all virtual interfaces
+                - physical: all physical interfaces
+                - trunk: all trunked (802.1q-enabled) interfaces
+                - access: all interfaces in standard access mode (not 802.1q-enabled)
+                - unknown: all interfaces in unknown status
+            import_volumes: Whether to keep discovered volumes. By default, the discovery
+                verb imports all available volumes, with no known way to tune or filter which
+                volumes are imported. This arg provides a convenience to delete all discovered
+                volumes after import. TODO: update this arg to allow more options, following the
+                example of import_resources()
+
+        Reference: https://github.com/pysolarwinds/OrionSDK/wiki/Discovery
+        """
+        if protocol != "snmp":
+            msg = "Only SNMP-based discovery is implemented."
+            raise NotImplementedError(msg)
+        if not self.ip_address:
+            msg = "Discovery requires ip_address is set."
+            raise SWObjectPropertyError(msg)
+        if (
+            not self.snmpv2_ro_community
+            and not self.snmpv2_rw_community
+            and not self.snmpv3_ro_cred
+            and not self.snmpv3_rw_cred
+        ):
+            msg = "Discovery requires at least one SNMP credential or community property set: snmpv2_ro_community, snmpv2_rw_community, snmpv3_ro_cred, or snmpv3_rw_cred"
+            raise SWObjectPropertyError(msg)
+        if not self.polling_engine:
+            self.polling_engine = Engine(swis=self.swis, id=DEFAULT_POLLING_ENGINE_ID)
+
+        credentials = []
+        order = 1
+        if self.snmp_version == 2:  # noqa: PLR2004
+            if self.snmpv2_rw_community:
+                cred = SNMPv2Credential(swis=self.swis, name=self.snmpv2_rw_community)
+                if cred:
+                    credentials.append({"CredentialID": cred.id, "Order": order})
+                    order += 1
+            if self.snmpv2_ro_community:
+                cred = SNMPv2Credential(swis=self.swis, name=self.snmpv2_ro_community)
+                if cred:
+                    credentials.append({"CredentialID": cred.id, "Order": order})
+                    order += 1
+        if self.snmp_version == 3:  # noqa: PLR2004
+            if self.snmpv3_rw_cred:
+                credentials.append(
+                    {
+                        "CredentialID": self.snmpv3_rw_cred.id,
+                        "Order": order,
+                    }
+                )
+                order += 1
+            if self.snmpv3_ro_cred:
+                credentials.append(
+                    {
+                        "CredentialID": self.snmpv3_ro_cred.id,
+                        "Order": order,
+                    }
+                )
+        if not credentials:
+            msg = "No provided SNMP credentials are valid."
+            raise ValueError(msg)
+
+        core_plugin_context = {
+            "BulkList": [{"Address": self.ip_address}],
+            "Credentials": credentials,
+            "WmiRetriesCount": 0,
+            "WmiRetryIntervalMiliseconds": 1000,
+        }
+        core_plugin_config = self.swis.invoke(
+            "Orion.Discovery", "CreateCorePluginConfiguration", core_plugin_context
+        )
+        interface_type_map = {
+            "up": "AutoImportStatus",
+            "down": "AutoImportStatus",
+            "shutdown": "AutoImportStatus",
+            "virtual": "AutoImportVirtualTypes",
+            "physical": "AutoImportVirtualTypes",
+            "trunk": "AutoImportVlanPortTypes",
+            "access": "AutoImportVlanPortTypes",
+            "unknown": "AutoImportVlanPortTypes",
+        }
+        interfaces_plugin_context = {
+            "AutoImportStatus": [],
+            "AutoImportVirtualTypes": [],
+            "AutoImportVlanPortTypes": [],
+            "UseDefaults": False,
+        }
+        if not import_interfaces:
+            # No changes to interfaces_plugin_context are needed if not importing
+            # any interfaces.
+            pass
+        elif len(import_interfaces) == 1 and "up" in import_interfaces:
+            interfaces_plugin_context["UseDefaults"] = True
+        else:
+            for type in import_interfaces:
+                interfaces_plugin_context[interface_type_map[type]].append(
+                    type.capitalize()
+                )
+
+        interfaces_plugin_config = self.swis.invoke(
+            "Orion.NPM.Interfaces",
+            "CreateInterfacesPluginConfiguration",
+            interfaces_plugin_context,
+        )
+        discovery_profile = {
+            # N.B.: "milliseconds" is misspelled in keys below.
+            "Name": f"Discover {self.name}",
+            "EngineId": self.polling_engine.id,
+            "JobTimeoutSeconds": NODE_DISCOVERY_JOB_TIMEOUT_SECONDS,
+            "SearchTimeoutMiliseconds": NODE_DISCOVERY_SEARCH_TIMEOUT_MILLISECONDS,
+            "SnmpTimeoutMiliseconds": NODE_DISCOVERY_SNMP_TIMEOUT_MILLISECONDS,
+            "SnmpRetries": retries,
+            "RepeatIntervalMiliseconds": NODE_DISCOVERY_REPEAT_INTERVAL_MILLISECONDS,
+            "SnmpPort": NODE_DISCOVERY_SNMP_PORT,
+            "HopCount": NODE_DISCOVERY_HOP_COUNT,
+            "PreferredSnmpVersion": NODE_DISCOVERY_PREFERRED_SNMP_VERSION,
+            "DisableIcmp": NODE_DISCOVERY_DISABLE_ICMP,
+            "AllowDuplicateNodes": NODE_DISCOVERY_ALLOW_DUPLICATE_NODES,
+            "IsAutoImport": NODE_DISCOVERY_IS_AUTO_IMPORT,
+            "IsHidden": NODE_DISCOVERY_IS_HIDDEN,
+            "PluginConfigurations": [
+                {"PluginConfigurationItem": core_plugin_config},
+                {"PluginConfigurationItem": interfaces_plugin_config},
+            ],
+        }
+        self._discovery_id = self.swis.invoke(
+            "Orion.Discovery", "StartDiscovery", discovery_profile
+        )
+        logger.info("Discovering node...")
+        logger.debug(f"Discovery job ID: {self._discovery_id}")
+        self._get_discovery_status()
+        seconds_waited = 0
+        report_increment = 5
+        while seconds_waited < timeout and self._discovery_status == 1:
+            time.sleep(report_increment)
+            seconds_waited += report_increment
+            self._get_discovery_status()
+            logger.debug(
+                f"Discovering... waited {seconds_waited}sec, timeout {timeout}sec, "
+                f"status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_status]}."
+            )
+
+        if self._discovery_status in (2, 8):
+            query = (
+                "SELECT Result, ResultDescription, ErrorMessage, BatchID "
+                f"FROM Orion.DiscoveryLogs WHERE ProfileID = {self._discovery_id}"
+            )
+            self._discovery_result = self.swis.query(query)
+            result_code = self._discovery_result[0]["Result"]
+        else:
+            msg = f"Discovery failed. Last reported status: {NODE_DISCOVERY_STATUS_MAP[self._discovery_status]}"
+            raise SWDiscoveryError(msg)
+
+        if result_code == NODE_DISCOVERY_FINISHED:
+            logger.info("Discovery finished, getting discovered items...")
+            self._discovery_batch_id = batch_id = self._discovery_result[0]["BatchID"]
+            logger.debug(f"Discovery batch ID: {batch_id}")
+            query = (
+                "SELECT EntityType, DisplayName, NetObjectID FROM "
+                f"Orion.DiscoveryLogItems WHERE BatchID = '{batch_id}'"
+            )
+            self._discovered_items = self.swis.query(query) or []
+            logger.info(f"Discovered and imported {len(self._discovered_items)} items.")
+
+            if not import_volumes:
+                self.volumes.delete_all()
+
+        else:
+            error_status = NODE_DISCOVERY_STATUS_MAP[result_code]
+            error_message = self._discovery_result[0]["ErrorMessage"]
+            result_description = self._discovery_result[0]["ResultDescription"]
+            msg = f"Discovery failed. Status: {error_status}, error: {error_message or result_description}."
+            raise SWDiscoveryError(msg)
 
     def enforce_icmp_status_polling(self) -> None:
         """Ensures that node uses ICMP for up/down status and response time."""
