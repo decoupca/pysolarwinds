@@ -1,33 +1,52 @@
+"""SolarWinds Information Service Client."""
+
 import datetime
 import json
-from typing import Optional, Union
+import ssl
+from typing import Any, Optional, Union
 
 import httpx
-from httpx._types import VerifyTypes
 
 from pysolarwinds.exceptions import SWISError
 from pysolarwinds.utils import parse_response
 
 
-def _json_serial(obj):
-    """JSON serializer for objects not serializable by default json code."""
+def _json_serial(obj: Any) -> Optional[str]:  # noqa: ANN401
+    """Serializer for objects not serializable by JSON."""
     if isinstance(obj, datetime.datetime):
-        serial = obj.isoformat()
-        return serial
+        return obj.isoformat()
     return None
 
 
 class SWISClient:
-    """HTTP client wrapper for sending API requests to SWIS."""
+    """HTTP client wrapper for sending API calls to SWIS."""
 
     def __init__(
         self,
         host: str,
         username: str,
         password: str,
-        verify: VerifyTypes = True,
+        *,
+        verify: Union[str, bool, ssl.SSLContext],
         timeout: float = 30.0,
     ) -> None:
+        """Initialize SWISClient.
+
+        Args:
+            host: FQDN or IP address of SolarWinds server.
+            username: Username for authentication.
+            password: Password fof authentication.
+            verify: Options for verifying SSL certificate. See httpx documentation
+                for details.
+            timeout: Default timeout for all HTTP operations.
+
+
+        Returns:
+            None.
+
+        Raises:
+            None.
+        """
         self.host = host
         self.username = username
         self.password = password
@@ -43,50 +62,140 @@ class SWISClient:
 
     @property
     def url(self) -> str:
+        """SWIS API URL."""
         return f"https://{self.host}:17778/SolarWinds/InformationService/v3/Json/"
 
-    def query(self, query: str, **params) -> list:
+    def query(self, query: str, **params: dict) -> list[dict]:
+        """Query SWIS for arbitrary information.
+
+        Args:
+            query: The SWQL query to execute.
+            params: Additional params to pass along with the query.
+
+        Returns:
+            A list of result dictionaries.
+
+        Raises:
+            None.
+        """
         return parse_response(
             self._req("POST", "Query", {"query": query, "parameters": params}).json(),
         )
 
-    def invoke(self, entity: str, verb: str, *args) -> dict:
+    def invoke(self, entity: str, verb: str, *args: Any) -> dict:  # noqa: ANN401
+        """Invoke a SWIS verb on an entity.
+
+        Args:
+            entity: The entity type to invoke `verb` on.
+            verb: The verb to invoke. Refer to the SWIS schema documentation
+                for available verbs.
+            args: One or more arguments to pass to the verb.
+
+        Returns:
+            A dictionary with info on the response of the verb.
+
+        Raises:
+            None.
+        """
         return self._req("POST", f"Invoke/{entity}/{verb}", args).json()
 
-    def create(self, entity: str, **properties) -> dict:
+    def create(self, entity: str, **properties: dict) -> dict:
+        """Create a new entity.
+
+        Args:
+            entity: The entity type to create. Corresponds to the SWIS table
+                (e.g. Orion.Nodes for nodes).
+            properties: A dictionary of properties to create the entity with.
+
+        Returns:
+            A dictionary of data about the created entity.
+
+        Raises:
+            None.
+        """
         return self._req("POST", f"Create/{entity}", properties).json()
 
     def read(self, uri: str) -> dict:
+        """Read all data (properties) about an entity.
+
+        Args:
+            uri: A single SWIS URI to read data about.
+
+        Returns:
+            A dictionary of all properties.
+
+        Raises:
+            None.
+        """
         return self._req("GET", uri).json()
 
-    def update(self, uris: Union[list[str], str], **properties):
+    def update(self, uris: Union[list[str], str], **properties: dict) -> None:
+        """Update one or more entities.
+
+        Args:
+            uris: One or more SWIS URIs to update.
+            properties: Dictionary of properties to update on all entities.
+
+        Returns:
+            None.
+
+        Raises:
+            None.
+
+        """
         if isinstance(uris, list):
             self._req("POST", "BulkUpdate", {"uris": uris, "properties": properties})
         else:
             self._req("POST", uris, properties)
 
-    def delete(self, uris: Union[list[str], str]):
+    def delete(self, uris: Union[list[str], str]) -> None:
+        """Delete one or more entities.
+
+        Args:
+            uris: One or more SWIS URIs to delete.
+
+        Returns:
+            None.
+
+        Raises:
+            None.
+
+        """
         if isinstance(uris, list):
             self._req("POST", "BulkDelete", {"uris": uris})
         else:
             self._req("DELETE", uris)
 
-    def sql(self, statement: str) -> bool:
-        """Workaround API to execute arbitrary SQL against pysolarwinds DB
+    def sql(self, statement: str) -> None:
+        """Workaround API to execute arbitrary SQL against SolarWinds DB.
+
         **NOTE**: This method takes raw TSQL syntax, *NOT* SWQL syntax.
         Returns empty data structure if successful.
+
+        Args:
+            statement: Raw TSQL statement.
+
+        Returns:
+            None.
+
+        Raises:
+            None.
         """
         self.invoke("Orion.Reporting", "ExecuteSQL", statement)
-        return True
 
     def _req(
-        self, method: str, frag: str, data: Optional[dict] = None,
+        self,
+        method: str,
+        frag: str,
+        data: Optional[dict] = None,
     ) -> httpx.Response:
         response = self.client.request(
-            method, self.url + frag, data=json.dumps(data, default=_json_serial),
+            method,
+            self.url + frag,
+            data=json.dumps(data, default=_json_serial),
         )
 
-        if 400 <= response.status_code < 600:
+        if 400 <= response.status_code < 600:  # noqa: PLR2004
             error_msg = response.json().get("FullException")
             msg = f"{method} to {self.url + frag} returned {response.status_code}\n"
             if error_msg:

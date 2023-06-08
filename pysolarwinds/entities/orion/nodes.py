@@ -45,12 +45,18 @@ class Node(MonitoredEntity):
         ip_address: Optional[str] = None,
     ) -> None:
         super().__init__(
-            swis=swis, data=data, uri=uri, id=id, caption=caption, ip_address=ip_address,
+            swis=swis,
+            data=data,
+            uri=uri,
+            id=id,
+            caption=caption,
+            ip_address=ip_address,
         )
 
         self.caption: str = self.data.get("Caption", "") or caption
         self.custom_properties: CustomProperties = CustomProperties(
-            swis=self.swis, entity=self,
+            swis=self.swis,
+            entity=self,
         )
         self.interfaces: InterfaceList = InterfaceList(node=self)
         self.ip_address: str = self.data.get("IPAddress", "") or ip_address
@@ -352,7 +358,9 @@ class Node(MonitoredEntity):
     def _get_alert_suppression_state(self) -> dict:
         """Get raw alert suppression state on node."""
         return self.swis.invoke(
-            "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri],
+            "Orion.AlertSuppression",
+            "GetAlertSuppressionState",
+            [self.uri],
         )[0]
 
     @property

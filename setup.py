@@ -14,7 +14,7 @@ setuptools.setup(
     version=__version__,
     author=__author__,
     author_email="austindcc@gmail.com",
-    description="An ergonomic, object-based interface for the SolarWinds SWIS SWISClient",
+    description="A modern Python API for the SolarWinds Information Service (SWIS).",
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://github.com/decoupca/pysolarwinds",
@@ -31,3 +31,5 @@ setuptools.setup(
     ],
     python_requires=">=3.9",
 )
+
+# ruff: noqa: D100

@@ -21,7 +21,8 @@ class CustomProperties:
         self.read()
         for k, v in self.data.items():
             if k not in self.EXCLUDE_ATTRS and not re.match(
-                r"^.*ID$", k,
+                r"^.*ID$",
+                k,
             ):  # Exclude all keys ending in "ID"
                 self.props[k] = v
                 setattr(self, k, v)

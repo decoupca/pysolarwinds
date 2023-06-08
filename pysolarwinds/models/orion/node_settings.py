@@ -12,7 +12,11 @@ class NodeSetting:
     node_attr_value = None
 
     def __init__(
-        self, node, name: str, value: Union[str, int], node_setting_id: int = None,
+        self,
+        node,
+        name: str,
+        value: Union[str, int],
+        node_setting_id: int = None,
     ) -> None:
         self.node = node
         self.swis = node.swis
@@ -86,7 +90,9 @@ class NodeSettings:
         return setting_class(self.node, name, value, node_setting_id)
 
     def get(
-        self, name: str = None, node_setting_id: int = None,
+        self,
+        name: str = None,
+        node_setting_id: int = None,
     ) -> Union[NodeSetting, None]:
         if name is None and node_setting_id is None:
             msg = "must provide either setting `name` or `node_setting_id`"
@@ -158,7 +164,8 @@ class NodeSettings:
                         )
                     else:
                         new_setting = self.create(
-                            name=setting_name, value=setting_value,
+                            name=setting_name,
+                            value=setting_value,
                         )
                         self.update(old_setting, new_setting)
                 else:

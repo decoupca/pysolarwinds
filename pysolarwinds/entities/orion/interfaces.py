@@ -456,7 +456,8 @@ class InterfaceList:
             raise IndexError
 
     def add(
-        self, interfaces: Union[DiscoveredInterface, list[DiscoveredInterface]],
+        self,
+        interfaces: Union[DiscoveredInterface, list[DiscoveredInterface]],
     ) -> None:
         """Adds one or more discovered interfaces to node, as a managed/monitored interface.
 
@@ -545,7 +546,9 @@ class InterfaceList:
         swis_host = self.swis.host
         self.swis.host = self.node.polling_engine.ip_address
         result = self.swis.invoke(
-            "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.node.id,
+            "Orion.NPM.Interfaces",
+            "DiscoverInterfacesOnNode",
+            self.node.id,
         )
         self.swis.host = swis_host
         self._discovery_response_code = result["Result"]
@@ -579,7 +582,9 @@ class InterfaceList:
                 raise SWDiscoveryError(msg)
 
     def monitor(
-        self, interfaces: Optional[list[str]] = None, delete_extraneous: bool = False,
+        self,
+        interfaces: Optional[list[str]] = None,
+        delete_extraneous: bool = False,
     ) -> None:
         """Monitor discovered interfaces on node.
 

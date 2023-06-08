@@ -48,6 +48,10 @@ class SNMPv2CredentialsModel(BaseModel):
         owner: str = "Orion",
     ) -> SNMPv2Credential:
         id = self.swis.invoke(
-            "Orion.Credential", "CreateSNMPCredentials", name, community, owner,
+            "Orion.Credential",
+            "CreateSNMPCredentials",
+            name,
+            community,
+            owner,
         )
         return SNMPv2Credential(swis=self.swis, id=id)

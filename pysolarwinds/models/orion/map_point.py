@@ -9,7 +9,9 @@ class MapPointsModel(BaseModel):
     _entity_class = MapPoint
 
     def get(
-        self, id: Optional[int] = None, entity: Optional[Entity] = None,
+        self,
+        id: Optional[int] = None,
+        entity: Optional[Entity] = None,
     ) -> MapPoint:
         if not id and not entity:
             msg = "Must provide either id or entity."

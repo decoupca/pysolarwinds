@@ -46,6 +46,13 @@ select = [
     "FLY",
     "RUF",
 ]
+ignore = [
+    "E501",
+    "PTH123",
+    "D105",
+    "ANN101",
+    "PLR0913", # Too many arguments
+]
 exclude = ["node.py"]
 line-length = 88
 target-version = "py39"

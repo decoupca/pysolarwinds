@@ -21,7 +21,9 @@ class CredentialsModel(BaseModel):
         self.userpass = UserPassCredentialsModel(swis=swis)
 
     def get(
-        self, id: Optional[int] = None, name: Optional[str] = None,
+        self,
+        id: Optional[int] = None,
+        name: Optional[str] = None,
     ) -> Union[SNMPv2Credential, SNMPv3Credential, UserPassCredential]:
         if not id and not name:
             msg = "Must provide either credential ID or name."

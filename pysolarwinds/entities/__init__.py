@@ -434,7 +434,9 @@ class Endpoint:
             setattr(self, self._id_attr, sw_id)
             logger.debug(f"got pysolarwinds object id {self.id}")
         else:
-            msg = f'could not find id value in _swdata["properties"]["{self._swid_key}"]'
+            msg = (
+                f'could not find id value in _swdata["properties"]["{self._swid_key}"]'
+            )
             raise SWIDNotFound(
                 msg,
             )

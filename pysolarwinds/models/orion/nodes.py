@@ -82,5 +82,9 @@ class NodesModel(BaseModel):
                 msg,
             )
         return Node(
-            swis=self.swis, id=id, uri=uri, caption=caption, ip_address=ip_address,
+            swis=self.swis,
+            id=id,
+            uri=uri,
+            caption=caption,
+            ip_address=ip_address,
         )

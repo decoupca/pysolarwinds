@@ -18,7 +18,11 @@ class SNMPv2Credential(Credential):
         if name is None:
             name = self.name
         self.swis.invoke(
-            "Orion.Credential", "UpdateSNMPCredentials", self.id, name, community,
+            "Orion.Credential",
+            "UpdateSNMPCredentials",
+            self.id,
+            name,
+            community,
         )
 
     def __repr__(self) -> str:
