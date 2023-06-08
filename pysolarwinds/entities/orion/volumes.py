@@ -108,7 +108,7 @@ class Volume(MonitoredEntity):
         return self.data.get("Responding") == "Y"
 
     @property
-    def iops(self) -> bool:
+    def iops(self) -> Optional[float]:
         """Convenience alias."""
         return self.total_disk_iops
 
@@ -185,8 +185,8 @@ class Volume(MonitoredEntity):
         return self.data["VolumeDescription"] or ""
 
     @property
-    def volume_id(self) -> Optional[int]:
-        return self.data.get("VolumeID")
+    def volume_id(self) -> int:
+        return self.data["VolumeID"]
 
     @property
     def volume_index(self) -> Optional[int]:
@@ -232,12 +232,11 @@ class Volume(MonitoredEntity):
     def volume_type_icon(self) -> str:
         return self.data.get("VolumeTypeIcon") or ""
 
-    def delete(self) -> bool:
+    def delete(self) -> None:
         self.swis.delete(self.uri)
         if self.node.volumes.get(self):
             self.node.volumes.items.remove(self)
-        logger.info(f"{self.node}: {self}: deleted volume")
-        return True
+        logger.info("Deleted volume.")
 
     def __repr__(self) -> str:
         return f'Volume("{self.name}")'
@@ -246,27 +245,24 @@ class Volume(MonitoredEntity):
 class VolumeList(BaseList):
     _item_class = Volume
 
-    def delete(self, volumes: Union[Volume, list[Volume]]) -> bool:
+    def delete(self, volumes: Union[Volume, list[Volume]]) -> None:
         if isinstance(volumes, list):
             self.swis.delete([x.uri for x in volumes])
             for volume in volumes:
                 self.node.volumes.items.remove(volume)
             logger.info(f"Deleted {len(volumes)} volumes.")
         else:
-            volume.delete()
-        return True
+            volumes.delete()
 
-    def delete_all(self) -> bool:
+    def delete_all(self) -> None:
         self.fetch()
         volume_count = len(self)
         if volume_count:
             self.swis.delete([x.uri for x in self])
             self.items = []
             logger.info(f"Deleted all volumes ({volume_count}).")
-            return True
         else:
             logger.info("No volumes to delete.")
-            return False
 
     def fetch(self) -> None:
         query = QUERY.where(TABLE.NodeID == self.node.id)

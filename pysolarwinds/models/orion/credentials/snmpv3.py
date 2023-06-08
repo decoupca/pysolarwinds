@@ -12,7 +12,9 @@ from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 class SNMPv3CredentialsModel(BaseModel):
     """SNMPV3 credentials model."""
 
-    def get(self, name: Optional[str], id: Optional[int] = None) -> SNMPv3Credential:
+    def get(
+        self, name: Optional[str], id: Optional[int] = None
+    ) -> Optional[SNMPv3Credential]:
         """Get a SNMPv3 credential.
 
         Args:
@@ -30,9 +32,11 @@ class SNMPv3CredentialsModel(BaseModel):
             raise ValueError(msg)
         if id:
             criterion = pypika.Criterion.all(
-                TABLE.CredentialType
-                == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3",
-                id == TABLE.ID,
+                [
+                    TABLE.CredentialType
+                    == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3",
+                    id == TABLE.ID,
+                ]
             )
             query = QUERY.where(criterion)
             if result := self.swis.query(str(query)):
@@ -41,9 +45,11 @@ class SNMPv3CredentialsModel(BaseModel):
             raise SWObjectNotFoundError(msg)
         elif name:  # noqa: RET506
             criterion = pypika.Criterion.all(
-                TABLE.CredentialType
-                == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3",
-                TABLE.Name == name,
+                [
+                    TABLE.CredentialType
+                    == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV3",
+                    TABLE.Name == name,
+                ]
             )
             query = QUERY.where(criterion)
             if result := self.swis.query(str(query)):

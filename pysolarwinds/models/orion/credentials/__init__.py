@@ -29,7 +29,7 @@ class CredentialsModel(BaseModel):
         self,
         id: Optional[int] = None,
         name: Optional[str] = None,
-    ) -> Union[SNMPv2Credential, SNMPv3Credential, UserPassCredential]:
+    ) -> Union[SNMPv2Credential, SNMPv3Credential, UserPassCredential, None]:
         if not id and not name:
             msg = "Must provide either credential ID or name."
             raise ValueError(msg)

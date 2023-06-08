@@ -543,7 +543,7 @@ class Entity:
     ) -> None:
         self.swis = swis
         self.id = id
-        self.uri = uri
+        self.uri = uri or ""
         self.data = data or {}
         self.custom_properties = {}
         if kwargs:

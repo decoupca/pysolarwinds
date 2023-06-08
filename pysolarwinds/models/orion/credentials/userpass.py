@@ -12,7 +12,9 @@ from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 class UserPassCredentialsModel(BaseModel):
     """User/password credentials model."""
 
-    def get(self, name: Optional[str], id: Optional[int] = None) -> UserPassCredential:
+    def get(
+        self, name: Optional[str], id: Optional[int] = None
+    ) -> Optional[UserPassCredential]:
         """Get a user/password credential.
 
         Args:
@@ -30,9 +32,11 @@ class UserPassCredentialsModel(BaseModel):
             raise ValueError(msg)
         if id:
             criterion = pypika.Criterion.all(
-                TABLE.CredentialType
-                == "SolarWinds.Orion.Core.SharedCredentials.Credentials.UsernamePasswordCredential",
-                id == TABLE.ID,
+                [
+                    TABLE.CredentialType
+                    == "SolarWinds.Orion.Core.SharedCredentials.Credentials.UsernamePasswordCredential",
+                    id == TABLE.ID,
+                ]
             )
             query = QUERY.where(criterion)
             if result := self.swis.query(str(query)):

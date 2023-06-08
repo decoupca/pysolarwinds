@@ -31,11 +31,11 @@ class NodesModel(BaseModel):
             ]
         query = QUERY
         if vendor:
-            query = query.where(TABLE.vendor == vendor)
+            query = QUERY.where(TABLE.vendor == vendor)
         if status:
-            query = query.where(TABLE.status == status)
+            query = QUERY.where(TABLE.status == status)
         if limit:
-            query = query.top(limit)
+            query = QUERY.top(limit)
         result = self.swis.query(str(query))
         return [Node(swis=self.swis, data=x) for x in result]
 

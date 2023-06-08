@@ -218,7 +218,7 @@ class NodeSettings:
         if self.add(new_setting):
             self.delete(old_setting)
 
-    def save(self) -> bool:
+    def save(self) -> None:
         """Save node settings."""
         for setting_name, setting_props in self.SETTING_MAP.items():
             node_attr = setting_props["node_attr"]
@@ -248,7 +248,7 @@ class NodeSettings:
                     new_setting = self.create(name=setting_name, value=setting_value)
                     self.add(new_setting)
 
-    def __getitem__(self, item: NodeSetting) -> NodeSetting:
+    def __getitem__(self, item: int) -> NodeSetting:
         return self._settings[item]
 
     def __repr__(self) -> str:
