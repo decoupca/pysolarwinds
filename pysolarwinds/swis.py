@@ -82,7 +82,7 @@ class SWISClient:
             self._req("POST", "Query", {"query": query, "parameters": params}).json(),
         )
 
-    def invoke(self, entity: str, verb: str, *args: Any) -> dict:
+    def invoke(self, entity: str, verb: str, *args: Any) -> Union[dict, int]:
         """Invoke a SWIS verb on an entity.
 
         Args:
@@ -97,9 +97,11 @@ class SWISClient:
         Raises:
             None.
         """
-        return self._req("POST", f"Invoke/{entity}/{verb}", args).json()
+        return self._req(
+            method="POST", frag=f"Invoke/{entity}/{verb}", data=args
+        ).json()
 
-    def create(self, entity: str, **properties: dict) -> dict:
+    def create(self, entity: str, **properties: Any) -> dict:
         """Create a new entity.
 
         Args:
@@ -113,7 +115,7 @@ class SWISClient:
         Raises:
             None.
         """
-        return self._req("POST", f"Create/{entity}", properties).json()
+        return self._req("POST", frag=f"Create/{entity}", data=properties).json()
 
     def read(self, uri: str) -> dict:
         """Read all data (properties) about an entity.
@@ -129,7 +131,7 @@ class SWISClient:
         """
         return self._req("GET", uri).json()
 
-    def update(self, uris: Union[list[str], str], **properties: dict) -> None:
+    def update(self, uris: Union[list[str], str], **properties: Any) -> None:
         """Update one or more entities.
 
         Args:
@@ -187,7 +189,7 @@ class SWISClient:
         self,
         method: str,
         frag: str,
-        data: Optional[dict] = None,
+        data: Any,
     ) -> httpx.Response:
         response = self.client.request(
             method,

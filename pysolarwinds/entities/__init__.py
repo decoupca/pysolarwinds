@@ -544,7 +544,7 @@ class Entity:
         self.swis = swis
         self.id = id
         self.uri = uri
-        self.data = data
+        self.data = data or {}
         self.custom_properties = {}
         if kwargs:
             for k, v in kwargs.items():

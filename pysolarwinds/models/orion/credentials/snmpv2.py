@@ -9,15 +9,19 @@ from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 
 
 class SNMPv2CredentialsModel(BaseModel):
-    def get(self, name: Optional[str], id: Optional[int] = None) -> SNMPv2Credential:
+    def get(
+        self, name: Optional[str], id: Optional[int] = None
+    ) -> Optional[SNMPv2Credential]:
         if not id and not name:
             msg = "Must provide either credential ID or name."
             raise ValueError(msg)
         if id:
             criterion = pypika.Criterion.all(
-                TABLE.CredentialType
-                == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV2",
-                id == TABLE.ID,
+                [
+                    TABLE.CredentialType
+                    == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV2",
+                    id == TABLE.ID,
+                ],
             )
             query = QUERY.where(criterion)
             if result := self.swis.query(str(query)):
@@ -26,9 +30,11 @@ class SNMPv2CredentialsModel(BaseModel):
             raise SWObjectNotFoundError(msg)
         elif name:  # noqa
             criterion = pypika.Criterion.all(
-                TABLE.CredentialType
-                == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV2",
-                TABLE.Name == name,
+                [
+                    TABLE.CredentialType
+                    == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV2",
+                    TABLE.Name == name,
+                ],
             )
             query = QUERY.where(criterion)
             if result := self.swis.query(str(query)):

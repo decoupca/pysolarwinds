@@ -29,7 +29,7 @@ class Credential(Entity):
             if result := self.swis.query(query):
                 return result[0]["Uri"]
             else:
-                msg = f'No credential with name "{self.poller_type}" found.'
+                msg = f'No credential with name "{self.name}" found.'
                 raise SWObjectNotFoundError(
                     msg,
                 )

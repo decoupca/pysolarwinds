@@ -43,9 +43,11 @@ class UserPassCredentialsModel(BaseModel):
             )
         elif name:  # noqa RET506
             criterion = pypika.Criterion.all(
-                TABLE.CredentialType
-                == "SolarWinds.Orion.Core.SharedCredentials.Credentials.UsernamePasswordCredential",
-                TABLE.Name == name,
+                [
+                    TABLE.CredentialType
+                    == "SolarWinds.Orion.Core.SharedCredentials.Credentials.UsernamePasswordCredential",
+                    TABLE.Name == name,
+                ]
             )
             query = QUERY.where(criterion)
             if result := self.swis.query(str(query)):

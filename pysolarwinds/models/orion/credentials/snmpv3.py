@@ -94,10 +94,10 @@ class SNMPv3CredentialsModel(BaseModel):
             name,
             username,
             context,
-            auth_method.upper() if self.auth_method else "None",
+            auth_method.upper() if auth_method else "None",
             auth_password,
             not auth_key_is_password,  # AFAICT, the SWIS SWISClient has this flag inverted
-            priv_method.upper() if self.priv_method else "None",
+            priv_method.upper() if priv_method else "None",
             priv_password,
             not priv_key_is_password,  # AFAICT, the SWIS SWISClient has this flag inverted
             owner,
