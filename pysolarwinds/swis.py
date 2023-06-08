@@ -189,7 +189,7 @@ class SWISClient:
         self,
         method: str,
         frag: str,
-        data: Any,
+        data: Any = None,
     ) -> httpx.Response:
         response = self.client.request(
             method,
