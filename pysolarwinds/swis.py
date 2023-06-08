@@ -82,7 +82,7 @@ class SWISClient:
             self._req("POST", "Query", {"query": query, "parameters": params}).json(),
         )
 
-    def invoke(self, entity: str, verb: str, *args: Any) -> Union[dict, int]:
+    def invoke(self, entity: str, verb: str, *args: Any) -> Union[dict, int, list]:
         """Invoke a SWIS verb on an entity.
 
         Args:

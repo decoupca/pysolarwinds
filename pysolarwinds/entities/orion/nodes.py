@@ -1,4 +1,5 @@
 import datetime
+import time
 from typing import Optional
 
 import pytz
@@ -15,6 +16,8 @@ from pysolarwinds.exceptions import (
     SWNonUniqueResultError,
     SWObjectManageError,
     SWObjectNotFoundError,
+    SWObjectPropertyError,
+    SWResourceImportError,
 )
 from pysolarwinds.logging import get_logger
 from pysolarwinds.maps import STATUS_MAP
@@ -57,6 +60,16 @@ class Node(MonitoredEntity):
             caption=caption,
             ip_address=ip_address,
         )
+
+        self._discovery_id = None
+        self._discovery_batch_id = None
+        self._discovery_status = None
+        self._discovery_result = None
+        self._discovered_items = None
+
+        self._import_job_id = None
+        self._import_status = None
+        self._import_response = None
 
         self.caption: str = self.data.get("Caption", "") or caption
         self.custom_properties: CustomProperties = CustomProperties(
@@ -364,14 +377,6 @@ class Node(MonitoredEntity):
         """System vendor."""
         return self.data["Vendor"]
 
-    def _get_alert_suppression_state(self) -> dict:
-        """Get raw alert suppression state on node."""
-        return self.swis.invoke(
-            "Orion.AlertSuppression",
-            "GetAlertSuppressionState",
-            [self.uri],
-        )[0]
-
     @property
     def alerts_are_suppressed(self) -> bool:
         """Whether or not alerts are currently suppressed on node."""
@@ -430,6 +435,25 @@ class Node(MonitoredEntity):
         """Convenience alias."""
         return self.alerts_suppressed_until
 
+    def _get_alert_suppression_state(self) -> dict:
+        """Get raw alert suppression state on node."""
+        return self.swis.invoke(
+            "Orion.AlertSuppression",
+            "GetAlertSuppressionState",
+            [self.uri],
+        )[0]
+
+    def _get_import_status(self) -> None:
+        """Get SNMP resource import status."""
+        if not self._import_job_id:
+            return
+        self._import_status = self.swis.invoke(
+            "Orion.Nodes",
+            "GetScheduledListResourcesStatus",
+            self._import_job_id,
+            self.id,
+        )
+
     def enforce_icmp_status_polling(self) -> None:
         """Ensures that node uses ICMP for up/down status and response time."""
         enable_pollers = [
@@ -455,11 +479,85 @@ class Node(MonitoredEntity):
             if poller and poller.is_enabled:
                 poller.disable()
 
+    def import_all_resources(self, timeout: float = 600.0) -> None:
+        """
+        Discovers, imports, and monitors all available SNMP resources.
+
+        In most cases, this will leave the node in an undesirable state (i.e., with
+        down interfaces). The more useful method is `import_resources`, which provides a
+        means of removing undesired resources after import.
+
+        Args:
+            timeout: Maximum time in seconds to wait for SNMP resources to import. Generous timeouts
+                are recommended in virtually all cases, because allowing pysolarwinds to time out will
+                almost certainly leave the node in a state that will generate warnings or alerts due
+                to down interfaces or full-capacity storage volumes. In most normal cases, imports
+                take about 60-120 seconds. But high latency nodes with many OIDs can take upwards of
+                5 minutes, hence the 10 minute (600s) default value.
+
+        Returns:
+            None.
+
+        Raises:
+            SWObjectPropertyError if polling_method is not 'snmp', or if no SNMP
+                credentials were provided.
+        """
+        logger.info("Importing and monitoring all available SNMP resources...")
+        if self.polling_method != "snmp":
+            msg = "Polling_method must be 'snmp' to import resources."
+            raise SWObjectPropertyError(msg)
+        if (
+            not self.snmpv2_ro_community
+            and not self.snmpv2_rw_community
+            and not self.snmpv3_ro_cred
+            and not self.snmpv3_rw_cred
+        ):
+            msg = "Must set SNMPv2 community or SNMPv3 credentials."
+            raise SWObjectPropertyError(msg)
+
+        # The verbs associated with this method need to be pointed at this
+        # node's assigned polling engine. If they are directed at the main SWIS
+        # server and the node uses a different polling engine, the process
+        # will hang at "unknown" status.
+        swis_host = self.swis.host
+        self.swis.host = self.polling_engine.ip_address
+        self._import_job_id = self.swis.invoke(
+            "Orion.Nodes", "ScheduleListResources", self.id
+        )
+        logger.debug(f"Resource import job ID: {self._import_job_id}")
+        self._get_import_status()
+        seconds_waited = 0
+        report_increment = 5
+        while seconds_waited < timeout and self._import_status != "ReadyForImport":
+            time.sleep(report_increment)
+            seconds_waited += report_increment
+            self._get_import_status()
+            logger.debug(
+                f"Resource import: waited {seconds_waited}sec, "
+                f"timeout {timeout}sec, status: {self._import_status}."
+            )
+        if self._import_status == "ReadyForImport":
+            self._import_response = self.swis.invoke(
+                "Orion.Nodes", "ImportListResourcesResult", self._import_job_id, self.id
+            )
+            if self._import_response:
+                logger.info("Imported and monitored all SNMP resources.")
+                self.swis.host = swis_host
+                self.pollers.fetch()
+            else:
+                self.swis.host = swis_host
+                msg = "SNMP resource import failed. SWIS does not provide any further info, sorry."
+                raise SWResourceImportError(msg)
+        else:
+            self.swis.host = swis_host
+            msg = f"Timed out waiting for SNMP resources ({timeout}sec)."
+            raise SWResourceImportError(msg)
+
     def suppress_alerts(
         self,
         start: Optional[datetime.datetime] = None,
         end: Optional[datetime.datetime] = None,
-    ) -> bool:
+    ) -> None:
         """Suppress alerts on node.
 
         Any alerts that would normally be triggered by any condition(s) on the node,
@@ -472,7 +570,8 @@ class Node(MonitoredEntity):
             end: `datetime.datetime` object (in UTC) for when to resume normal alerting. If
                 omitted, alerts will remain suppressed indefinitely.
 
-        Returns: True if successful
+        Returns:
+            None.
 
         Raises:
             `SWAlertSuppressionError` if there was an unspecified problem suppressing alerts.
@@ -496,7 +595,7 @@ class Node(MonitoredEntity):
         # to validate.
         suppression_state = self._get_alert_suppression_state()
         msg = (
-            f"{self}: Alert suppression failed, but SWIS didn't provide any error."
+            "Alert suppression failed, but SWIS didn't provide any error."
             "Check that start and end times are valid."
         )
         if not suppression_state["SuppressedFrom"]:
@@ -504,37 +603,35 @@ class Node(MonitoredEntity):
         if end and not suppression_state["SuppressedUntil"]:
             raise SWAlertSuppressionError(msg)
         if end:
-            msg = f"{self}: Suppressed alerts from {start} until {end}."
+            msg = f"Suppressed alerts from {start} until {end}."
         else:
-            msg = f"{self}: Suppressed alerts indefinitely."
+            msg = "Suppressed alerts indefinitely."
         logger.info(msg)
-        return True
 
-    def resume_alerts(self) -> bool:
+    def resume_alerts(self) -> None:
         """Resume alerts on node immediately. Also cancels planned alert suppression, if any."""
         # This call returns nothing if successful.
         self.swis.invoke("Orion.AlertSuppression", "ResumeAlerts", [self.uri])
-        logger.info(f"{self}: Resumed alerts.")
-        return True
+        logger.info("Resumed alerts.")
 
     def mute_alerts(
         self,
         start: Optional[datetime.datetime] = None,
         end: Optional[datetime.datetime] = None,
-    ) -> bool:
+    ) -> None:
         """Convenience alias."""
-        return self.suppress_alerts(start=start, end=end)
+        self.suppress_alerts(start=start, end=end)
 
-    def unmute_alerts(self) -> bool:
+    def unmute_alerts(self) -> None:
         """Convenience alias."""
-        return self.resume_alerts()
+        self.resume_alerts()
 
     def unmanage(
         self,
         start: Optional[datetime.datetime] = None,
         end: Optional[datetime.datetime] = None,
         duration: datetime.timedelta = datetime.timedelta(days=1),
-    ) -> bool:
+    ) -> None:
         """Un-manages node with optional start and end times, or duration.
 
         Args:
@@ -547,6 +644,12 @@ class Node(MonitoredEntity):
                 iteslf. If not provided, defaults to 1 day (86,400 seconds) from start.
             duration: timedelta object representing how long node should remain unmanaged. Defaults
                 to 1 day (86,400 seconds).
+
+        Returns:
+            None.
+
+        Raises:
+            None.
         """
         now = datetime.datetime.now(tz=pytz.utc)
         if not start:
@@ -563,9 +666,8 @@ class Node(MonitoredEntity):
         )
         logger.info(f"Un-managed node until {end}.")
         self.read()
-        return True
 
-    def remanage(self) -> bool:
+    def remanage(self) -> None:
         """Re-manage node.
 
         Arguments:
@@ -581,7 +683,6 @@ class Node(MonitoredEntity):
             self.swis.invoke("Orion.Nodes", "Remanage", f"N:{self.id}")
             logger.info("Re-managed node.")
             self.read()
-            return True
         else:
             msg = "Node already managed, doing nothing."
             raise SWObjectManageError(msg)
