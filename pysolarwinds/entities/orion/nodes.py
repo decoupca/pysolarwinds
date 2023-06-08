@@ -1,7 +1,6 @@
 import datetime
 import re
 import time
-import types
 from typing import Callable, Literal, Optional, Union
 
 import pytz
@@ -494,7 +493,7 @@ class Node(MonitoredEntity):
         retries: int = 3,
         timeout: float = 600.0,
         protocol: Literal["snmp", "wmi"] = "snmp",
-        import_interfaces: Optional[list] = types.MappingProxyType(["up"]),
+        import_interfaces: Optional[list] = ["up"],
         *,
         import_volumes: bool,
     ) -> bool:

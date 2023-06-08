@@ -2,7 +2,7 @@
 from typing import Optional, Union
 
 from pysolarwinds.entities.orion.nodes import Node
-from pysolarwinds.models.base import BaseModel
+from pysolarwinds.models import BaseModel
 from pysolarwinds.queries.orion.nodes import QUERY, TABLE
 
 
