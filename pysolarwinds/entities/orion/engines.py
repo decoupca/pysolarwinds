@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Optional
+from typing import Optional
 
 from pysolarwinds.entities import Entity
 from pysolarwinds.utils import parse_datetime

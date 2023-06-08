@@ -1,4 +1,4 @@
-from typing import Dict, Literal, Optional
+from typing import Optional
 
 from pysolarwinds.entities import Entity
 from pysolarwinds.exceptions import SWObjectNotFound

@@ -35,7 +35,6 @@ class NodesModel(BaseModel):
                 for x in self.swis.query(query)
             ]
         else:
-            where = []
             query = QUERY
             if vendor:
                 query = query.where(TABLE.vendor == vendor)

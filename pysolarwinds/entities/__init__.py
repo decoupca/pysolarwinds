@@ -1,7 +1,6 @@
 import datetime
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
-import pypika
 
 from pysolarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from pysolarwinds.exceptions import (
@@ -283,7 +282,7 @@ class Endpoint:
                         f"child object at self.{attr} already initialized, doing nothing"
                     )
         else:
-            logger.debug(f"no child objects found, doing nothing")
+            logger.debug("no child objects found, doing nothing")
 
     def _update_child_attrs(self) -> None:
         """

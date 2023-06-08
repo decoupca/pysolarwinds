@@ -9,7 +9,7 @@ from pysolarwinds.entities.orion.credentials import Credential, SNMPv2Credential
 from pysolarwinds.entities.orion.engines import Engine
 from pysolarwinds.entities.orion.interfaces import InterfaceList
 from pysolarwinds.entities.orion.map_point import MapPoint
-from pysolarwinds.entities.orion.pollers import Poller, PollerList
+from pysolarwinds.entities.orion.pollers import PollerList
 from pysolarwinds.entities.orion.volumes import VolumeList
 from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
@@ -283,7 +283,7 @@ class Node(Endpoint):
 
     def create(self) -> bool:
         if not self.ip_address:
-            raise SWObjectPropertyError(f"must provide IP address to create node")
+            raise SWObjectPropertyError("must provide IP address to create node")
         if not self.polling_engine:
             self.polling_engine = Engine(swis=self.swis, id=DEFAULT_POLLING_ENGINE_ID)
         if isinstance(self.polling_engine, int):

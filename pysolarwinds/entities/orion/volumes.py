@@ -264,7 +264,7 @@ class VolumeList(BaseList):
             logger.info(f"Deleted all volumes ({volume_count}).")
             return True
         else:
-            logger.info(f"No volumes to delete.")
+            logger.info("No volumes to delete.")
             return False
 
     def fetch(self) -> None:

@@ -474,7 +474,7 @@ class InterfaceList:
 
     def fetch(self) -> None:
         """Retrieves interfaces that have already been discovered and monitored."""
-        logger.info(f"Fetching existing interfaces...")
+        logger.info("Fetching existing interfaces...")
         query = QUERY.where(TABLE.NodeID == self.node.id)
         if results := self.swis.query(str(query)):
             self._existing = [Interface(node=self.node, data=data) for data in results]
@@ -558,7 +558,7 @@ class InterfaceList:
                 )
                 raise SWDiscoveryError(msg)
         else:
-            msg = f"Interface discovery failed. "
+            msg = "Interface discovery failed. "
             # https://thwack.pysolarwinds.com/product-forums/the-orion-platform/f/orion-sdk/40430/data-returned-from-discoverinterfacesonnode-question/159593#159593
             if self._discovery_response_code == 1:
                 # Should never get this due to checks above.
