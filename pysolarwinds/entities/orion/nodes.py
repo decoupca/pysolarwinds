@@ -392,7 +392,8 @@ class Node(MonitoredEntity):
     @property
     def alerts_will_be_suppressed(self) -> bool:
         """Whether or not alerts are scheduled to be suppressed at a future
-        date/time."""
+        date/time.
+        """
         return (
             self._get_alert_suppression_state()["SuppressionMode"]
             == ALERTS_WILL_BE_SUPPRESSED
@@ -709,7 +710,7 @@ class Node(MonitoredEntity):
 
         if unmanage_node:
             if already_unmanaged:
-                logger.info("Node is already unmanaged")
+                logger.info("Node is already unmanaged; leaving as-is.")
             else:
                 logger.info("Unmanaging node...")
                 if isinstance(unmanage_node_timeout, datetime.timedelta):
@@ -717,7 +718,10 @@ class Node(MonitoredEntity):
                 elif isinstance(unmanage_node_timeout, int):
                     delta = datetime.timedelta(seconds=unmanage_node_timeout)
                 else:
-                    msg = f"Unexpected value for unmanage_node_timeout: {unmanage_node_timeout}. Must be either a positive integer (seconds) or a `datetime.timedelta` object."
+                    msg = (
+                        f"Unexpected value for unmanage_node_timeout: {unmanage_node_timeout}. "
+                        "Must be either a positive integer (seconds) or a `datetime.timedelta` object."
+                    )
                     raise ValueError(msg)
                 self.unmanage(end=(datetime.datetime.now(tz=pytz.utc) + delta))
 
@@ -738,7 +742,7 @@ class Node(MonitoredEntity):
 
         self.import_all_resources(timeout=import_timeout)
 
-        logger.info(" Getting imported pollers...")
+        logger.info("Getting imported pollers...")
         self.pollers.fetch()
         logger.info(f"Found {len(self.pollers)} imported pollers.")
         if enable_pollers == "all":
