@@ -468,6 +468,16 @@ class Node(MonitoredEntity):
             [self.uri],
         )[0]
 
+    def _get_discovery_status(self) -> None:
+        """Get node discovery status."""
+        if not self._discovery_id:
+            return
+        query = (
+            "SELECT Status FROM Orion.DiscoveryProfiles "
+            f"WHERE ProfileID = {self._discovery_id}"
+        )
+        self._discovery_status = self.swis.query(query)[0]["Status"]
+
     def _get_import_status(self) -> None:
         """Get SNMP resource import status."""
         if not self._import_job_id:
