@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Union
 
-from pysolarwinds.exceptions import SWObjectCreationError
+from pysolarwinds.exceptions import SWEntityCreationError
 from pysolarwinds.logging import get_logger
 from pysolarwinds.models.orion.credentials import CredentialsModel
 
@@ -191,7 +191,7 @@ class NodeSettings:
             setting.node_setting_id = result[0]["NodeSettingID"]
         else:
             msg = f'Found no setting "{setting.name}" for NodeID {self.node.id} after attempting creation.'
-            raise SWObjectCreationError(
+            raise SWEntityCreationError(
                 msg,
             )
         self._settings.append(setting)

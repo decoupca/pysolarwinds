@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional, Union
 
 from pysolarwinds.entities import Entity
-from pysolarwinds.exceptions import SWEntityExistsError, SWObjectNotFoundError
+from pysolarwinds.exceptions import SWEntityExistsError, SWEntityNotFoundError
 from pysolarwinds.list import BaseList
 from pysolarwinds.logging import get_logger
 from pysolarwinds.queries.orion.pollers import QUERY, TABLE
@@ -44,7 +44,7 @@ class Poller(Entity):
                 return results[0]
             else:
                 msg = f'No poller "{self.poller_type}" on node ID {self.node.id} found.'
-                raise SWObjectNotFoundError(
+                raise SWEntityNotFoundError(
                     msg,
                 )
         return None

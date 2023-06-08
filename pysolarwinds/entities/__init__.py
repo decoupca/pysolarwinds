@@ -28,7 +28,6 @@ class Entity:
         self.uri: str = uri or ""
         self.data: dict = data or {}
         self.custom_properties: dict = {}
-        self.name: str = ""  # Set or overwrite in subclass
         if kwargs:
             for k, v in kwargs.items():
                 setattr(self, k, v)

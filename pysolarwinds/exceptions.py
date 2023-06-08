@@ -21,6 +21,14 @@ class SWEntityManagementError(SWError):
     """Error managing or un-managing an entity."""
 
 
+class SWEntityNotFoundError(SWError):
+    """Entity does not exist."""
+
+
+class SWEntityCreationError(SWError):
+    """Problem creating entity."""
+
+
 class SWEntityExistsError(SWError):
     """Entity already exists."""
 

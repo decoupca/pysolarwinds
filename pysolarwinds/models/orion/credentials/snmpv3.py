@@ -4,7 +4,7 @@ from typing import Literal, Optional
 import pypika
 
 from pysolarwinds.entities.orion.credentials.snmpv3 import SNMPv3Credential
-from pysolarwinds.exceptions import SWObjectNotFoundError
+from pysolarwinds.exceptions import SWEntityNotFoundError
 from pysolarwinds.models import BaseModel
 from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 
@@ -42,7 +42,7 @@ class SNMPv3CredentialsModel(BaseModel):
             if result := self.swis.query(str(query)):
                 return SNMPv3Credential(swis=self.swis, data=result[0])
             msg = f"SNMPv3 credential with ID {id} not found."
-            raise SWObjectNotFoundError(msg)
+            raise SWEntityNotFoundError(msg)
         elif name:  # noqa: RET506
             criterion = pypika.Criterion.all(
                 [
@@ -55,7 +55,7 @@ class SNMPv3CredentialsModel(BaseModel):
             if result := self.swis.query(str(query)):
                 return SNMPv3Credential(swis=self.swis, data=result[0])
             msg = f'SNMPv3 credential with name "{name}" not found.'
-            raise SWObjectNotFoundError(
+            raise SWEntityNotFoundError(
                 msg,
             )
         return None

@@ -17,9 +17,9 @@ from pysolarwinds.exceptions import (
     SWAlertSuppressionError,
     SWDiscoveryError,
     SWEntityManagementError,
+    SWEntityNotFoundError,
     SWEntityPropertyError,
     SWNonUniqueResultError,
-    SWObjectNotFoundError,
     SWResourceImportError,
 )
 from pysolarwinds.logging import get_logger
@@ -126,7 +126,7 @@ class Node(MonitoredEntity):
                 return result[0]
             else:
                 msg = f'Node with caption "{self.caption}" not found.'
-                raise SWObjectNotFoundError(msg)
+                raise SWEntityNotFoundError(msg)
 
         if self.ip_address:
             query = QUERY.where(TABLE.IPAddress == self.ip_address)
@@ -139,7 +139,7 @@ class Node(MonitoredEntity):
                 return result[0]
             else:
                 msg = f"Node with IP address {self.ip_address} not found."
-                raise SWObjectNotFoundError(
+                raise SWEntityNotFoundError(
                     msg,
                 )
         return None

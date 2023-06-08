@@ -4,7 +4,7 @@ from typing import Optional
 import pypika
 
 from pysolarwinds.entities.orion.credentials.userpass import UserPassCredential
-from pysolarwinds.exceptions import SWObjectNotFoundError
+from pysolarwinds.exceptions import SWEntityNotFoundError
 from pysolarwinds.models import BaseModel
 from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 
@@ -42,7 +42,7 @@ class UserPassCredentialsModel(BaseModel):
             if result := self.swis.query(str(query)):
                 return UserPassCredential(swis=self.swis, data=result[0])
             msg = f"Username/password credential with ID {id} not found."
-            raise SWObjectNotFoundError(
+            raise SWEntityNotFoundError(
                 msg,
             )
         elif name:  # noqa RET506
@@ -57,7 +57,7 @@ class UserPassCredentialsModel(BaseModel):
             if result := self.swis.query(str(query)):
                 return UserPassCredential(swis=self.swis, data=result[0])
             msg = f'Username/password credential with name "{name}" not found.'
-            raise SWObjectNotFoundError(
+            raise SWEntityNotFoundError(
                 msg,
             )
         return None

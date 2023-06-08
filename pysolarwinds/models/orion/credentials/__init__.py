@@ -5,9 +5,9 @@ from pysolarwinds.entities.orion.credentials.snmpv2 import SNMPv2Credential
 from pysolarwinds.entities.orion.credentials.snmpv3 import SNMPv3Credential
 from pysolarwinds.entities.orion.credentials.userpass import UserPassCredential
 from pysolarwinds.exceptions import (
+    SWEntityNotFoundError,
     SWError,
     SWNonUniqueResultError,
-    SWObjectNotFoundError,
 )
 from pysolarwinds.models import BaseModel
 from pysolarwinds.models.orion.credentials.snmpv2 import SNMPv2CredentialsModel
@@ -44,7 +44,7 @@ class CredentialsModel(BaseModel):
 
         Raises:
             ValueError if neither `id` nor `name` are provided.
-            SWObjectNotFoundError if no credential matches name or ID.
+            SWEntityNotFoundError if no credential matches name or ID.
         """
         if not id and not name:
             msg = "Must provide either credential ID or name."
@@ -71,5 +71,5 @@ class CredentialsModel(BaseModel):
                     raise SWError(msg)
             else:
                 msg = f'Credential with name "{name}" not found.'
-                raise SWObjectNotFoundError(msg)
+                raise SWEntityNotFoundError(msg)
         return None
