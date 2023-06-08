@@ -1,6 +1,7 @@
 import datetime
+import re
 import time
-from typing import Optional
+from typing import Callable, Literal, Optional, Union
 
 import pytz
 
@@ -212,7 +213,10 @@ class Node(MonitoredEntity):
 
     @property
     def cpu_load(self) -> int:
-        """Integer representation of CPU load. This likely represents percentage, not load."""
+        """Integer representation of CPU load.
+
+        This likely represents percentage, not load.
+        """
         return self.data["CPULoad"]
 
     @property
@@ -387,7 +391,8 @@ class Node(MonitoredEntity):
 
     @property
     def alerts_will_be_suppressed(self) -> bool:
-        """Whether or not alerts are scheduled to be suppressed at a future date/time."""
+        """Whether or not alerts are scheduled to be suppressed at a future
+        date/time."""
         return (
             self._get_alert_suppression_state()["SuppressionMode"]
             == ALERTS_WILL_BE_SUPPRESSED
@@ -480,8 +485,7 @@ class Node(MonitoredEntity):
                 poller.disable()
 
     def import_all_resources(self, timeout: float = 600.0) -> None:
-        """
-        Discovers, imports, and monitors all available SNMP resources.
+        """Discovers, imports, and monitors all available SNMP resources.
 
         In most cases, this will leave the node in an undesirable state (i.e., with
         down interfaces). The more useful method is `import_resources`, which provides a
@@ -553,6 +557,303 @@ class Node(MonitoredEntity):
             msg = f"Timed out waiting for SNMP resources ({timeout}sec)."
             raise SWResourceImportError(msg)
 
+    def import_resources(  # noqa: C901, PLR0912, PLR0915
+        self,
+        *,
+        enable_pollers: Union[None, list[str], Literal["all"]] = "all",
+        purge_existing_pollers: bool,
+        enforce_icmp_status_polling: bool,
+        monitor_volumes: Union[
+            None, list[str], Literal["existing", "all"], Callable
+        ] = "existing",
+        delete_volumes: Optional[Union[re.Pattern, list[re.Pattern]]] = None,
+        monitor_interfaces: Union[
+            None, list[str], Literal["existing", "up", "all"], Callable
+        ] = "existing",
+        delete_interfaces: Optional[Union[re.Pattern, list[re.Pattern]]] = None,
+        unmanage_node: bool,
+        unmanage_node_timeout: Union[datetime.timedelta, int] = datetime.timedelta(
+            days=1
+        ),
+        remanage_delay: Optional[Union[datetime.timedelta, int]] = None,
+        import_timeout: float = 600.0,
+    ) -> None:
+        """Imports and monitors SNMP resources.
+
+        WARNING: Take care and test thoroughly if running against a node with *any* of these
+        conditions, and *especially* nodes that meet more than one condition:
+            - High-latency (300ms+ RTT)
+            - Many interfaces (300+)
+            - Uses a secondary polling engine (i.e., does not use the main SolarWinds server
+              for polling)
+        The ListResources verbs that import_resources use have produced unpredictable results
+        when testing against nodes that meet any or all of the above conditions (see details
+        below).
+
+        SNMP resources include:
+        1. SolarWinds pollers, which roughly correspond to system health OIDs such as CPU,
+           RAM, routing tables, hardware health stats, etc. Available pollers vary by device
+           type and platform version.
+        2. Storage volumes, i.e. any persistent storage device that has a SNMP OID. Consider that
+           some devices present system volumes that are not actually physical storage devices,
+           but are rather loopback-mounted virtual devices, such as archives (JunOS). Since these
+           are always at 100% storage capacity, monitoring them will trigger a warning condition.
+           Consider using the monitor_volumes and/or delete_volumes options to filter them out.
+        3. Interfaces. These include the usual physical and virtual interfaces you'd
+           expect, as well as others you might not: stack ports, virtual application
+           ports, or even more exotic stuff.
+
+        monitor_resources works by invoking the ListResources verbs in SWIS, which imports
+        all available resources from all three classes above. These verbs offer no granularity
+        whatsoever--they don't even return a list of imported items. There is no way to select
+        which resources, volumes, or interfaces you want--you can only import everything,
+        then remove any pollers, volumes or interfaces you don't want after import.
+
+        WARNING: The ListResources verbs are also dishonest under certain conditions, such as
+                 heavy system load (as a result of, say, running many resource imports at the
+                 same time). Under such conditions, ListResources verbs return successful
+                 responses to invocations, but in fact, the import has failed. In such a case it
+                 is impossible to tell if the verbs have succeeded or failed. This could leave
+                 a node in a state that may generate alerts, or may not have system resources
+                 monitored, without raising any exception. Testing suggests the best mitigation
+                 is to limit concurrent invocations of ListResources to about 5-10 at a time. Further
+                 testing suggests this condition also arises when running ListResources against
+                 a high latency node with many interfaces, which is assigned a secondary polling
+                 engine (i.e., not using the primary SolarWinds server for polling)
+
+        Args:
+            enable_pollers: Which pollers to enable. May be a list of poller names, or these values:
+                all: enable all discovered pollers (default)
+                None: disable all discovered pollers (i.e., delete all discovered pollers)
+            purge_existing_pollers:
+                Whether to delete all existing pollers before discovering/enabling all available pollers.
+                Useful if existing pollers might be incorrect. Use
+                caution when enabling this in a concurrent/threaded scenario; see warning above.
+            monitor_interfaces: Which interfaces to monitor. May be a list of interface names,
+                None, a callable object, or one of: 'existing', 'up', 'all'.
+                existing (default): preserves existing interfaces (no net change to interfaces)
+                up: Monitor all interfaces that SolarWinds reports as operationally and
+                    administratively up
+                all: Monitor all interfaces, regardless of their operational or
+                    administrative status
+                None: Do not monitor any interfaces (i.e., delete all imported interfaces)
+                If a callable is provided, the interface will be provided as the only argument and
+                the interface will be monitored if it returns a truthy response.
+            monitor_volumes: Which volumes to monitor. May be a list of volume names, a callable
+                object, or one of: 'existing', 'all':
+                existing (default): preserves existing volumes (no net change)
+                all: Monitor all available volumes
+                None: Do not monitor any volumes (i.e., delete all imported volumes)
+                If a callable is provided, the volume will be provided as the only argument and
+                the volume will be monitored if it returns a truthy response.
+            unmanange_node: Whether to unmanage (unmonitor) the node during
+                the resource import process. The ListResources verbs import all available OIDs
+                and interfaces, including any in a down or error state. Unmanaging the node before
+                import may mitigate this. Be aware: for this to help, your alert definitions must
+                account for node status. In other words, if your alert definition for interface
+                down only considers the interface status, then unmanaging the node will have no
+                protective effect on preventing false positive interface down alerts.
+            unmanage_node_timeout: Maximum time to unmonitor the node for. May be a
+                datetime.timedelta object, or an integer for seconds.
+                The node will automatically re-manage itself after this timeout in case
+                monitor_resources fails to automatically re-manage the node. In all intended
+                cases, the node will be re-managed as soon as resource import has completed.
+                This timeout is a failsafe to ensure that a node does not stay unmanaged
+                indefinitely if the resource monitoring process fails before re-managing the node.
+            remanage_delay: After successful resource import, delay re-managing node for this
+                length of time. May be a datetime.timedelta object, or an integer for seconds. Defaults
+                to None, i.e., after successful resource import, node will re-manage immediately.
+                Delaying re-management may be helpful in corner cases, such as when importing resources
+                for high-latency nodes with many interfaces polled by secondary polling engines. In
+                testing, this combination of factors was shown to cause a condition where SWIS reported
+                that down interfaces were deleted, but a propagation delay (or similar issue) caused
+                the main SolarWinds engine to raise false positive alerts on those interfaces. Even though
+                SWIS reported the interfaces were deleted, they existed in a transient state long
+                enough to trigger down interface alerts. Delaying re-management of the node works around
+                this by giving SolarWinds time to settle into its desired state before resuming alerts.
+            import_timeout: Maximum time in seconds to wait for SNMP resources to import. Generous timeouts
+                are recommended in virtually all cases, because allowing SolarWinds to time out will
+                almost certainly leave the node in a state that will generate warnings or alerts due
+                to down interfaces or full-capacity storage volumes. In most normal cases, imports
+                take about 60-120 seconds. But high latency nodes with many OIDs can take upwards of
+                5 minutes, hence the 10 minute (600s) default value.
+            enforce_icmp_status_polling: SolarWinds recommends using ICMP to monitor status
+                (up/down) and response time, which is faster than using SNMP. The ListResources
+                verbs, however, automatically enable SNMP-based status and response time pollers.
+                To override this and use the recommended ICMP-based status and response time pollers,
+                set this to True.
+            delete_interfaces: Regex pattern, or list of patterns. If any interface name matches
+                any pattern, it will be excluded from monitoring (deleted after import).
+            delete_volumes: Regex pattern, or list of patterns. If any volume name matches
+                any pattern, it will be excluded from monitoring (deleted after import).
+
+        Returns:
+            None
+
+        Raises:
+            ValueError if node is unmanaged and interfaces == 'up'. When nodes are unmanaged,
+                the operational state of all interfaces become unmananged too.
+        """
+        existing_interface_names = []
+        interfaces_to_delete = []
+        volumes_to_delete = []
+
+        if monitor_interfaces == "up" and unmanage_node:
+            msg = "Can't monitor up interfaces when node is unmanaged."
+            raise ValueError(msg)
+
+        already_unmanaged = self.is_unmanaged
+        if monitor_interfaces == "up" and already_unmanaged:
+            msg = "Can't monitor up interfaces when node is unmanaged."
+            raise ValueError(msg)
+
+        if unmanage_node:
+            if already_unmanaged:
+                logger.info("Node is already unmanaged")
+            else:
+                logger.info("Unmanaging node...")
+                if isinstance(unmanage_node_timeout, datetime.timedelta):
+                    delta = unmanage_node_timeout
+                elif isinstance(unmanage_node_timeout, int):
+                    delta = datetime.timedelta(seconds=unmanage_node_timeout)
+                else:
+                    msg = f"Unexpected value for unmanage_node_timeout: {unmanage_node_timeout}. Must be either a positive integer (seconds) or a `datetime.timedelta` object."
+                    raise ValueError(msg)
+                self.unmanage(end=(datetime.datetime.now(tz=pytz.utc) + delta))
+
+        if monitor_interfaces == "existing":
+            logger.info("Getting existing interfaces to preserve...")
+            self.interfaces.fetch()
+            existing_interface_names = [x.name for x in self.interfaces]
+            logger.info(f"Found {len(existing_interface_names)} existing interfaces.")
+
+        if monitor_volumes == "existing":
+            logger.info("Getting existing volumes to preserve...")
+            existing_volume_names = [x.name for x in self.volumes]
+            logger.info(f"Found {len(existing_volume_names)} existing volumes.")
+
+        if purge_existing_pollers:
+            logger.info("Purging existing pollers...")
+            self.pollers.delete_all()
+
+        self.import_all_resources(timeout=import_timeout)
+
+        logger.info(" Getting imported pollers...")
+        self.pollers.fetch()
+        logger.info(f"Found {len(self.pollers)} imported pollers.")
+        if enable_pollers == "all":
+            pass  # All imported pollers are enabled by default.
+        elif enable_pollers is None:
+            self.pollers.disable_all()
+        elif isinstance(enable_pollers, list):
+            for poller in self.pollers:
+                if poller.name in enable_pollers:
+                    if not poller.is_enabled:
+                        poller.enable()
+                else:
+                    poller.disable()
+            for poller_name in enable_pollers:
+                poller = self.pollers.get(poller_name)
+                if not poller:
+                    logger.warning(f"Poller {poller_name} does not exist.")
+        else:
+            msg = f'Unexpected value for pollers: {enable_pollers}. Must be a list of poller names, "all", or None.'
+            raise ValueError(msg)
+
+        logger.info("Getting imported interfaces...")
+        self.interfaces.fetch()
+        logger.info(f"Found {len(self.interfaces)} imported interfaces.")
+        if monitor_interfaces == "existing":
+            interfaces_to_delete = [
+                x for x in self.interfaces if x.name not in existing_interface_names
+            ]
+        elif monitor_interfaces == "up":
+            interfaces_to_delete = [x for x in self.interfaces if not x.up]
+        elif monitor_interfaces == "all":
+            interfaces_to_delete = []
+        elif monitor_interfaces is None:
+            interfaces_to_delete = list(self.interfaces)
+        elif isinstance(monitor_interfaces, list):
+            interfaces_to_delete = [
+                x for x in self.interfaces if x.name not in monitor_interfaces
+            ]
+        elif callable(monitor_interfaces):
+            interfaces_to_delete = [
+                x for x in self.interfaces if not monitor_interfaces(x)
+            ]
+        else:
+            msg = f'Unexpected value for monitor_interfaces: {monitor_interfaces}. Must be a list of interface names, a callable, or one of these values: "existing", "up", "all", or None.'
+            raise ValueError(msg)
+        if delete_interfaces:
+            if isinstance(delete_interfaces, re.Pattern):
+                delete_interfaces = [delete_interfaces]
+            for interface in self.interfaces:
+                for pattern in delete_interfaces:
+                    if re.search(pattern, interface.name):
+                        logger.debug(
+                            f"Deleting interface {interface} because "
+                            f'it matches exclusion pattern "{pattern}".'
+                        )
+                        interfaces_to_delete.append(interface)
+
+        if interfaces_to_delete:
+            interfaces_to_delete = list(set(interfaces_to_delete))
+            logger.info(f"Deleting {len(interfaces_to_delete)} unwanted interfaces...")
+            self.interfaces.delete(interfaces_to_delete)
+
+        logger.info("Getting imported volumes...")
+        self.volumes.fetch()
+        if monitor_volumes == "existing":
+            volumes_to_delete = [
+                x for x in self.volumes if x.name not in existing_volume_names
+            ]
+        elif monitor_volumes == "all":
+            volumes_to_delete = []
+        elif monitor_volumes is None:
+            volumes_to_delete = list(self.volumes)
+        elif isinstance(monitor_volumes, list):
+            volumes_to_delete = [
+                x for x in self.volumes if x.name not in monitor_volumes
+            ]
+        elif callable(monitor_volumes):
+            volumes_to_delete = [x for x in self.volumes if not monitor_volumes(x)]
+        else:
+            msg = f'Unexpected value for monitor_volumes: {monitor_volumes}. Must be a list of volume names, a callable, or one of these values: "existing", "all", None.'
+            raise ValueError(msg)
+        if delete_volumes:
+            if isinstance(delete_volumes, re.Pattern):
+                delete_volumes = [delete_volumes]
+            for volume in self.volumes:
+                for pattern in delete_volumes:
+                    if re.search(pattern, volume.name):
+                        logger.debug(
+                            f"Deleting volume {volume} because "
+                            f'it matches exclusion pattern "{pattern}".'
+                        )
+                        volumes_to_delete.append(volume)
+        if volumes_to_delete:
+            logger.info(f"Deleting {len(volumes_to_delete)} unwanted volumes...")
+            self.volumes.delete(volumes_to_delete)
+
+        if unmanage_node and not already_unmanaged:
+            if remanage_delay:
+                if isinstance(remanage_delay, int):
+                    delta = datetime.timedelta(seconds=remanage_delay)
+                    msg = f"Setting node to re-manage in {remanage_delay}sec..."
+                else:
+                    delta = remanage_delay
+                    msg = f"Delaying re-manage by {remanage_delay}..."
+                logger.info(msg)
+                self.unmanage(end=(datetime.utcnow() + delta))
+            else:
+                logger.info("Re-managing node...")
+                self.remanage()
+
+        if enforce_icmp_status_polling:
+            self.enforce_icmp_status_polling()
+
+        logger.info("Resource import complete.")
+
     def suppress_alerts(
         self,
         start: Optional[datetime.datetime] = None,
@@ -609,7 +910,10 @@ class Node(MonitoredEntity):
         logger.info(msg)
 
     def resume_alerts(self) -> None:
-        """Resume alerts on node immediately. Also cancels planned alert suppression, if any."""
+        """Resume alerts on node immediately.
+
+        Also cancels planned alert suppression, if any.
+        """
         # This call returns nothing if successful.
         self.swis.invoke("Orion.AlertSuppression", "ResumeAlerts", [self.uri])
         logger.info("Resumed alerts.")

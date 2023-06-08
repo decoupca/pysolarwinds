@@ -114,7 +114,7 @@ class PollerList(BaseList):
     def names(self) -> list:
         return [x.name for x in self.items]
 
-    def add(self, pollers: Union[list[str], str], *, enabled: bool) -> bool:
+    def add(self, pollers: Union[list[str], str], *, enabled: bool) -> None:
         if isinstance(pollers, str):
             pollers = [pollers]
         for poller in pollers:
@@ -134,48 +134,44 @@ class PollerList(BaseList):
             new_poller = Poller(swis=self.swis, node=self.node, data=data)
             self.items.append(new_poller)
             logger.info(
-                f"{self.node}: {new_poller}: created new poller "
+                f"{new_poller}: created new poller "
                 f"({'enabled' if enabled else 'disabled'})",
             )
-        return True
 
-    def delete(self, poller: Union[Poller, str]) -> bool:
+    def delete(self, poller: Union[Poller, str]) -> None:
         if isinstance(poller, str):
             poller = self[poller]
         poller.delete()
-        return True
 
-    def delete_all(self) -> bool:
+    def delete_all(self) -> None:
+        self.fetch()
         pollers = self.items
         if pollers:
             self.swis.delete([x.uri for x in self.items])
             self.items = []
-            logger.info(f"{self.node}: Deleted all {len(pollers)} pollers")
+            logger.info(f"Deleted all pollers ({len(pollers)}).")
         else:
-            logger.debug(f"{self.node}: No pollers to delete, doing nothing")
-        return True
+            logger.debug("No pollers to delete; doing nothing.")
 
-    def disable(self, poller: Union[Poller, str]) -> bool:
+    def disable(self, poller: Union[Poller, str]) -> None:
         if isinstance(poller, str):
             poller = self[poller]
-        return poller.disable()
+        poller.disable()
 
-    def disable_all(self) -> bool:
+    def disable_all(self) -> None:
         for poller in self.items:
             if poller.is_enabled:
                 poller.disable()
-        return True
 
-    def enable(self, poller: Union[Poller, str]) -> bool:
+    def enable(self, poller: Union[Poller, str]) -> None:
         if isinstance(poller, str):
             poller = self[poller]
         return poller.enable()
 
-    def enable_all(self) -> bool:
+    def enable_all(self) -> None:
         for poller in self.items:
             if not poller.is_enabled:
                 poller.disable()
-        return True
 
     def fetch(self) -> None:
         query = (
