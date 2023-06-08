@@ -108,7 +108,7 @@ class Volume(MonitoredEntity):
 
     @property
     def iops(self) -> bool:
-        """Convenience alias"""
+        """Convenience alias."""
         return self.total_disk_iops
 
     @property
@@ -121,12 +121,12 @@ class Volume(MonitoredEntity):
 
     @property
     def percent_available(self) -> Optional[float]:
-        """Convenience alias"""
+        """Convenience alias."""
         return self.volume_percent_available
 
     @property
     def percent_used(self) -> Optional[float]:
-        """Convenience alias"""
+        """Convenience alias."""
         return self.volume_percent_used
 
     @property
@@ -155,12 +155,12 @@ class Volume(MonitoredEntity):
 
     @property
     def space_available(self) -> Optional[float]:
-        """Convenience alias"""
+        """Convenience alias."""
         return self.volume_space_available
 
     @property
     def space_used(self) -> Optional[float]:
-        """Convenience alias"""
+        """Convenience alias."""
         return self.volume_space_used
 
     @property

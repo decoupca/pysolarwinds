@@ -11,18 +11,20 @@ from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 class SNMPv2CredentialsModel(BaseModel):
     def get(self, name: Optional[str], id: Optional[int] = None) -> SNMPv2Credential:
         if not id and not name:
-            raise ValueError("Must provide either credential ID or name.")
+            msg = "Must provide either credential ID or name."
+            raise ValueError(msg)
         if id:
             criterion = pypika.Criterion.all(
                 TABLE.CredentialType
                 == "SolarWinds.Orion.Core.Models.Credentials.SnmpCredentialsV2",
-                TABLE.ID == id,
+                id == TABLE.ID,
             )
             query = QUERY.where(criterion)
             if result := self.swis.query(str(query)):
                 return SNMPv2Credential(swis=self.swis, data=result[0])
             else:
-                raise SWObjectNotFound(f"SNMPv2 credential with ID {id} not found.")
+                msg = f"SNMPv2 credential with ID {id} not found."
+                raise SWObjectNotFound(msg)
         elif name:
             criterion = pypika.Criterion.all(
                 TABLE.CredentialType
@@ -33,9 +35,11 @@ class SNMPv2CredentialsModel(BaseModel):
             if result := self.swis.query(str(query)):
                 return SNMPv2Credential(swis=self.swis, data=result[0])
             else:
+                msg = f'SNMPv2 credential with name "{name}" not found.'
                 raise SWObjectNotFound(
-                    f'SNMPv2 credential with name "{name}" not found.'
+                    msg,
                 )
+        return None
 
     def create(
         self,
@@ -44,6 +48,6 @@ class SNMPv2CredentialsModel(BaseModel):
         owner: str = "Orion",
     ) -> SNMPv2Credential:
         id = self.swis.invoke(
-            "Orion.Credential", "CreateSNMPCredentials", name, community, owner
+            "Orion.Credential", "CreateSNMPCredentials", name, community, owner,
         )
         return SNMPv2Credential(swis=self.swis, id=id)

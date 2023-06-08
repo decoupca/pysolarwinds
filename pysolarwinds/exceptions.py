@@ -1,7 +1,6 @@
 class SWError(Exception):
     """Base SolarWinds SWError."""
 
-    pass
 
 
 class SWAlertSuppressionError(SWError):
@@ -55,4 +54,3 @@ class SWObjectCreationError(SWError):
 class SWISError(SWError):
     """All SWIS API errors."""
 
-    pass

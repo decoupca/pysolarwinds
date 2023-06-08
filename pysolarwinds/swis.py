@@ -10,10 +10,11 @@ from pysolarwinds.utils import parse_response
 
 
 def _json_serial(obj):
-    """JSON serializer for objects not serializable by default json code"""
+    """JSON serializer for objects not serializable by default json code."""
     if isinstance(obj, datetime.datetime):
         serial = obj.isoformat()
         return serial
+    return None
 
 
 class SWISClient:
@@ -46,7 +47,7 @@ class SWISClient:
 
     def query(self, query: str, **params) -> list:
         return parse_response(
-            self._req("POST", "Query", {"query": query, "parameters": params}).json()
+            self._req("POST", "Query", {"query": query, "parameters": params}).json(),
         )
 
     def invoke(self, entity: str, verb: str, *args) -> dict:
@@ -71,8 +72,7 @@ class SWISClient:
             self._req("DELETE", uris)
 
     def sql(self, statement: str) -> bool:
-        """
-        Workaround API to execute arbitrary SQL against pysolarwinds DB
+        """Workaround API to execute arbitrary SQL against pysolarwinds DB
         **NOTE**: This method takes raw TSQL syntax, *NOT* SWQL syntax.
         Returns empty data structure if successful.
         """
@@ -80,10 +80,10 @@ class SWISClient:
         return True
 
     def _req(
-        self, method: str, frag: str, data: Optional[dict] = None
+        self, method: str, frag: str, data: Optional[dict] = None,
     ) -> httpx.Response:
         response = self.client.request(
-            method, self.url + frag, data=json.dumps(data, default=_json_serial)
+            method, self.url + frag, data=json.dumps(data, default=_json_serial),
         )
 
         if 400 <= response.status_code < 600:

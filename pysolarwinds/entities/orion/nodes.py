@@ -45,12 +45,12 @@ class Node(MonitoredEntity):
         ip_address: Optional[str] = None,
     ) -> None:
         super().__init__(
-            swis=swis, data=data, uri=uri, id=id, caption=caption, ip_address=ip_address
+            swis=swis, data=data, uri=uri, id=id, caption=caption, ip_address=ip_address,
         )
 
         self.caption: str = self.data.get("Caption", "") or caption
         self.custom_properties: CustomProperties = CustomProperties(
-            swis=self.swis, entity=self
+            swis=self.swis, entity=self,
         )
         self.interfaces: InterfaceList = InterfaceList(node=self)
         self.ip_address: str = self.data.get("IPAddress", "") or ip_address
@@ -76,25 +76,30 @@ class Node(MonitoredEntity):
             query = QUERY.where(TABLE.Caption == self.caption)
             if result := self.swis.query(str(query)):
                 if len(result) > 1:
+                    msg = f'Found {len(result)} results with caption "{self.caption}".'
                     raise SWNonUniqueResultError(
-                        f'Found {len(result)} results with caption "{self.caption}".'
+                        msg,
                     )
                 return result[0]
             else:
-                raise SWObjectNotFound(f'Node with caption "{self.caption}" not found.')
+                msg = f'Node with caption "{self.caption}" not found.'
+                raise SWObjectNotFound(msg)
 
         if self.ip_address:
             query = QUERY.where(TABLE.IPAddress == self.ip_address)
             if result := self.swis.query(str(query)):
                 if len(result) > 1:
+                    msg = f'Found {len(result)} results with ip_address "{self.ip_address}".'
                     raise SWNonUniqueResultError(
-                        f'Found {len(result)} results with ip_address "{self.ip_address}".'
+                        msg,
                     )
                 return result[0]
             else:
+                msg = f"Node with IP address {self.ip_address} not found."
                 raise SWObjectNotFound(
-                    f"Node with IP address {self.ip_address} not found."
+                    msg,
                 )
+        return None
 
     @property
     def agent_port(self) -> Optional[int]:
@@ -112,6 +117,7 @@ class Node(MonitoredEntity):
         block_until = self.data.get("BlockUntil")
         if block_until:
             return datetime.datetime.strptime(block_until, "%Y-%m-%dT%H:%M:%S")
+        return None
 
     @property
     def buffer_big_misses_this_hour(self) -> float:
@@ -346,7 +352,7 @@ class Node(MonitoredEntity):
     def _get_alert_suppression_state(self) -> dict:
         """Get raw alert suppression state on node."""
         return self.swis.invoke(
-            "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri]
+            "Orion.AlertSuppression", "GetAlertSuppressionState", [self.uri],
         )[0]
 
     @property
@@ -417,17 +423,15 @@ class Node(MonitoredEntity):
 
         for poller_name in disable_pollers:
             poller = self.pollers.get(poller_name)
-            if poller:
-                if poller.is_enabled:
-                    poller.disable()
+            if poller and poller.is_enabled:
+                poller.disable()
 
     def suppress_alerts(
         self,
         start: Optional[datetime.datetime] = None,
         end: Optional[datetime.datetime] = None,
     ) -> bool:
-        """
-        Suppress alerts on node.
+        """Suppress alerts on node.
 
         Any alerts that would normally be triggered by any condition(s) on the node,
         or its child objects (such as volumes or interfaces), will not be triggered.
@@ -468,9 +472,8 @@ class Node(MonitoredEntity):
         )
         if not suppression_state["SuppressedFrom"]:
             raise SWAlertSuppressionError(msg)
-        if end:
-            if not suppression_state["SuppressedUntil"]:
-                raise SWAlertSuppressionError(msg)
+        if end and not suppression_state["SuppressedUntil"]:
+            raise SWAlertSuppressionError(msg)
         if end:
             msg = f"{self}: Suppressed alerts from {start} until {end}."
         else:
@@ -490,11 +493,11 @@ class Node(MonitoredEntity):
         start: Optional[datetime.datetime] = None,
         end: Optional[datetime.datetime] = None,
     ) -> bool:
-        """Convenience alias"""
+        """Convenience alias."""
         return self.suppress_alerts(start=start, end=end)
 
     def unmute_alerts(self) -> bool:
-        """Convenience alias"""
+        """Convenience alias."""
         return self.resume_alerts()
 
     def unmanage(
@@ -503,8 +506,7 @@ class Node(MonitoredEntity):
         end: Optional[datetime.datetime] = None,
         duration: datetime.timedelta = datetime.timedelta(days=1),
     ) -> bool:
-        """
-        Un-manages node with optional start and end times, or duration.
+        """Un-manages node with optional start and end times, or duration.
 
         Args:
             start: optional datetime object, in UTC, at which to start unmanaging the node.
@@ -528,8 +530,7 @@ class Node(MonitoredEntity):
         return True
 
     def remanage(self) -> bool:
-        """
-        Re-manage node.
+        """Re-manage node.
 
         Arguments:
             None.
@@ -546,7 +547,8 @@ class Node(MonitoredEntity):
             self.read()
             return True
         else:
-            raise SWObjectManageError("Node already managed, doing nothing.")
+            msg = "Node already managed, doing nothing."
+            raise SWObjectManageError(msg)
 
     def save(self) -> None:
         updates = {

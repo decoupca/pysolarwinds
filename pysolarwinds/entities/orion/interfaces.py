@@ -83,6 +83,7 @@ class Interface(Entity):
     def custom_poller_last_statistics_poll(self) -> datetime.datetime:
         if last_poll := self.data["CustomPollerLastStatisticsPoll"]:
             return datetime.datetime.strptime(last_poll, "%Y-%m-%dT%H:%M:%S.%f0")
+        return None
 
     @property
     def description(self) -> str:
@@ -101,10 +102,9 @@ class Interface(Entity):
 
     @property
     def duplex(self) -> Optional[Literal["unknown", "half", "full"]]:
-        """
-        Human-friendly representation of duplex mode. Returns None when SolarWinds
+        """Human-friendly representation of duplex mode. Returns None when SolarWinds
         reports duplex mode is not applicable to this interface type.
-        https://support.solarwinds.com/SuccessCenter/s/article/Duplex-mode-on-interfaces-in-NPM?language=en_US
+        https://support.solarwinds.com/SuccessCenter/s/article/Duplex-mode-on-interfaces-in-NPM?language=en_US.
         """
         return [None, "unknown", "half", "full"][self.duplex_mode]
 
@@ -195,8 +195,7 @@ class Interface(Entity):
 
     @property
     def is_responding(self) -> bool:
-        """
-        Whether or not the interface is responding.
+        """Whether or not the interface is responding.
         Unknown if this corresponds to an 'up/up' status.
         """
         return bool(self.data["InterfaceResponding"])
@@ -213,18 +212,19 @@ class Interface(Entity):
 
     @property
     def last_change(self) -> Optional[datetime.datetime]:
-        """
-        Last change to interface.
+        """Last change to interface.
         Tests suggest this is the last configuration change, not status change.
         """
         if last_change := self.data["LastChange"]:
             return datetime.datetime.strptime(last_change, "%Y-%m-%dT%H:%M:%S.%f0")
+        return None
 
     @property
     def last_sync(self) -> Optional[datetime.datetime]:
         """Last sync with SolarWinds."""
         if last_sync := self.data["LastSync"]:
             return datetime.datetime.strptime(last_sync, "%Y-%m-%dT%H:%M:%S.%f0")
+        return None
 
     @property
     def late_collisions_this_hour(self) -> float:
@@ -240,12 +240,14 @@ class Interface(Entity):
     def mac_address(self) -> Optional[netaddr.EUI]:
         if mac := self.data.get("PhysicalAddress"):
             return netaddr.EUI(mac)
+        return None
 
     @property
     def max_input_bps_time(self) -> Optional[datetime.datetime]:
         """Date/time of max_input_bps_today."""
         if time := self.data.get("MaxInBpsTime"):
             return datetime.datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%f0")
+        return None
 
     @property
     def max_input_bps_today(self) -> float:
@@ -257,6 +259,7 @@ class Interface(Entity):
         """Date/time of max_output_bps_today."""
         if time := self.data.get("MaxOutBpsTime"):
             return datetime.datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%f0")
+        return None
 
     @property
     def max_output_bps_today(self) -> float:
@@ -281,12 +284,14 @@ class Interface(Entity):
         """Next poll by SolarWinds."""
         if next_poll := self.data["NextPoll"]:
             return datetime.datetime.strptime(next_poll, "%Y-%m-%dT%H:%M:%S.%f0")
+        return None
 
     @property
     def next_rediscovery(self) -> datetime.datetime:
         """Next rediscovery by SolarWinds."""
         if next_rediscovery := self.data["NextPoll"]:
             return datetime.datetime.strptime(next_rediscovery, "%Y-%m-%dT%H:%M:%S.%f0")
+        return None
 
     @property
     def node_id(self) -> int:
@@ -388,12 +393,14 @@ class Interface(Entity):
         """Date/time to un-manage (if scheduled)."""
         if unmanage_from := self.data["UnManageFrom"]:
             return datetime.datetime.strptime(unmanage_from, "%Y-%m-%dT%H:%M:%S")
+        return None
 
     @property
     def unmanage_until(self) -> Optional[datetime.datetime]:
         """Date/time to re-manage (if scheduled)."""
         if unmanage_until := self.data["UnManageUntil"]:
             return datetime.datetime.strptime(unmanage_until, "%Y-%m-%dT%H:%M:%S")
+        return None
 
     def __repr__(self) -> str:
         return self.name
@@ -431,25 +438,27 @@ class InterfaceList:
         if match := re.match(abbr_pattern, abbr):
             begin = match.group(1)
             end = match.group(2)
-            full_pattern = re.compile(f"^{begin}[a-z\-]+{end}$", re.I)
+            full_pattern = re.compile(f"^{begin}[a-z\\-]+{end}$", re.I)
             matches = []
             for iface in self._existing:
                 if re.match(full_pattern, iface.name):
                     matches.append(iface)
             if len(matches) == 0:
-                raise IndexError(f"No matches found: {abbr}")
+                msg = f"No matches found: {abbr}"
+                raise IndexError(msg)
             if len(matches) == 1:
                 return matches[0]
             if len(matches) > 1:
-                raise IndexError(f"Ambiguous reference: {abbr}")
+                msg = f"Ambiguous reference: {abbr}"
+                raise IndexError(msg)
+            return None
         else:
-            raise IndexError()
+            raise IndexError
 
     def add(
-        self, interfaces: Union[DiscoveredInterface, list[DiscoveredInterface]]
+        self, interfaces: Union[DiscoveredInterface, list[DiscoveredInterface]],
     ) -> None:
-        """
-        Adds one or more discovered interfaces to node, as a managed/monitored interface.
+        """Adds one or more discovered interfaces to node, as a managed/monitored interface.
 
         Arguments:
             interfaces: A DiscoveredInterface, or list of DiscoveredInterface objects.
@@ -481,8 +490,7 @@ class InterfaceList:
         logger.info(f"Found {len(self._existing)} existing interfaces.")
 
     def delete(self, interfaces: Union[Interface, list[Interface]]) -> None:
-        """
-        Delete one or more currently monitored interfaces.
+        """Delete one or more currently monitored interfaces.
 
         Arguments:
             interfaces: An Interface object or list of Interface objects to delete.
@@ -511,8 +519,7 @@ class InterfaceList:
             logger.warning("No interfaces to delete.")
 
     def discover(self) -> None:
-        """
-        Discover all available interfaces via SNMP.
+        """Discover all available interfaces via SNMP.
 
         Arguments:
             None.
@@ -525,9 +532,9 @@ class InterfaceList:
             - SWDiscoveryError if there was a problem discovering interfaces.
         """
         if self.node.polling_method != "snmp":
+            msg = f'Interface discovery requires SNMP polling method; node polling method is currently "{self.node.polling_method}".'
             raise SWObjectPropertyError(
-                "Interface discovery requires SNMP polling method; "
-                f'node polling method is currently "{self.node.polling_method}".'
+                msg,
             )
         logger.info("Discovering interfaces via SNMP...")
 
@@ -538,7 +545,7 @@ class InterfaceList:
         swis_host = self.swis.host
         self.swis.host = self.node.polling_engine.ip_address
         result = self.swis.invoke(
-            "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.node.id
+            "Orion.NPM.Interfaces", "DiscoverInterfacesOnNode", self.node.id,
         )
         self.swis.host = swis_host
         self._discovery_response_code = result["Result"]
@@ -572,10 +579,9 @@ class InterfaceList:
                 raise SWDiscoveryError(msg)
 
     def monitor(
-        self, interfaces: Optional[list[str]] = None, delete_extraneous: bool = False
+        self, interfaces: Optional[list[str]] = None, delete_extraneous: bool = False,
     ) -> None:
-        """
-        Monitor discovered interfaces on node.
+        """Monitor discovered interfaces on node.
 
         Arguments:
             interfaces: Optional list of interface names to monitor.
@@ -611,14 +617,13 @@ class InterfaceList:
                 if to_add:
                     self.add(to_add)
 
-            if delete_extraneous:
-                if extraneous:
-                    logger.info(f"Found {len(extraneous)} interfaces to delete.")
-                    self.swis.delete([x.uri for x in extraneous])
+            if delete_extraneous and extraneous:
+                logger.info(f"Found {len(extraneous)} interfaces to delete.")
+                self.swis.delete([x.uri for x in extraneous])
 
             if not missing and not extraneous:
                 logger.info(
-                    f"All {len(interfaces)} provided interfaces already monitored; doing nothing."
+                    f"All {len(interfaces)} provided interfaces already monitored; doing nothing.",
                 )
 
     def __len__(self) -> int:

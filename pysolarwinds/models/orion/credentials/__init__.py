@@ -14,25 +14,27 @@ from pysolarwinds.queries.orion.credentials import QUERY, TABLE
 class CredentialsModel(BaseModel):
     name = "Credential"
 
-    def __init__(self, swis):
+    def __init__(self, swis) -> None:
         self.swis = swis
         self.snmpv2 = SNMPv2CredentialsModel(swis=swis)
         self.snmpv3 = SNMPv3CredentialsModel(swis=swis)
         self.userpass = UserPassCredentialsModel(swis=swis)
 
     def get(
-        self, id: Optional[int] = None, name: Optional[str] = None
+        self, id: Optional[int] = None, name: Optional[str] = None,
     ) -> Union[SNMPv2Credential, SNMPv3Credential, UserPassCredential]:
         if not id and not name:
-            raise ValueError("Must provide either credential ID or name.")
+            msg = "Must provide either credential ID or name."
+            raise ValueError(msg)
         if id:
             return SNMPv3Credential(swis=self.swis, id=id)
         if name:
             query = QUERY.where(TABLE.Name == name)
             if result := self.swis.query(str(query)):
                 if len(result) > 1:
+                    msg = f'More than one credential found with name "{name}".'
                     raise SWNonUniqueResultError(
-                        f'More than one credential found with name "{name}".'
+                        msg,
                     )
                 cred_type = result[0]["CredentialType"]
                 if cred_type.endswith("SnmpCredentialsV3"):
@@ -42,6 +44,9 @@ class CredentialsModel(BaseModel):
                 elif cred_type.endswith("UsernamePasswordCredential"):
                     return UserPassCredential(swis=self.swis, data=result[0])
                 else:
-                    raise SWError(f"Unknown credential type: {cred_type}")
+                    msg = f"Unknown credential type: {cred_type}"
+                    raise SWError(msg)
             else:
-                raise SWObjectNotFound(f'Credential with name "{name}" not found.')
+                msg = f'Credential with name "{name}" not found.'
+                raise SWObjectNotFound(msg)
+        return None

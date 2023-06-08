@@ -10,8 +10,7 @@ class UserPassCredential(Credential):
         password: str,
         name: Optional[str] = None,
     ) -> None:
-        """
-        Update username/password credential set.
+        """Update username/password credential set.
 
         The way the SWIS API is built, it is not possible to update only one attribute;
         if you want to update any attribute, you must provide all.

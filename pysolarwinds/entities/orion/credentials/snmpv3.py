@@ -16,8 +16,7 @@ class SNMPv3Credential(Credential):
         name: Optional[str] = None,
         context: str = "",
     ) -> None:
-        """
-        Update credential set with provided details.
+        """Update credential set with provided details.
 
         Due to how the SWIS API is built, there is no way to update only one property of the
         credential set; if you need to update any property, you must provide all properties

@@ -34,9 +34,11 @@ class MapPoint(Entity):
             if results := self.swis.query(str(query)):
                 return results[0]
             else:
+                msg = f'No map point exists for entity "{self.entity.name}".'
                 raise SWObjectNotFound(
-                    f'No map point exists for entity "{self.entity.name}".'
+                    msg,
                 )
+        return None
 
     @property
     def _id(self) -> int:

@@ -5,7 +5,7 @@ from pysolarwinds.swis import SWISClient
 
 
 class SolarWindsClient:
-    """Base class through which we create our SWIS client and access pysolarwinds objects."""
+    """Base class through which we create our SWIS client and access objects."""
 
     def __init__(
         self,
@@ -39,8 +39,7 @@ def client(
     verify: VerifyTypes = True,
     timeout: float = 30.0,
 ) -> SolarWindsClient:
-    """
-    Convenience method to create SolarWindsClient objects.
+    """Convenience method to create SolarWindsClient objects.
 
     Typical usage:
 

@@ -29,9 +29,11 @@ class Credential(Entity):
             if result := self.swis.query(query):
                 return result[0]["Uri"]
             else:
+                msg = f'No credential with name "{self.poller_type}" found.'
                 raise SWObjectNotFound(
-                    f'No credential with name "{self.poller_type}" found.'
+                    msg,
                 )
+        return None
 
     @property
     def _id(self) -> int:
@@ -45,7 +47,7 @@ class Credential(Entity):
     def type(self) -> str:
         return self.data.get("CredentialType", "")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Credential(name='{self.name}')"
 
     def __str__(self) -> str:

@@ -5,8 +5,7 @@ from pysolarwinds.entities.orion.credentials import Credential
 
 class SNMPv2Credential(Credential):
     def update(self, community: str, name: Optional[str] = None) -> None:
-        """
-        Update SNMPv1/2 credential community and optionally name.
+        """Update SNMPv1/2 credential community and optionally name.
 
         The way the SWIS API is built, it is not possible to only update the
         name without also providing the community string. When updating the name only,
@@ -19,7 +18,7 @@ class SNMPv2Credential(Credential):
         if name is None:
             name = self.name
         self.swis.invoke(
-            "Orion.Credential", "UpdateSNMPCredentials", self.id, name, community
+            "Orion.Credential", "UpdateSNMPCredentials", self.id, name, community,
         )
 
     def __repr__(self) -> str:

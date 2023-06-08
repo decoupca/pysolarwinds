@@ -12,7 +12,6 @@ class NodesModel(BaseModel):
 
     def create(self):
         """Create a new node."""
-        pass
 
     def list(
         self,
@@ -55,8 +54,7 @@ class NodesModel(BaseModel):
         caption: Optional[str] = None,
         ip_address: Optional[str] = None,
     ) -> Node:
-        """
-        Get a single Node.
+        """Get a single Node.
 
         You may provide more than one argument, but only one will be used to resolve the node,
         in this order of precedence:
@@ -79,9 +77,10 @@ class NodesModel(BaseModel):
 
         """
         if id is None and uri is None and caption is None and ip_address is None:
+            msg = "Must provide at least one: id, uri, caption, or ip_address."
             raise ValueError(
-                "Must provide at least one: id, uri, caption, or ip_address."
+                msg,
             )
         return Node(
-            swis=self.swis, id=id, uri=uri, caption=caption, ip_address=ip_address
+            swis=self.swis, id=id, uri=uri, caption=caption, ip_address=ip_address,
         )

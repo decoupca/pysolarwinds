@@ -37,9 +37,11 @@ class Poller(Entity):
             if results := self.swis.query(str(query)):
                 return results[0]
             else:
+                msg = f'No poller "{self.poller_type}" on node ID {self.node.id} found.'
                 raise SWObjectNotFound(
-                    f'No poller "{self.poller_type}" on node ID {self.node.id} found.'
+                    msg,
                 )
+        return None
 
     @property
     def _id(self) -> int:
@@ -112,7 +114,8 @@ class PollerList(BaseList):
             pollers = [pollers]
         for poller in pollers:
             if self.get(poller):
-                raise SWObjectExists(f"{self.node}: poller already exists: {poller}")
+                msg = f"{self.node}: poller already exists: {poller}"
+                raise SWObjectExists(msg)
 
             kwargs = {
                 "PollerType": poller,
@@ -127,7 +130,7 @@ class PollerList(BaseList):
             self.items.append(new_poller)
             logger.info(
                 f"{self.node}: {new_poller}: created new poller "
-                f"({'enabled' if enabled else 'disabled'})"
+                f"({'enabled' if enabled else 'disabled'})",
             )
         return True
 

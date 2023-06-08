@@ -8,5 +8,47 @@ build-backend = "setuptools.build_meta"
 profile = "black"
 
 [tool.ruff]
+select = [
+    "E",
+    "F",
+    "W",
+    "C",
+    "I",
+    "N",
+    "D",
+    "UP",
+    "ANN",
+    "S",
+    "BLE",
+    "FBT",
+    "B",
+    "COM",
+    "C4",
+    "DTZ",
+    "EM",
+    "ISC",
+    "ICN",
+    "G",
+    "INP",
+    "PIE",
+    "Q",
+    "RSE",
+    "RET",
+    "SLF",
+    "SIM",
+    "TID",
+    "INT",
+    "ARG",
+    "PTH",
+    "FIX",
+    "ERA",
+    "PL",
+    "FLY",
+    "RUF",
+]
+exclude = ["node.py"]
 line-length = 88
 target-version = "py39"
+
+[tool.ruff.pydocstyle]
+convention = "google"

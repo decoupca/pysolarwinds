@@ -1,6 +1,5 @@
 import datetime
-from typing import Dict, Optional
-
+from typing import Optional
 
 from pysolarwinds.defaults import EXCLUDE_CUSTOM_PROPS
 from pysolarwinds.exceptions import (
@@ -28,7 +27,7 @@ class Endpoint:
     _required_swargs_attrs = None
     _child_objects = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.uri = None
         self._exists = False
         self._extra_swargs = None
@@ -64,7 +63,8 @@ class Endpoint:
                     else:
                         endpoint = value
                         if not endpoint.exists():
-                            raise SWObjectPropertyError(f"{endpoint} does not exist")
+                            msg = f"{endpoint} does not exist"
+                            raise SWObjectPropertyError(msg)
 
     @property
     def _schema_doc_url(self) -> str:
@@ -76,12 +76,12 @@ class Endpoint:
 
     @property
     def _swp(self):
-        """convenience alias"""
+        """Convenience alias."""
         return self._swdata["properties"]
 
     @property
     def _swcp(self):
-        """convenience alias"""
+        """Convenience alias."""
         return self._swdata["custom_properties"]
 
     @property
@@ -103,18 +103,14 @@ class Endpoint:
             logger.warning("object doesn't exist, nothing to refresh")
 
     def _set_defaults(self) -> None:
-        """
-        Set attribute defaults. Overridden in subclasses.
-        """
-        pass
+        """Set attribute defaults. Overridden in subclasses."""
 
     def _get_uri(self, refresh: bool = False) -> Optional[str]:
-        """
-        Get object's SWIS URI
-        """
+        """Get object's SWIS URI."""
         if not self.uri or refresh:
             if not self._swquery_attrs:
-                raise SWObjectPropertyError("Missing required property: _swquery_attrs")
+                msg = "Missing required property: _swquery_attrs"
+                raise SWObjectPropertyError(msg)
             logger.debug("uri is not set or refresh is True, updating...")
             queries = []
             for attr in self._swquery_attrs:
@@ -122,7 +118,7 @@ class Endpoint:
                 if v:
                     k = self._attr_map[attr]
                     queries.append(
-                        f"SELECT Uri as uri FROM {self.endpoint} WHERE {k} = '{v}'"
+                        f"SELECT Uri as uri FROM {self.endpoint} WHERE {k} = '{v}'",
                     )
             if queries:
                 query_lines = "\n".join(queries)
@@ -138,7 +134,7 @@ class Endpoint:
             else:
                 key_attrs = ", ".join(self._swquery_attrs)
                 logger.debug(
-                    f"Can't get uri, one of these key attributes must be set: {key_attrs}"
+                    f"Can't get uri, one of these key attributes must be set: {key_attrs}",
                 )
                 return None
         else:
@@ -146,18 +142,14 @@ class Endpoint:
             return self.uri
 
     def exists(self, refresh: bool = False) -> bool:
-        """
-        Whether or not object exists
-        """
+        """Whether or not object exists."""
         self._exists = bool(self._get_uri(refresh=refresh))
         return self._exists
 
     def _get_swdata(self, refresh: bool = False, data: str = "both") -> None:
-        """
-        Caches pysolarwinds data
-        """
+        """Caches pysolarwinds data."""
         if not self.exists():
-            raise SWObjectDoesNotExist()
+            raise SWObjectDoesNotExist
         else:
             if (
                 not self._swdata.get("properties")
@@ -170,24 +162,22 @@ class Endpoint:
                 if data == "both" or data == "custom_properties":
                     if hasattr(self, "custom_properties"):
                         swdata["custom_properties"] = sanitize_swdata(
-                            self.swis.read(f"{self.uri}/CustomProperties")
+                            self.swis.read(f"{self.uri}/CustomProperties"),
                         )
                 if swdata.get("properties") or swdata.get("custom_properties"):
                     self._swdata = swdata
             else:
                 logger.debug(
-                    "_swdata is already set and refresh is False, doing nothing"
+                    "_swdata is already set and refresh is False, doing nothing",
                 )
 
     def _update_attrs(
         self,
-        attr_updates: Optional[Dict] = None,
-        cp_updates: Optional[Dict] = None,
+        attr_updates: Optional[dict] = None,
+        cp_updates: Optional[dict] = None,
         overwrite: bool = False,
     ) -> None:
-        """
-        Updates object attributes from dict
-        """
+        """Updates object attributes from dict."""
         if attr_updates is None:
             attr_updates = self._get_attr_updates()
 
@@ -199,17 +189,14 @@ class Endpoint:
             else:
                 logger.debug(
                     f"{attr} already has value '{v}' and overwrite is False, "
-                    f"leaving intact"
+                    f"leaving intact",
                 )
 
         if cp_updates is not None:
             self.custom_properties = cp_updates or None
 
     def _get_cp_updates(self, overwrite: bool = False) -> dict:
-        """
-        Get updates to custom_properties
-        """
-
+        """Get updates to custom_properties."""
         cprops = {}
         if self._swdata:
             sw_cprops = self._swdata.get("custom_properties")
@@ -225,9 +212,7 @@ class Endpoint:
         return cprops
 
     def _get_sw_cprops(self) -> dict:
-        """
-        Get customp properties from swdata
-        """
+        """Get customp properties from swdata."""
         if self._swdata:
             sw_cprops = self._swdata.get("custom_properties")
             if sw_cprops:
@@ -238,16 +223,11 @@ class Endpoint:
                 }
         return {}
 
-    def _get_attr_updates(self) -> Dict:
-        """
-        Get attribute updates from self._swdata. Overridden in subclasses.
-        """
-        pass
+    def _get_attr_updates(self) -> dict:
+        """Get attribute updates from self._swdata. Overridden in subclasses."""
 
     def _init_child_objects(self) -> None:
-        """
-        Initialize child objects
-        """
+        """Initialize child objects."""
         if self._child_objects:
             logger.debug("initializing child objects...")
             for attr, props in self._child_objects.items():
@@ -270,24 +250,22 @@ class Endpoint:
                             all_child_args_unset = False
                     if all_child_args_unset:
                         logger.debug(
-                            f"all props for child object {attr} unset, not initializing child"
+                            f"all props for child object {attr} unset, not initializing child",
                         )
                     else:
                         logger.debug(
-                            f"initializing child object at self.{attr} with args {child_args}"
+                            f"initializing child object at self.{attr} with args {child_args}",
                         )
                         setattr(self, attr, child_class(self.swis, **child_args))
                 else:
                     logger.debug(
-                        f"child object at self.{attr} already initialized, doing nothing"
+                        f"child object at self.{attr} already initialized, doing nothing",
                     )
         else:
             logger.debug("no child objects found, doing nothing")
 
     def _update_child_attrs(self) -> None:
-        """
-        Update child attributes with self (parent) attributes, as mapped in self._child_objects
-        """
+        """Update child attributes with self (parent) attributes, as mapped in self._child_objects."""
         if self._child_objects:
             for attr, props in self._child_objects.items():
                 child = getattr(self, attr)
@@ -299,34 +277,28 @@ class Endpoint:
                             setattr(child, child_attr, local_value)
                             logger.debug(
                                 f'updated child attribute {child_attr} to "{local_value}" '
-                                f"from local attribute {local_attr}"
+                                f"from local attribute {local_attr}",
                             )
                 else:
                     logger.debug(f"child object at {attr} is None, nothing to do")
 
     def _refresh_child_objects(self) -> None:
-        """
-        Call refresh() on all children
-        """
+        """Call refresh() on all children."""
         if self._child_objects:
-            for attr in self._child_objects.keys():
+            for attr in self._child_objects:
                 child = getattr(self, attr)
                 if child:
                     child.refresh()
 
     def _create_child_objects(self) -> None:
-        """
-        Call create() on all children
-        """
+        """Call create() on all children."""
         if self._child_objects:
-            for attr in self._child_objects.keys():
+            for attr in self._child_objects:
                 child = getattr(self, attr)
                 child.create()
 
     def _update_attrs_from_children(self, overwrite: bool = False) -> None:
-        """
-        Update self (parent) attributes from child attributes, as mapped in self._child_objects
-        """
+        """Update self (parent) attributes from child attributes, as mapped in self._child_objects."""
         if self._child_objects:
             for attr, props in self._child_objects.items():
                 child = getattr(self, attr)
@@ -338,7 +310,7 @@ class Endpoint:
                         if local_value != child_value or overwrite is True:
                             attr_updates.update({local_attr: child_value})
                             logger.debug(
-                                f"updated self.{local_attr} = {child_value} from child attr {child_attr}"
+                                f"updated self.{local_attr} = {child_value} from child attr {child_attr}",
                             )
                     self._update_attrs(attr_updates=attr_updates)
 
@@ -371,7 +343,7 @@ class Endpoint:
         # overwrite in subcasses if they have extra swargs
         return {}
 
-    def _diff_properties(self) -> Optional[Dict]:
+    def _diff_properties(self) -> Optional[dict]:
         changes = {}
         logger.debug("diff'ing properties...")
         # we need to convert empty values to NoneType for comparison, but
@@ -388,7 +360,7 @@ class Endpoint:
             logger.debug("no changes to properties found")
             return None
 
-    def _diff_custom_properties(self) -> Optional[Dict]:
+    def _diff_custom_properties(self) -> Optional[dict]:
         changes = {}
         logger.debug("diff'ing custom properties...")
         cp_args = self._swargs.get("custom_properties")
@@ -401,7 +373,7 @@ class Endpoint:
                 if sw_v != v:
                     changes[k] = v
                     logger.debug(
-                        f'custom property {k} has changed from "{sw_v}" to "{v}"'
+                        f'custom property {k} has changed from "{sw_v}" to "{v}"',
                     )
         if changes:
             return changes
@@ -409,11 +381,11 @@ class Endpoint:
             logger.debug("no changes to custom_properties found")
             return None
 
-    def _diff_child_objects(self) -> Optional[Dict]:
+    def _diff_child_objects(self) -> Optional[dict]:
         changes = {}
         logger.debug("diff'ing child objects...")
         if self._child_objects:
-            for attr in self._child_objects.keys():
+            for attr in self._child_objects:
                 child = getattr(self, attr)
                 if child:
                     child._diff()
@@ -462,22 +434,26 @@ class Endpoint:
             setattr(self, self._id_attr, sw_id)
             logger.debug(f"got pysolarwinds object id {self.id}")
         else:
+            msg = f'could not find id value in _swdata["properties"]["{self._swid_key}"]'
             raise SWIDNotFound(
-                f'could not find id value in _swdata["properties"]["{self._swid_key}"]'
+                msg,
             )
 
     def create(self) -> bool:
-        """Create object"""
+        """Create object."""
         if self.exists():
-            raise SWObjectExists("object exists, cannot create")
+            msg = "object exists, cannot create"
+            raise SWObjectExists(msg)
         else:
             self._resolve_endpoint_attrs()
             self._build_swargs()
             if not self._swargs:
-                raise SWObjectPropertyError("Can't create object without properties.")
+                msg = "Can't create object without properties."
+                raise SWObjectPropertyError(msg)
             for attr in self._required_swargs_attrs:
                 if not getattr(self, attr):
-                    raise SWObjectPropertyError(f"Missing required attribute: {attr}")
+                    msg = f"Missing required attribute: {attr}"
+                    raise SWObjectPropertyError(msg)
 
             self.uri = self.swis.create(self.endpoint, **self._swargs["properties"])
             if self._swargs.get("custom_properties"):
@@ -496,7 +472,7 @@ class Endpoint:
             return True
 
     def delete(self) -> bool:
-        """Delete object"""
+        """Delete object."""
         if self.exists():
             self.swis.delete(self.uri)
             self.uri = None
@@ -509,11 +485,11 @@ class Endpoint:
             return False
 
     def update(self) -> bool:
-        """alias to save method, to keep consistent with SWIS verb naming"""
+        """Alias to save method, to keep consistent with SWIS verb naming."""
         return self.save()
 
     def save(self) -> bool:
-        """Update object in pysolarwinds with local object's properties"""
+        """Update object in pysolarwinds with local object's properties."""
         self._resolve_endpoint_attrs()
         self._build_swargs()
         if self.exists():
@@ -523,7 +499,7 @@ class Endpoint:
                 if self._changes.get("properties"):
                     self.swis.update(self.uri, **self._changes["properties"])
                     logger.info(
-                        f"{self.name}: updated properties: {print_dict(self._changes['properties'])}"
+                        f"{self.name}: updated properties: {print_dict(self._changes['properties'])}",
                     )
                     self._get_swdata(refresh=True, data="properties")
                 if self._changes.get("custom_properties"):
@@ -532,12 +508,12 @@ class Endpoint:
                         **self._changes["custom_properties"],
                     )
                     logger.info(
-                        f"{self.name}: updated custom properties: {print_dict(self._changes['custom_properties'])}"
+                        f"{self.name}: updated custom properties: {print_dict(self._changes['custom_properties'])}",
                     )
                     self._get_swdata(refresh=True, data="custom_properties")
                 if self._changes.get("child_objects"):
                     logger.debug("found changes to child objects")
-                    for attr in self._changes["child_objects"].keys():
+                    for attr in self._changes["child_objects"]:
                         child = getattr(self, attr)
                         child.save()
                     logger.info(f"{self.name}: updated child objects")
@@ -577,7 +553,8 @@ class Entity:
             if data := self._get_data():
                 self.data = data
             else:
-                raise ValueError("Must provide SWIS ID, URI, or data dict.")
+                msg = "Must provide SWIS ID, URI, or data dict."
+                raise ValueError(msg)
         if not self.uri:
             if id:
                 self.uri = self.URI_TEMPLATE.format(self.swis.host, id)
@@ -590,7 +567,6 @@ class Entity:
 
     def _get_data(self) -> Optional[dict]:
         """Subclass-specific method to retrieve data by other means."""
-        pass
 
     def _read(self) -> dict:
         """Retrieve SWIS info dict."""
@@ -604,7 +580,6 @@ class Entity:
     @property
     def _id(self) -> int:
         """Retrieve entity ID from data dict."""
-        pass
 
     @property
     def cp(self) -> dict:
@@ -673,6 +648,7 @@ class MonitoredEntity(Entity):
         """Last synchronization with SolarWinds."""
         if last_sync := self.data.get("LastSync"):
             return datetime.datetime.strptime(last_sync, "%Y-%m-%dT%H:%M:%S.%f")
+        return None
 
     @property
     def max_response_time(self) -> int:
@@ -694,12 +670,14 @@ class MonitoredEntity(Entity):
         """Next polling date/time."""
         if next_poll := self.data.get("NextPoll"):
             return datetime.datetime.strptime(next_poll, "%Y-%m-%dT%H:%M:%S.%f")
+        return None
 
     @property
     def next_rediscovery(self) -> Optional[datetime.datetime]:
         """Next rediscovery date/time."""
         if next_rediscovery := self.data.get("NextRediscovery"):
             return datetime.datetime.strptime(next_rediscovery, "%Y-%m-%dT%H:%M:%S.%f")
+        return None
 
     @property
     def orion_id_column(self) -> str:
@@ -771,9 +749,11 @@ class MonitoredEntity(Entity):
         """Date/time from which the entity will be un-managed."""
         if unmanage_from := self.data.get("UnManageFrom"):
             return datetime.datetime.strptime(unmanage_from, "%Y-%m-%dT%H:%M:%SZ")
+        return None
 
     @property
     def unmanaged_until(self) -> Optional[datetime.datetime]:
         """Date/time until which the entity will be un-managed."""
         if unmanage_to := self.data.get("UnManageUntil"):
             return datetime.datetime.strptime(unmanage_to, "%Y-%m-%dT%H:%M:%SZ")
+        return None

@@ -3,10 +3,10 @@ import setuptools
 __version__ = "0.5.0"
 __author__ = "Austin de Coup-Crank"
 
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("README.md", encoding="utf-8") as fh:
     README = fh.read()
 
-with open("requirements.txt", "r", encoding="utf-8") as fh:
+with open("requirements.txt", encoding="utf-8") as fh:
     INSTALL_REQUIRES = fh.read().splitlines()
 
 setuptools.setup(

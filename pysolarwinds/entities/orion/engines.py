@@ -211,5 +211,5 @@ class Engine(Entity):
     def windows_version(self) -> str:
         return self.data["WindowsVersion"]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Engine(id={self.id})"
