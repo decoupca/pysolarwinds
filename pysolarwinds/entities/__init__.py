@@ -1,12 +1,8 @@
 import datetime
 from typing import Optional
 
-from pysolarwinds.defaults import EXCLUDE_CUSTOM_PROPS
-from pysolarwinds.exceptions import (
-    SWIDNotFoundError,
-    SWObjectExistsError,
-    SWObjectPropertyError,
-)
+import pytz
+
 from pysolarwinds.logging import get_logger
 from pysolarwinds.swis import SWISClient
 
@@ -234,12 +230,16 @@ class MonitoredEntity(Entity):
     def unmanaged_from(self) -> Optional[datetime.datetime]:
         """Date/time from which the entity will be un-managed."""
         if unmanage_from := self.data.get("UnManageFrom"):
-            return datetime.datetime.strptime(unmanage_from, "%Y-%m-%dT%H:%M:%SZ")
+            return datetime.datetime.strptime(
+                unmanage_from, "%Y-%m-%dT%H:%M:%SZ"
+            ).astimezone(tz=pytz.utc)
         return None
 
     @property
     def unmanaged_until(self) -> Optional[datetime.datetime]:
         """Date/time until which the entity will be un-managed."""
         if unmanage_to := self.data.get("UnManageUntil"):
-            return datetime.datetime.strptime(unmanage_to, "%Y-%m-%dT%H:%M:%SZ")
+            return datetime.datetime.strptime(
+                unmanage_to, "%Y-%m-%dT%H:%M:%SZ"
+            ).astimezone(tz=pytz.utc)
         return None
