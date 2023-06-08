@@ -31,7 +31,7 @@ class SolarWindsClient:
         return self.swis.query(query)
 
     def __repr__(self) -> str:
-        return f"SolarWindsClient(host='{self.host}')"
+        return f"SolarWindsClient(host='{self.swis.host}')"
 
 
 def client(
@@ -62,5 +62,4 @@ def client(
 
 __all__ = [
     "SolarWindsClient",
-    "Node",
 ]

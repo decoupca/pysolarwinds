@@ -82,7 +82,7 @@ class Node(MonitoredEntity):
 
         self._discovery_id = None
         self._discovery_batch_id = None
-        self._discovery_status = None
+        self._discovery_status = 0
         self._discovery_result = None
         self._discovered_items = None
 
@@ -96,14 +96,14 @@ class Node(MonitoredEntity):
             entity=self,
         )
         self.interfaces: InterfaceList = InterfaceList(node=self)
-        self.ip_address: str = self.data.get("IPAddress", "") or ip_address
+        self.ip_address: str = self.data.get("IPAddress") or ip_address or ""
         self.pollers: PollerList = PollerList(node=self)
         self.polling_engine: Engine = Engine(swis=swis, id=self.data["EngineID"])
         self.polling_method: str = self.data.get("ObjectSubType", "icmp").lower()
         self.settings: NodeSettings = NodeSettings(node=self)
         self.snmp_version: int = self.data.get("SNMPVersion", 0)
-        self.snmpv2_ro_community: str = self.data.get("Community", "")
-        self.snmpv2_rw_community: str = self.data.get("RWCommunity", "")
+        self.snmpv2_ro_community: str = self.data.get("Community") or ""
+        self.snmpv2_rw_community: str = self.data.get("RWCommunity") or ""
         self.snmpv3_ro_cred: Optional[SNMPv3Credential] = None
         self.snmpv3_rw_cred: Optional[SNMPv3Credential] = None
         self.volumes: VolumeList = VolumeList(node=self)
@@ -147,11 +147,13 @@ class Node(MonitoredEntity):
     @property
     def agent_port(self) -> Optional[int]:
         """Polling port."""
-        return int(self.data.get("AgentPort")) if self.data.get("AgentPort") else None
+        if port := self.data.get("AgentPort"):
+            return int(port)
+        return None
 
     @property
     def allow_64bit_counters(self) -> bool:
-        """Whether or not 64-bit counters are allowed."""
+        """Whether 64-bit counters are allowed."""
         return self.data["Allow64BitCounters"]
 
     @property
@@ -254,7 +256,7 @@ class Node(MonitoredEntity):
 
     @property
     def custom_status(self) -> bool:
-        """Whether or not node has a custom status."""
+        """Whether node has a custom status."""
         return self.data["CustomStatus"]
 
     @property
@@ -264,7 +266,7 @@ class Node(MonitoredEntity):
 
     @property
     def dynamic_ip(self) -> bool:
-        """Whether or not node uses a dynamic IP address."""
+        """Whether node uses a dynamic IP address."""
         return self.data["DynamicIP"]
 
     @property
@@ -284,17 +286,17 @@ class Node(MonitoredEntity):
 
     @property
     def is_cmts(self) -> bool:
-        """Whether or not node is a CMTS."""
+        """Whether node is a CMTS."""
         return self.data["CMTS"] == "Y"
 
     @property
     def is_orion_server(self) -> bool:
-        """Whether or not node is an Orion server."""
+        """Whether node is an Orion server."""
         return self.data["IsOrionServer"]
 
     @property
     def is_server(self) -> bool:
-        """Whether or not node is a server."""
+        """Whether node is a server."""
         return self.data["IsServer"]
 
     @property
@@ -401,7 +403,7 @@ class Node(MonitoredEntity):
 
     @property
     def alerts_are_suppressed(self) -> bool:
-        """Whether or not alerts are currently suppressed on node."""
+        """Whether alerts are currently suppressed on node."""
         return (
             self._get_alert_suppression_state()["SuppressionMode"]
             == ALERTS_ARE_SUPPRESSED
@@ -409,7 +411,7 @@ class Node(MonitoredEntity):
 
     @property
     def alerts_will_be_suppressed(self) -> bool:
-        """Whether or not alerts are scheduled to be suppressed at a future
+        """Whether alerts are scheduled to be suppressed at a future
         date/time.
         """
         return (
@@ -496,7 +498,7 @@ class Node(MonitoredEntity):
         import_interfaces: Optional[list] = ["up"],
         *,
         import_volumes: bool,
-    ) -> bool:
+    ) -> None:
         """
         Runs discovery on node.
 
@@ -1000,7 +1002,7 @@ class Node(MonitoredEntity):
                 x for x in self.interfaces if x.name not in existing_interface_names
             ]
         elif monitor_interfaces == "up":
-            interfaces_to_delete = [x for x in self.interfaces if not x.up]
+            interfaces_to_delete = [x for x in self.interfaces if not x.is_up]
         elif monitor_interfaces == "all":
             interfaces_to_delete = []
         elif monitor_interfaces is None:
@@ -1076,7 +1078,7 @@ class Node(MonitoredEntity):
                     delta = remanage_delay
                     msg = f"Delaying re-manage by {remanage_delay}..."
                 logger.info(msg)
-                self.unmanage(end=(datetime.utcnow() + delta))
+                self.unmanage(end=(datetime.datetime.now(tz=pytz.utc) + delta))
             else:
                 logger.info("Re-managing node...")
                 self.remanage()

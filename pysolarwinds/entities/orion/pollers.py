@@ -198,7 +198,7 @@ class PollerList(BaseList):
     def enable(self, poller: Union[Poller, str]) -> None:
         """Enable a poller."""
         if isinstance(poller, str):
-            poller = self[poller]
+            poller: Poller = self[poller]
         return poller.enable()
 
     def enable_all(self) -> None:

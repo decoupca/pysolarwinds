@@ -57,7 +57,7 @@ class Interface(Entity):
 
     @property
     def allow_64bit_counters(self) -> bool:
-        """Whether or not 64-bit SNMP counters are enabled."""
+        """Whether 64-bit SNMP counters are enabled."""
         return self.data["Counter64"] == "Y"
 
     @property
@@ -86,7 +86,7 @@ class Interface(Entity):
         return self.data["CustomBandwidth"]
 
     @property
-    def custom_poller_last_statistics_poll(self) -> datetime.datetime:
+    def custom_poller_last_statistics_poll(self) -> Optional[datetime.datetime]:
         if last_poll := self.data["CustomPollerLastStatisticsPoll"]:
             return datetime.datetime.strptime(
                 last_poll, "%Y-%m-%dT%H:%M:%S.%f0"
@@ -203,20 +203,25 @@ class Interface(Entity):
 
     @property
     def is_responding(self) -> bool:
-        """Whether or not the interface is responding.
+        """Whether the interface is responding.
         Unknown if this corresponds to an 'up/up' status.
         """
         return bool(self.data["InterfaceResponding"])
 
     @property
     def is_unmanaged(self) -> bool:
-        """Whether or not interface is un-managed."""
+        """Whether interface is un-managed."""
         return self.data["UnManaged"]
 
     @property
     def is_unpluggable(self) -> bool:
-        """Whether or not interface is un-pluggable."""
+        """Whether interface is un-pluggable."""
         return self.data["UnPluggable"]
+
+    @property
+    def is_up(self) -> bool:
+        """Whether interface is operationally up/up."""
+        return self.oper_status == "up"
 
     @property
     def last_change(self) -> Optional[datetime.datetime]:
@@ -305,7 +310,7 @@ class Interface(Entity):
         return None
 
     @property
-    def next_rediscovery(self) -> datetime.datetime:
+    def next_rediscovery(self) -> Optional[datetime.datetime]:
         """Next rediscovery by SolarWinds."""
         if next_rediscovery := self.data["NextPoll"]:
             return datetime.datetime.strptime(
@@ -456,7 +461,7 @@ class InterfaceList:
         self._discovered = []
         self._discovery_response_code = None
 
-    def _get_iface_by_abbr(self, abbr: str) -> Interface:
+    def _get_iface_by_abbr(self, abbr: str) -> Optional[Interface]:
         abbr = abbr.lower()
         abbr_pattern = r"^([a-z\-]+)([\d\/\:]+)$"
         if match := re.match(abbr_pattern, abbr):
@@ -575,7 +580,7 @@ class InterfaceList:
             self.node.id,
         )
         self.swis.host = swis_host
-        self._discovery_response_code = result["Result"]
+        self._discovery_response_code = int(result["Result"])
         if self._discovery_response_code == 0:
             if results := result["DiscoveredInterfaces"]:
                 self._discovered = [
@@ -617,7 +622,7 @@ class InterfaceList:
             interfaces: Optional list of interface names to monitor.
                 If None, all discovered up/up interfaces will be monitored.
                 If provided, only interfaces matching the names of those provided will be monitored.
-            delete_extraneous: Whether or not to remove interfaces that are not in the list provided.
+            delete_extraneous: Whether to remove interfaces that are not in the list provided.
                 If True, the provided interface list will be considered authoritative, and any interfaces
                 currently monitored that are not in the provided list will be deleted.
 

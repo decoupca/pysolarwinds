@@ -23,10 +23,10 @@ class MapPoint(Entity):
         data: Optional[dict] = None,
     ) -> None:
         super().__init__(swis=swis, id=id, uri=uri, data=data, entity=entity)
-        self.entity: Entity = entity
-        self.latitude: float = self.data.get("Latitude")
-        self.longitude: float = self.data.get("Longitude")
-        self.street_address: str = self.data.get("StreetAddress")
+        self.entity = entity
+        self.latitude = self.data.get("Latitude")
+        self.longitude = self.data.get("Longitude")
+        self.street_address = self.data.get("StreetAddress")
 
     def _get_data(self) -> Optional[dict]:
         if self.entity:
@@ -46,7 +46,7 @@ class MapPoint(Entity):
 
     @property
     def auto_added(self) -> bool:
-        """Whether or not map point was automatically added."""
+        """Whether map point was automatically added."""
         return self.data["AutoAdded"]
 
     @property

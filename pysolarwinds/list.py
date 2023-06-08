@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Union
 
+from pysolarwinds.entities import Entity
+
 if TYPE_CHECKING:
     from pysolarwinds.entities.orion.nodes import Node
 
 
 class BaseList:
-    _item_class = None
+    _item_class = Entity
 
     def __init__(self, node: Node) -> None:
         self.node = node
@@ -32,8 +34,8 @@ class BaseList:
         if isinstance(item, int):
             return self.items[item]
         elif isinstance(item, str):
-            for item in self.items:
-                if item.name == item:
+            for i in self.items:
+                if i.name == item:
                     return item
             msg = f"Item not found: {item}"
             raise KeyError(msg)

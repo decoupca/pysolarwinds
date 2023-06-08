@@ -1,7 +1,7 @@
 """Node settings."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from pysolarwinds.exceptions import SWObjectCreationError
 from pysolarwinds.logging import get_logger
@@ -23,7 +23,7 @@ class NodeSetting:
         self,
         node: Node,
         name: str,
-        value: str | int,
+        value: Union[str, int],
         node_setting_id: int | None = None,
     ) -> None:
         """Initialize node setting.
@@ -70,11 +70,11 @@ class SNMPCredentialSetting(NodeSetting):
     def build(self) -> None:
         """Build node setting."""
         model = CredentialsModel(swis=self.swis)
-        cred = model.get(id=self.value)
-        mode = self.name[:2]
-        version = int(cred.type[-1:])
-        self.node_attr = f"snmpv{version}_{mode.lower()}_cred"
-        self.node_attr_value = cred
+        if cred := model.get(id=self.value):
+            mode = self.name[:2]
+            version = int(cred.type[-1:])
+            self.node_attr = f"snmpv{version}_{mode.lower()}_cred"
+            self.node_attr_value = cred
 
 
 class NodeSettings:

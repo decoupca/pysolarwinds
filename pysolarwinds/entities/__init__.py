@@ -25,9 +25,10 @@ class Entity:
     ) -> None:
         self.swis = swis
         self.id = id
-        self.uri = uri or ""
-        self.data = data or {}
-        self.custom_properties = {}
+        self.uri: str = uri or ""
+        self.data: dict = data or {}
+        self.custom_properties: dict = {}
+        self.name: str = ""  # Set or overwrite in subclass
         if kwargs:
             for k, v in kwargs.items():
                 setattr(self, k, v)
@@ -122,7 +123,7 @@ class MonitoredEntity(Entity):
 
     @property
     def is_unmanaged(self) -> bool:
-        """Whether or not node is un-managed."""
+        """Whether node is un-managed."""
         return self.data["UnManaged"]
 
     @property
@@ -204,7 +205,7 @@ class MonitoredEntity(Entity):
     @property
     def status_code(self) -> int:
         """Numeric representation of entity status."""
-        return self.data.get("Status")
+        return self.data["Status"]
 
     @property
     def status_description(self) -> str:
